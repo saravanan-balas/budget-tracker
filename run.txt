@@ -1,10 +1,16 @@
-Docker
+Docker - to run postgres, redis and API
 
- docker-compose build --no-cache ui
-docker-compose up -d ui
+docker-compose build
+docker-compose up
 
 
-Postgress
+Command to run front end
+cd app
+npm run dev
+
+
+
+Postgress commands
 psql -h localhost -p 5432 -U postgres -d budget_tracker
 list tables \dt
 list schemas  \dn

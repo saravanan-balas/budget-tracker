@@ -75,22 +75,6 @@ services:
     volumes:
       - ./worker/logs:/app/logs
 
-  ui:
-    build:
-      context: .
-      dockerfile: ui/Dockerfile
-    container_name: budget_tracker_ui
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ASPNETCORE_URLS: http://+:3000
-      ApiBaseUrl: http://api:5000
-    ports:
-      - "3000:3000"
-    depends_on:
-      - api
-    networks:
-      - budget_tracker_network
-
 networks:
   budget_tracker_network:
     driver: bridge
