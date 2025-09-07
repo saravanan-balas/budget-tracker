@@ -1,0 +1,12 @@
+Docker
+
+ docker-compose build --no-cache ui
+docker-compose up -d ui
+
+
+Postgress
+psql -h localhost -p 5432 -U postgres -d budget_tracker
+list tables \dt
+list schemas  \dn
+
+select * from public."Transactions";
