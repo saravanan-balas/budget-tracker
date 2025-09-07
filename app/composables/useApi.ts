@@ -2,6 +2,7 @@ import type {
   LoginRequest, 
   LoginResponse,
   RegisterRequest,
+  GoogleAuthRequest,
   Transaction, 
   CreateTransaction, 
   UpdateTransaction,
@@ -66,6 +67,9 @@ export const useApi = () => {
   const logout = (): Promise<void> =>
     apiCall('/auth/logout', { method: 'POST' })
 
+  const googleAuth = (googleAuthData: GoogleAuthRequest): Promise<LoginResponse> =>
+    apiCall('/auth/google', { method: 'POST', body: googleAuthData })
+
   // Transaction endpoints
   const getTransactions = (filter?: TransactionFilter): Promise<Transaction[]> => {
     const queryParams = new URLSearchParams()
@@ -126,6 +130,7 @@ export const useApi = () => {
     login,
     register,
     logout,
+    googleAuth,
     
     // Transactions
     getTransactions,

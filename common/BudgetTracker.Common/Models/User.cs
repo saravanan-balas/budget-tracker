@@ -10,6 +10,7 @@ public class User
     public string FirstName { get; set; } = string.Empty;
     public string LastName { get; set; } = string.Empty;
     public string? PasswordHash { get; set; }
+    public string? GoogleId { get; set; }
     public string Currency { get; set; } = "USD";
     public string Country { get; set; } = "US";
     public string TimeZone { get; set; } = "UTC";

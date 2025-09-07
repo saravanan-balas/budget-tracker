@@ -75,6 +75,25 @@ public class AuthController : ControllerBase
         }
     }
 
+    [HttpPost("google")]
+    public async Task<IActionResult> GoogleAuth([FromBody] GoogleAuthDto googleAuthDto)
+    {
+        try
+        {
+            var result = await _authService.AuthenticateWithGoogleAsync(googleAuthDto);
+            return Ok(result);
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(new { error = ex.Message });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during Google authentication");
+            return StatusCode(500, new { error = "An error occurred during Google authentication" });
+        }
+    }
+
     [Authorize]
     [HttpPost("logout")]
     public async Task<IActionResult> Logout()

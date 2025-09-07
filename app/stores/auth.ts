@@ -1,5 +1,5 @@
 import { defineStore } from 'pinia'
-import type { User, LoginRequest, RegisterRequest } from '~/types'
+import type { User, LoginRequest, RegisterRequest, GoogleAuthRequest } from '~/types'
 
 interface AuthState {
   user: User | null
@@ -58,6 +58,42 @@ export const useAuthStore = defineStore('auth', {
       try {
         const api = useApi()
         const response = await api.register(userData)
+        
+        // Store token and user data
+        this.token = response.token
+        this.user = response.user
+        this.isAuthenticated = true
+        
+        // Store token in cookie for persistence
+        const tokenCookie = useCookie('auth-token', {
+          default: () => null,
+          maxAge: 60 * 60 * 24 * 7 // 7 days
+        })
+        tokenCookie.value = response.token
+        
+        // Store user in cookie
+        const userCookie = useCookie('auth-user', {
+          default: () => null,
+          maxAge: 60 * 60 * 24 * 7,
+          serialize: JSON.stringify,
+          deserialize: JSON.parse
+        })
+        userCookie.value = response.user
+        
+        return response
+      } catch (error) {
+        this.clearAuth()
+        throw error
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async googleAuth(googleAuthData: GoogleAuthRequest) {
+      this.loading = true
+      try {
+        const api = useApi()
+        const response = await api.googleAuth(googleAuthData)
         
         // Store token and user data
         this.token = response.token

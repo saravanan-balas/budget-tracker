@@ -65,3 +65,9 @@ public class AuthResponseDto
     public string RefreshToken { get; set; } = string.Empty;
     public UserDto User { get; set; } = null!;
 }
+
+public class GoogleAuthDto
+{
+    [Required(ErrorMessage = "Google ID token is required")]
+    public string IdToken { get; set; } = string.Empty;
+}

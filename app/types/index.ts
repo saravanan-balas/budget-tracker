@@ -27,6 +27,10 @@ export interface LoginResponse {
   user: User;
 }
 
+export interface GoogleAuthRequest {
+  idToken: string;
+}
+
 export interface Transaction {
   id: string;
   accountId: string;

@@ -7,6 +7,7 @@ using BudgetTracker.Common.Data;
 using BudgetTracker.Common.DTOs;
 using BudgetTracker.Common.Models;
 using AutoMapper;
+using Google.Apis.Auth;
 
 namespace BudgetTracker.API.Services;
 
@@ -98,6 +99,73 @@ public class AuthService : IAuthService
     {
         await Task.CompletedTask;
         _logger.LogInformation("User {UserId} logged out", userId);
+    }
+
+    public async Task<AuthResponseDto> AuthenticateWithGoogleAsync(GoogleAuthDto googleAuthDto)
+    {
+        try
+        {
+            // Verify the Google ID token
+            var payload = await GoogleJsonWebSignature.ValidateAsync(googleAuthDto.IdToken);
+            
+            if (payload == null)
+            {
+                throw new ArgumentException("Invalid Google ID token");
+            }
+
+            // Check if user already exists by Google ID or email
+            var existingUser = await _context.Users
+                .FirstOrDefaultAsync(u => u.GoogleId == payload.Subject || u.Email == payload.Email);
+
+            User user;
+
+            if (existingUser != null)
+            {
+                // Update existing user with Google ID if not already set
+                if (string.IsNullOrEmpty(existingUser.GoogleId))
+                {
+                    existingUser.GoogleId = payload.Subject;
+                    existingUser.UpdatedAt = DateTime.UtcNow;
+                    await _context.SaveChangesAsync();
+                }
+                user = existingUser;
+            }
+            else
+            {
+                // Create new user from Google profile
+                user = new User
+                {
+                    Id = Guid.NewGuid(),
+                    Email = payload.Email,
+                    FirstName = payload.GivenName ?? "",
+                    LastName = payload.FamilyName ?? "",
+                    GoogleId = payload.Subject,
+                    Currency = "USD",
+                    Country = "US",
+                    TimeZone = "UTC",
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+
+                _context.Users.Add(user);
+                await _context.SaveChangesAsync();
+            }
+
+            var token = GenerateJwtToken(user);
+            var refreshToken = GenerateRefreshToken();
+
+            return new AuthResponseDto
+            {
+                Token = token,
+                RefreshToken = refreshToken,
+                User = _mapper.Map<UserDto>(user)
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error authenticating with Google");
+            throw new ArgumentException("Failed to authenticate with Google");
+        }
     }
 
     private string GenerateJwtToken(User user)
