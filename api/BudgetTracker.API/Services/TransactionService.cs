@@ -36,10 +36,20 @@ public class TransactionService : ITransactionService
             query = query.Where(t => t.CategoryId == filter.CategoryId.Value);
 
         if (filter.StartDate.HasValue)
-            query = query.Where(t => t.TransactionDate >= filter.StartDate.Value);
+        {
+            var startDateUtc = filter.StartDate.Value.Kind == DateTimeKind.Utc 
+                ? filter.StartDate.Value 
+                : DateTime.SpecifyKind(filter.StartDate.Value, DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate >= startDateUtc);
+        }
 
         if (filter.EndDate.HasValue)
-            query = query.Where(t => t.TransactionDate <= filter.EndDate.Value);
+        {
+            var endDateUtc = filter.EndDate.Value.Kind == DateTimeKind.Utc 
+                ? filter.EndDate.Value 
+                : DateTime.SpecifyKind(filter.EndDate.Value.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+            query = query.Where(t => t.TransactionDate <= endDateUtc);
+        }
 
         if (filter.MinAmount.HasValue)
             query = query.Where(t => Math.Abs(t.Amount) >= filter.MinAmount.Value);
@@ -120,13 +130,17 @@ public class TransactionService : ITransactionService
             accountId = defaultAccount.Id;
         }
 
+        var transactionDateUtc = createDto.TransactionDate.Kind == DateTimeKind.Utc
+            ? createDto.TransactionDate
+            : DateTime.SpecifyKind(createDto.TransactionDate, DateTimeKind.Utc);
+
         var transaction = new Transaction
         {
             Id = Guid.NewGuid(),
             UserId = userId,
             AccountId = accountId,
-            TransactionDate = createDto.TransactionDate,
-            PostedDate = createDto.TransactionDate,
+            TransactionDate = transactionDateUtc,
+            PostedDate = transactionDateUtc,
             Amount = createDto.Amount,
             Type = createDto.Amount < 0 ? TransactionType.Debit : TransactionType.Credit,
             OriginalMerchant = createDto.Merchant,
