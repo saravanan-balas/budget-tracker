@@ -55,6 +55,7 @@ services:
       - budget_tracker_network
     volumes:
       - ./api/logs:/app/logs
+      - uploads_data:/app/uploads
 
   worker:
     build:
@@ -74,6 +75,7 @@ services:
       - budget_tracker_network
     volumes:
       - ./worker/logs:/app/logs
+      - uploads_data:/app/uploads
 
   frontend:
     build:
@@ -96,3 +98,4 @@ networks:
 
 volumes:
   postgres_data:
+  uploads_data:

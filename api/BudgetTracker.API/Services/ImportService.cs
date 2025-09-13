@@ -10,39 +10,25 @@ public class ImportService : IImportService
 {
     private readonly BudgetTrackerDbContext _context;
     private readonly IBlobStorageService _blobStorageService;
+    private readonly ISmartImportService _smartImportService;
     private readonly ILogger<ImportService> _logger;
 
     public ImportService(
         BudgetTrackerDbContext context,
         IBlobStorageService blobStorageService,
+        ISmartImportService smartImportService,
         ILogger<ImportService> logger)
     {
         _context = context;
         _blobStorageService = blobStorageService;
+        _smartImportService = smartImportService;
         _logger = logger;
     }
 
     public async Task<ImportPreviewDto> PreviewImportAsync(string fileName, byte[] fileData)
     {
-        await Task.CompletedTask;
-        
-        var preview = new ImportPreviewDto
-        {
-            Headers = new List<string> { "Date", "Description", "Amount", "Balance" },
-            SampleRows = new List<Dictionary<string, string>>
-            {
-                new() { ["Date"] = "2024-01-15", ["Description"] = "Sample Transaction", ["Amount"] = "-45.99", ["Balance"] = "1234.56" }
-            },
-            SuggestedMapping = new ColumnMappingDto
-            {
-                DateColumn = 0,
-                DescriptionColumn = 1,
-                AmountColumn = 2,
-                DateFormat = "yyyy-MM-dd"
-            }
-        };
-
-        return preview;
+        // Delegate to the smart import service for enhanced preview generation
+        return await _smartImportService.GeneratePreviewAsync(fileData, fileName);
     }
 
     public async Task<Guid> StartImportAsync(Guid userId, FileImportDto importDto)
@@ -89,7 +75,7 @@ public class ImportService : IImportService
         if (importFile == null)
             return null;
 
-        return new ImportStatusDto
+        var status = new ImportStatusDto
         {
             ImportId = importFile.Id,
             Status = importFile.Status.ToString(),
@@ -98,8 +84,23 @@ public class ImportService : IImportService
             ImportedTransactions = importFile.ImportedTransactions,
             DuplicateTransactions = importFile.DuplicateTransactions,
             FailedRows = importFile.FailedRows,
-            ErrorDetails = importFile.ErrorDetails
+            ErrorDetails = importFile.ErrorDetails,
+            DetectedBankName = importFile.DetectedBankName,
+            DetectedFormat = importFile.DetectedFormat,
+            AICost = importFile.AICost,
+            IsProcessedSynchronously = importFile.IsProcessedSynchronously
         };
+
+        // Calculate estimated time remaining for processing imports
+        if (importFile.Status == ImportStatus.Processing && !importFile.IsProcessedSynchronously)
+        {
+            var elapsed = DateTime.UtcNow - (importFile.ProcessingStartedAt ?? importFile.CreatedAt);
+            var estimatedTotal = TimeSpan.FromMinutes(2); // Default 2 minutes for async processing
+            var remaining = estimatedTotal - elapsed;
+            status.EstimatedSecondsRemaining = Math.Max(0, (int)remaining.TotalSeconds);
+        }
+
+        return status;
     }
 
     public async Task<IEnumerable<ImportStatusDto>> GetImportHistoryAsync(Guid userId)

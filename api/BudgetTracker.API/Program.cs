@@ -6,6 +6,10 @@ using Serilog;
 using BudgetTracker.Common.Data;
 using BudgetTracker.Common.Services;
 using BudgetTracker.API.Services;
+using BudgetTracker.Common.Services.Parsing;
+using BudgetTracker.Common.Services.AI;
+using BudgetTracker.Common.Services.OCR;
+using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -61,12 +65,22 @@ try
     builder.Services.AddFluentValidationClientsideAdapters();
     builder.Services.AddValidatorsFromAssemblyContaining<Program>();
 
-    builder.Services.AddScoped<IBlobStorageService, BlobStorageService>();
+    // Configure storage service - use local storage for development
+    builder.Services.AddScoped<IBlobStorageService, LocalFileStorageService>();
     
+    // Existing services
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITransactionService, TransactionService>();
     builder.Services.AddScoped<IImportService, ImportService>();
     builder.Services.AddScoped<IChatService, ChatService>();
+
+    // Universal Bank Import Services
+    builder.Services.AddScoped<ISmartImportService, SmartImportService>();
+    builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
+    builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
+    builder.Services.AddScoped<IAIBankAnalyzer, AIBankAnalyzer>();
+    builder.Services.AddScoped<IOCRService, OCRService>();
+    builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
 
     builder.Services.AddAuthentication(options =>
     {

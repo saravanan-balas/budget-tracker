@@ -20,6 +20,8 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<Rule> Rules { get; set; } = null!;
     public DbSet<Goal> Goals { get; set; } = null!;
     public DbSet<ImportedFile> ImportedFiles { get; set; } = null!;
+    public DbSet<BankTemplate> BankTemplates { get; set; } = null!;
+    public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -194,11 +196,40 @@ public class BudgetTrackerDbContext : DbContext
             entity.Property(e => e.FileName).IsRequired().HasMaxLength(500);
             entity.Property(e => e.FileType).HasMaxLength(50);
             entity.Property(e => e.BlobUrl).HasMaxLength(1000);
+            entity.Property(e => e.DetectedBankName).HasMaxLength(255);
+            entity.Property(e => e.DetectedCountry).HasMaxLength(100);
+            entity.Property(e => e.DetectedFormat).HasMaxLength(50);
+            entity.Property(e => e.TemplateVersion).HasMaxLength(50);
+            entity.Property(e => e.AICost).HasPrecision(10, 4);
             
             entity.HasOne(e => e.User)
                 .WithMany(u => u.ImportedFiles)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<BankTemplate>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.BankName).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Country).HasMaxLength(100);
+            entity.Property(e => e.FileFormat).HasMaxLength(50);
+            entity.Property(e => e.TemplatePattern).IsRequired();
+            
+            entity.HasIndex(e => new { e.BankName, e.Country, e.FileFormat })
+                .HasDatabaseName("IX_BankTemplates_Lookup");
+        });
+
+        modelBuilder.Entity<ImportParsingCache>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.FileHash).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.BankName).HasMaxLength(255);
+            entity.Property(e => e.ParsedStructure).IsRequired();
+            
+            entity.HasIndex(e => e.FileHash)
+                .IsUnique()
+                .HasDatabaseName("IX_ImportParsingCache_FileHash");
         });
 
         modelBuilder.Entity<AuditEvent>(entity =>

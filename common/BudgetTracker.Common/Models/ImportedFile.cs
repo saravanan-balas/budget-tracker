@@ -19,6 +19,13 @@ public class ImportedFile
     public int FailedRows { get; set; }
     public string? ErrorDetails { get; set; }
     public string? BankTemplate { get; set; }
+    public string? DetectedBankName { get; set; }
+    public string? DetectedCountry { get; set; }
+    public string? DetectedFormat { get; set; } // CSV, PDF, IMAGE
+    public string? TemplateVersion { get; set; }
+    public string? ParsingMetadata { get; set; } // JSON field
+    public decimal? AICost { get; set; } // Track AI usage cost
+    public bool IsProcessedSynchronously { get; set; }
     public DateTime? ProcessingStartedAt { get; set; }
     public DateTime? ProcessingCompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }

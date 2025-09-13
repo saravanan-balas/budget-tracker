@@ -107,8 +107,8 @@ definePageMeta({
 })
 
 const form = reactive({
-  email: 'saravanan.b@hotmail.com', // Pre-fill for testing
-  password: 'Test123*', // Pre-fill for testing
+  email: 'test@example.com', // Pre-fill for testing
+  password: 'Test123**', // Pre-fill for testing
   rememberMe: false
 })
 

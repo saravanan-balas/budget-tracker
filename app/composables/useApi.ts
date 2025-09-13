@@ -27,8 +27,12 @@ export const useApi = () => {
     const token = useCookie('auth-token')
     
     const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
       ...options.headers
+    }
+
+    // Only set Content-Type for JSON, let browser set it for FormData
+    if (!(options.body instanceof FormData)) {
+      headers['Content-Type'] = 'application/json'
     }
 
     if (token.value) {
@@ -39,7 +43,8 @@ export const useApi = () => {
       const response = await $fetch<T>(`${baseURL}/api${endpoint}`, {
         method: options.method || 'GET',
         headers,
-        body: options.body ? JSON.stringify(options.body) : undefined,
+        body: options.body instanceof FormData ? options.body : 
+              options.body ? JSON.stringify(options.body) : undefined,
       })
 
       return response
@@ -125,6 +130,24 @@ export const useApi = () => {
   const seedDefaultCategories = (): Promise<{ message: string }> =>
     apiCall('/categories/seed-defaults', { method: 'POST' })
 
+  // Import endpoints
+  const analyzeImportFile = (formData: FormData): Promise<any> =>
+    apiCall('/import/analyze', { 
+      method: 'POST', 
+      body: formData,
+      headers: {} // Let browser set content-type for FormData
+    })
+
+  const smartImport = (formData: FormData): Promise<any> =>
+    apiCall('/import/smart', { 
+      method: 'POST', 
+      body: formData,
+      headers: {} // Let browser set content-type for FormData
+    })
+
+  const getImportStatus = (importId: string): Promise<any> =>
+    apiCall(`/import/status/${importId}`)
+
   return {
     // Auth
     login,
@@ -150,6 +173,11 @@ export const useApi = () => {
     getCategories,
     getCategory,
     createCategory,
-    seedDefaultCategories
+    seedDefaultCategories,
+    
+    // Import
+    analyzeImportFile,
+    smartImport,
+    getImportStatus
   }
 }
