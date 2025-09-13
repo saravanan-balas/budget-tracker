@@ -1,0 +1,26 @@
+{
+  "name": "budget-tracker",
+  "version": "1.0.0",
+  "description": "AI-powered personal finance management",
+  "scripts": {
+    "docker:dev": "docker-compose up -d",
+    "docker:build": "docker-compose up --build -d",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:clean": "docker-compose down -v --remove-orphans",
+    "docker:restart": "docker-compose restart",
+    "docker:ps": "docker-compose ps",
+    "dev": "echo 'Use npm run docker:dev for Docker development'",
+    "dev:api": "echo 'Use npm run docker:dev for Docker development'",
+    "dev:frontend": "echo 'Use npm run docker:dev for Docker development'",
+    "dev:worker": "echo 'Use npm run docker:dev for Docker development'",
+    "build": "npm run build:api && npm run build:frontend",
+    "build:api": "cd api/BudgetTracker.API && dotnet build",
+    "build:frontend": "cd app && npm run build",
+    "install:frontend": "cd app && npm install"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
