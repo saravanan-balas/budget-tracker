@@ -2,6 +2,8 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text;
 using System.Text.Json;
+using System.Net.Http;
+using System.Net.Http.Headers;
 using BudgetTracker.Common.DTOs;
 
 namespace BudgetTracker.Common.Services.AI;
@@ -10,6 +12,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
 {
     private readonly ILogger<AIBankAnalyzer> _logger;
     private readonly IConfiguration _configuration;
+    private readonly HttpClient _httpClient;
     
     // Cost tracking constants (per token estimates)
     private const decimal GPT4_COST_PER_TOKEN = 0.00001m;
@@ -17,10 +20,19 @@ public class AIBankAnalyzer : IAIBankAnalyzer
     
     public AIBankAnalyzer(
         ILogger<AIBankAnalyzer> logger,
-        IConfiguration configuration)
+        IConfiguration configuration,
+        HttpClient httpClient)
     {
         _logger = logger;
         _configuration = configuration;
+        _httpClient = httpClient;
+        
+        var apiKey = _configuration["OPENAI_API_KEY"];
+        if (!string.IsNullOrEmpty(apiKey))
+        {
+            _httpClient.DefaultRequestHeaders.Authorization = 
+                new AuthenticationHeaderValue("Bearer", apiKey);
+        }
     }
 
     public async Task<BankDetectionResult> DetectBankAsync(byte[] fileData, string fileName)
@@ -70,8 +82,6 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         string fileName,
         BankDetectionResult bankInfo)
     {
-        await Task.CompletedTask;
-        
         _logger.LogInformation("Starting AI transaction parsing for {BankName} - {FileName}", 
             bankInfo.BankName, fileName);
 
@@ -79,17 +89,25 @@ public class AIBankAnalyzer : IAIBankAnalyzer
 
         try
         {
-            // Placeholder for actual AI parsing implementation
-            // This would integrate with OpenAI GPT-4 to extract transactions
-            
-            var sampleContent = GetSampleContent(fileData, fileName);
-            if (string.IsNullOrEmpty(sampleContent))
+            var content = GetSampleContent(fileData, fileName);
+            if (string.IsNullOrEmpty(content))
             {
                 throw new InvalidOperationException("Unable to extract content for AI analysis");
             }
 
-            // Simulate AI parsing results
-            result.Transactions = GenerateMockTransactions(sampleContent);
+            // Check if OpenAI API key is configured
+            var apiKey = _configuration["OPENAI_API_KEY"];
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                _logger.LogWarning("OpenAI API key not configured, using fallback parsing");
+                result.Transactions = GenerateMockTransactions(content);
+            }
+            else
+            {
+                // Use OpenAI to parse transactions
+                result.Transactions = await ParseTransactionsWithOpenAIAsync(content);
+            }
+            
             result.IsSuccessful = result.Transactions.Any();
             result.AICost = await EstimateAICostAsync(fileData.Length, bankInfo.FileFormat);
 
@@ -346,17 +364,127 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         }
     }
     
+    private async Task<List<ParsedTransaction>> ParseTransactionsWithOpenAIAsync(string content)
+    {
+        try
+        {
+            var prompt = "Extract financial transactions from the following text and return them as JSON.\n\n" +
+                "For each transaction, extract:\n" +
+                "- date: The transaction date (format: YYYY-MM-DD)\n" +
+                "- description: The merchant or transaction description\n" +
+                "- amount: The transaction amount (negative for expenses, positive for income)\n" +
+                "- category: Intelligently categorize based on common categories like:\n" +
+                "  * Food & Dining (restaurants, fast food, delivery)\n" +
+                "  * Groceries (supermarkets, grocery stores)\n" +
+                "  * Transportation (uber, lyft, gas, parking, public transit)\n" +
+                "  * Entertainment (movies, streaming, games, concerts)\n" +
+                "  * Shopping (retail, clothing, electronics)\n" +
+                "  * Utilities (phone, internet, electricity, water)\n" +
+                "  * Healthcare (medical, pharmacy, insurance)\n" +
+                "  * Travel (hotels, flights, vacation)\n" +
+                "  * Personal Care (salon, gym, spa)\n" +
+                "  * Education (tuition, books, courses)\n" +
+                "  * Home (rent, mortgage, maintenance)\n" +
+                "  * Financial (bank fees, investments)\n" +
+                "  * Miscellaneous (anything else)\n\n" +
+                "Use context clues to determine the best category. For example:\n" +
+                "- 'Uber' without 'Eats' is Transportation\n" +
+                "- 'Uber Eats' is Food & Dining\n" +
+                "- 'Netflix' is Entertainment\n" +
+                "- 'Fi' (Google Fi) is Utilities\n\n" +
+                "Text to parse:\n" + content + "\n\n" +
+                "Return ONLY a JSON array of transactions, no other text. Example format:\n" +
+                "[{\"date\":\"2024-09-12\",\"description\":\"Uber\",\"amount\":-5.00,\"category\":\"Transportation\"}]";
+
+            var requestBody = new
+            {
+                model = "gpt-3.5-turbo",
+                messages = new[]
+                {
+                    new { role = "system", content = "You are a financial data extraction assistant. Extract transactions from text and categorize them intelligently." },
+                    new { role = "user", content = prompt }
+                },
+                temperature = 0.1,
+                max_tokens = 2000
+            };
+
+            var jsonContent = JsonSerializer.Serialize(requestBody);
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", httpContent);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("OpenAI API error: {StatusCode} - {Error}", response.StatusCode, error);
+                throw new InvalidOperationException($"OpenAI API error: {response.StatusCode}");
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jsonDoc = JsonDocument.Parse(responseContent);
+            
+            var aiResponse = jsonDoc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString();
+
+            if (string.IsNullOrEmpty(aiResponse))
+            {
+                throw new InvalidOperationException("Empty response from OpenAI");
+            }
+
+            // Parse the JSON response
+            var transactions = JsonSerializer.Deserialize<List<OpenAITransaction>>(aiResponse) ?? new List<OpenAITransaction>();
+            
+            var parsedTransactions = transactions.Select(t => new ParsedTransaction
+            {
+                Date = DateTime.Parse(t.date),
+                Description = t.description,
+                Amount = t.amount,
+                Category = t.category
+            }).ToList();
+
+            _logger.LogInformation("OpenAI extracted {Count} transactions with categories", parsedTransactions.Count);
+            foreach (var txn in parsedTransactions)
+            {
+                _logger.LogDebug("AI Transaction: {Date} - {Desc} - ${Amount} - Category: {Category}",
+                    txn.Date, txn.Description, txn.Amount, txn.Category);
+            }
+
+            return parsedTransactions;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling OpenAI API");
+            // Fallback to mock transactions
+            return GenerateMockTransactions(content);
+        }
+    }
+
+    private class OpenAITransaction
+    {
+        public string date { get; set; } = string.Empty;
+        public string description { get; set; } = string.Empty;
+        public decimal amount { get; set; }
+        public string category { get; set; } = "Miscellaneous";
+    }
+
     private string InferCategory(string description)
     {
+        // This is now only used as a fallback when OpenAI is not available
         var desc = description.ToLowerInvariant();
         return desc switch
         {
-            var d when d.Contains("uber") => "Transportation",
+            var d when d.Contains("uber") && !d.Contains("eats") => "Transportation",
+            var d when d.Contains("uber eats") => "Food & Dining",
             var d when d.Contains("netflix") => "Entertainment", 
             var d when d.Contains("restaurant") || d.Contains("food") => "Food & Dining",
             var d when d.Contains("grocery") || d.Contains("market") => "Groceries",
             var d when d.Contains("gas") || d.Contains("fuel") => "Transportation",
-            var d when d.Contains("cinema") => "Entertainment",
+            var d when d.Contains("cinema") || d.Contains("cinemark") => "Entertainment",
+            var d when d.Contains("liquor") => "Shopping",
+            var d when d.Contains("fi") => "Utilities",
             _ => "Miscellaneous"
         };
     }

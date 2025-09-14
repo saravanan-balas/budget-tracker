@@ -78,7 +78,7 @@ try
     builder.Services.AddScoped<ISmartImportService, SmartImportService>();
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
-    builder.Services.AddScoped<IAIBankAnalyzer, AIBankAnalyzer>();
+    builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
     builder.Services.AddScoped<IOCRService, OCRService>();
     builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
 

@@ -1,6 +1,10 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
 using System.Text;
+using Tesseract;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.IO;
 
 namespace BudgetTracker.Common.Services.OCR;
 
@@ -119,27 +123,99 @@ public class OCRService : IOCRService
     private async Task<OCRResult> PerformMockOCRAsync(byte[] imageData, string fileName)
     {
         await Task.CompletedTask;
-
-        // This is a mock implementation
-        // Real implementation would use Tesseract.NET like this:
-        /*
-        using (var engine = new TesseractEngine(@"./tessdata", "eng", EngineMode.Default))
+        
+        var result = new OCRResult();
+        
+        try
         {
-            using (var img = Pix.LoadFromMemory(imageData))
+            // Get the path to tessdata directory
+            var tessdataPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "tessdata");
+            
+            // If tessdata doesn't exist in the base directory, try the parent directory (for development)
+            if (!Directory.Exists(tessdataPath))
             {
-                using (var page = engine.Process(img))
+                tessdataPath = Path.Combine(Directory.GetParent(AppDomain.CurrentDomain.BaseDirectory)?.Parent?.Parent?.Parent?.Parent?.FullName ?? "", 
+                    "common", "BudgetTracker.Common", "tessdata");
+            }
+            
+            // If still not found, use fallback to mock data
+            if (!Directory.Exists(tessdataPath))
+            {
+                _logger.LogWarning("Tessdata directory not found at {Path}, using mock data", tessdataPath);
+                return GetMockResult();
+            }
+            
+            _logger.LogInformation("Using tessdata from: {Path}", tessdataPath);
+            
+            using (var engine = new TesseractEngine(tessdataPath, "eng", EngineMode.Default))
+            {
+                // Configure Tesseract for better accuracy
+                engine.SetVariable("tessedit_char_whitelist", "0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz $.,/-()&");
+                engine.SetVariable("preserve_interword_spaces", "1");
+                
+                using (var img = Pix.LoadFromMemory(imageData))
                 {
-                    var text = page.GetText();
-                    var confidence = page.GetMeanConfidence();
-                    // Extract regions, bounding boxes, etc.
+                    using (var page = engine.Process(img))
+                    {
+                        var text = page.GetText();
+                        var confidence = page.GetMeanConfidence();
+                        
+                        _logger.LogInformation("OCR extracted {Length} characters with {Confidence:P} confidence", 
+                            text.Length, confidence);
+                        
+                        // Extract detailed information
+                        var regions = new List<TextRegion>();
+                        using (var iter = page.GetIterator())
+                        {
+                            iter.Begin();
+                            do
+                            {
+                                if (iter.TryGetBoundingBox(PageIteratorLevel.TextLine, out var bounds))
+                                {
+                                    var lineText = iter.GetText(PageIteratorLevel.TextLine);
+                                    if (!string.IsNullOrWhiteSpace(lineText))
+                                    {
+                                        regions.Add(new TextRegion
+                                        {
+                                            Text = lineText.Trim(),
+                                            Confidence = iter.GetConfidence(PageIteratorLevel.TextLine) / 100.0,
+                                            BoundingBox = new BoundingRectangle 
+                                            { 
+                                                X = bounds.X1, 
+                                                Y = bounds.Y1, 
+                                                Width = bounds.Width, 
+                                                Height = bounds.Height 
+                                            }
+                                        });
+                                    }
+                                }
+                            } while (iter.Next(PageIteratorLevel.TextLine));
+                        }
+                        
+                        result.ExtractedText = text;
+                        result.OverallConfidence = confidence / 100.0;
+                        result.IsSuccessful = true;
+                        result.Regions = regions;
+                        
+                        // Log sample of extracted text for debugging
+                        var sampleText = text.Length > 200 ? text.Substring(0, 200) + "..." : text;
+                        _logger.LogDebug("OCR Sample: {Sample}", sampleText);
+                    }
                 }
             }
         }
-        */
-
-        // Mock result for development
-        var mockText = GenerateMockBankStatementText();
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Tesseract OCR failed, falling back to mock data");
+            return GetMockResult();
+        }
         
+        return result;
+    }
+    
+    private OCRResult GetMockResult()
+    {
+        var mockText = GenerateMockBankStatementText();
         return new OCRResult
         {
             ExtractedText = mockText,
@@ -149,15 +225,15 @@ public class OCRService : IOCRService
             {
                 new TextRegion
                 {
-                    Text = "BANK STATEMENT",
-                    Confidence = 0.95,
-                    BoundingBox = new Rectangle { X = 100, Y = 50, Width = 200, Height = 30 }
+                    Text = "MOCK DATA - Tesseract not available",
+                    Confidence = 1.0,
+                    BoundingBox = new BoundingRectangle { X = 0, Y = 0, Width = 100, Height = 20 }
                 },
                 new TextRegion
                 {
                     Text = mockText,
                     Confidence = 0.80,
-                    BoundingBox = new Rectangle { X = 50, Y = 100, Width = 500, Height = 400 }
+                    BoundingBox = new BoundingRectangle { X = 50, Y = 100, Width = 500, Height = 400 }
                 }
             }
         };
@@ -165,7 +241,9 @@ public class OCRService : IOCRService
 
     private string GenerateMockBankStatementText()
     {
+        // This is only used as a fallback when Tesseract is not available
         var sb = new StringBuilder();
+        sb.AppendLine("[MOCK DATA - Real OCR not available]");
         sb.AppendLine("Latest Card Transactions");
         sb.AppendLine("");
         sb.AppendLine("Date       Description                     Amount");

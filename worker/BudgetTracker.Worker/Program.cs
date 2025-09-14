@@ -24,10 +24,12 @@ try
 
     builder.Services.AddScoped<IBlobStorageService, LocalFileStorageService>();
 
+    // Configure HttpClient for AI services
+    builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
+
     // Universal Bank Import Services
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
-    builder.Services.AddScoped<IAIBankAnalyzer, AIBankAnalyzer>();
     builder.Services.AddScoped<IOCRService, OCRService>();
     builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
 

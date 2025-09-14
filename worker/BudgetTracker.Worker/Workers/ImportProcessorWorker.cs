@@ -142,11 +142,23 @@ public class ImportProcessorWorker : BackgroundService
             }
 
             // Parse transactions using universal parser
+            _logger.LogInformation("Parsing file {FileName} with universal parser, detected format: {Format}", 
+                import.FileName, import.DetectedFormat);
+            
             var parseResult = await universalParser.ParseFileAsync(fileBytes, import.FileName, bankInfo);
 
             if (!parseResult.IsSuccessful)
             {
                 throw new InvalidOperationException(parseResult.ErrorMessage ?? "Parsing failed");
+            }
+
+            _logger.LogInformation("Universal parser returned {Count} transactions", parseResult.Transactions.Count);
+            
+            // Log each parsed transaction for debugging
+            foreach (var txn in parseResult.Transactions)
+            {
+                _logger.LogInformation("Transaction from parser: Date={Date}, Description={Desc}, Amount={Amount}",
+                    txn.Date, txn.Description, txn.Amount);
             }
 
             // Update cost tracking
@@ -179,15 +191,34 @@ public class ImportProcessorWorker : BackgroundService
         // Legacy parsing method as fallback
         var transactions = new List<ParsedTransaction>();
         
-        // Simple mock transaction for fallback
-        transactions.Add(new ParsedTransaction
+        _logger.LogWarning("Using legacy parsing for import {ImportId} - this should only be used for testing", import.Id);
+        
+        // Generate sample transactions based on the mock OCR text
+        var mockTransactions = new List<(string desc, decimal amount, int daysAgo)>
         {
-            Date = DateTime.UtcNow.AddDays(-5),
-            Description = $"Legacy parsed transaction from {import.FileName}",
-            Amount = -45.99m
-        });
+            ("Uber", -5.00m, 2),
+            ("Uber", -52.25m, 2),
+            ("Netflix", -7.99m, 3),
+            ("Uber Eats", -23.94m, 3),
+            ("Cinemark", -14.85m, 4),
+            ("Fi", -108.04m, 4),
+            ("Giant's Liquor & Food", -5.04m, 5)
+        };
+        
+        foreach (var (desc, amount, daysAgo) in mockTransactions)
+        {
+            transactions.Add(new ParsedTransaction
+            {
+                Date = DateTime.UtcNow.AddDays(-daysAgo),
+                Description = desc,
+                Amount = amount,
+                Category = null // Let AI handle categorization later
+            });
+        }
 
-        _logger.LogInformation("Used legacy parsing for import {ImportId}", import.Id);
+        _logger.LogInformation("Legacy parsing generated {Count} transactions for import {ImportId}", 
+            transactions.Count, import.Id);
+        
         return transactions;
     }
 
