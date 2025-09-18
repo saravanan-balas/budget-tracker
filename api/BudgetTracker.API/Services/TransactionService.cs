@@ -244,4 +244,16 @@ public class TransactionService : ITransactionService
 
         return _mapper.Map<IEnumerable<TransactionDto>>(splitTransactions);
     }
+
+    public async Task<IEnumerable<TransactionDto>> GetTransactionsByImportIdAsync(Guid userId, Guid importId)
+    {
+        var transactions = await _context.Transactions
+            .Include(t => t.Account)
+            .Include(t => t.Category)
+            .Where(t => t.UserId == userId && t.ImportedFileId == importId)
+            .OrderByDescending(t => t.TransactionDate)
+            .ToListAsync();
+
+        return _mapper.Map<IEnumerable<TransactionDto>>(transactions);
+    }
 }

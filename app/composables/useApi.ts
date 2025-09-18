@@ -101,6 +101,9 @@ export const useApi = () => {
   const deleteTransaction = (id: string): Promise<void> =>
     apiCall(`/transactions/${id}`, { method: 'DELETE' })
 
+  const getTransactionsByImportId = (importId: string): Promise<Transaction[]> =>
+    apiCall(`/transactions/import/${importId}`)
+
   // Account endpoints
   const getAccounts = (): Promise<Account[]> =>
     apiCall('/accounts')
@@ -161,6 +164,7 @@ export const useApi = () => {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    getTransactionsByImportId,
     
     // Accounts
     getAccounts,

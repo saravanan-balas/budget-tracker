@@ -7,6 +7,7 @@ using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Worker.Workers;
+using BudgetTracker.Worker;
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -15,6 +16,33 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // Check if we're running in test mode
+    if (args.Length > 0 && args[0] == "test-pdf")
+    {
+        // Test mode - just read and print PDF
+        var testPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "../../test-data/boa_credit_card_stmt.pdf");
+        
+        if (!File.Exists(testPdfPath))
+        {
+            Console.WriteLine($"Test PDF file not found at: {testPdfPath}");
+            return;
+        }
+
+        var services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddSerilog());
+        services.AddScoped<TestPdfReader>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var testReader = serviceProvider.GetRequiredService<TestPdfReader>();
+        
+        await testReader.TestReadPdf(testPdfPath);
+        
+        Console.WriteLine("\nTest completed. Press any key to exit...");
+        Console.ReadKey();
+        return;
+    }
+
+    // Normal worker mode
     var builder = Host.CreateApplicationBuilder(args);
 
     builder.Services.AddSerilog();
