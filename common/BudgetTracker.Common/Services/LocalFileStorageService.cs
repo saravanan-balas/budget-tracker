@@ -50,7 +50,7 @@ public class LocalFileStorageService : IBlobStorageService
         }
     }
 
-    public async Task<Stream> DownloadFileAsync(string containerName, string fileName)
+    public Task<Stream> DownloadFileAsync(string containerName, string fileName)
     {
         try
         {
@@ -63,7 +63,7 @@ public class LocalFileStorageService : IBlobStorageService
 
             var fileStream = new FileStream(filePath, FileMode.Open, FileAccess.Read);
             _logger.LogInformation("File downloaded successfully: {FilePath}", filePath);
-            return fileStream;
+            return Task.FromResult<Stream>(fileStream);
         }
         catch (Exception ex)
         {
@@ -72,7 +72,7 @@ public class LocalFileStorageService : IBlobStorageService
         }
     }
 
-    public async Task<bool> DeleteFileAsync(string containerName, string fileName)
+    public Task<bool> DeleteFileAsync(string containerName, string fileName)
     {
         try
         {
@@ -82,24 +82,24 @@ public class LocalFileStorageService : IBlobStorageService
             {
                 File.Delete(filePath);
                 _logger.LogInformation("File deleted successfully: {FilePath}", filePath);
-                return true;
+                return Task.FromResult(true);
             }
             
-            return false;
+            return Task.FromResult(false);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error deleting file {FileName} from container {ContainerName}", fileName, containerName);
-            return false;
+            return Task.FromResult(false);
         }
     }
 
-    public async Task<string> GetFileUrlAsync(string containerName, string fileName)
+    public Task<string> GetFileUrlAsync(string containerName, string fileName)
     {
         try
         {
             var relativePath = Path.Combine(containerName, fileName).Replace('\\', '/');
-            return $"file:///{relativePath}";
+            return Task.FromResult($"file:///{relativePath}");
         }
         catch (Exception ex)
         {
@@ -108,17 +108,17 @@ public class LocalFileStorageService : IBlobStorageService
         }
     }
 
-    public async Task<bool> FileExistsAsync(string containerName, string fileName)
+    public Task<bool> FileExistsAsync(string containerName, string fileName)
     {
         try
         {
             var filePath = Path.Combine(_basePath, containerName, fileName);
-            return File.Exists(filePath);
+            return Task.FromResult(File.Exists(filePath));
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error checking file existence {FileName} in container {ContainerName}", fileName, containerName);
-            return false;
+            return Task.FromResult(false);
         }
     }
 }

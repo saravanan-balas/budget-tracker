@@ -6,8 +6,22 @@ using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
+using BudgetTracker.Common.Services.Embeddings;
+using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Worker.Workers;
 using BudgetTracker.Worker;
+
+// Verify required environment variables are available
+var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+if (string.IsNullOrEmpty(apiKey))
+{
+    Console.WriteLine("ERROR: OPENAI_API_KEY environment variable not found!");
+    Environment.Exit(1);
+}
+else
+{
+    Console.WriteLine($"OPENAI_API_KEY loaded successfully (length: {apiKey.Length})");
+}
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -48,18 +62,27 @@ try
     builder.Services.AddSerilog();
 
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
+            b => b.UseVector()));
 
     builder.Services.AddScoped<IBlobStorageService, LocalFileStorageService>();
 
     // Configure HttpClient for AI services
     builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
+    builder.Services.AddHttpClient<IEmbeddingService, OpenAIEmbeddingService>();
 
     // Universal Bank Import Services
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
     builder.Services.AddScoped<IOCRService, OCRService>();
     builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
+
+    // Memory cache for embedding optimization
+    builder.Services.AddMemoryCache();
+
+    // Embedding and Merchant Services
+    builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
+    builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
 
     builder.Services.AddHostedService<ImportProcessorWorker>();
     builder.Services.AddHostedService<RecurringTransactionWorker>();

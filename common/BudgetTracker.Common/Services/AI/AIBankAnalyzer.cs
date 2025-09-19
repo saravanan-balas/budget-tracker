@@ -89,11 +89,27 @@ public class AIBankAnalyzer : IAIBankAnalyzer
 
         try
         {
-            var content = GetSampleContent(fileData, fileName);
+            // For text data (from PDF/OCR extraction), just convert bytes to string
+            var content = string.Empty;
+            if (fileName.EndsWith(".txt", StringComparison.OrdinalIgnoreCase) || 
+                bankInfo?.FileFormat == "PDF" || 
+                bankInfo?.FileFormat == "IMAGE")
+            {
+                // This is already extracted text, just convert it
+                content = Encoding.UTF8.GetString(fileData);
+            }
+            else
+            {
+                // Try to extract sample content
+                content = GetSampleContent(fileData, fileName);
+            }
+            
             if (string.IsNullOrEmpty(content))
             {
                 throw new InvalidOperationException("Unable to extract content for AI analysis");
             }
+            
+            _logger.LogInformation("Content extracted for AI analysis: {Length} characters", content.Length);
 
             // Check if OpenAI API key is configured
             var apiKey = _configuration["OPENAI_API_KEY"];
@@ -301,7 +317,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
             {
                 transactions.Add(new ParsedTransaction
                 {
-                    Date = DateTime.UtcNow.AddDays(-random.Next(1, 7)),
+                    Date = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-random.Next(1, 7)), DateTimeKind.Utc),
                     Description = $"Parsed Transaction {i}",
                     Amount = -random.Next(10, 100),
                 });
@@ -352,7 +368,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
             // Create the transaction
             return new ParsedTransaction
             {
-                Date = DateTime.UtcNow.AddDays(-new Random().Next(1, 5)), // Recent dates
+                Date = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-new Random().Next(1, 5)), DateTimeKind.Utc), // Recent dates
                 Description = description,
                 Amount = -amount, // Expenses are negative
                 Category = InferCategory(description)
@@ -368,40 +384,59 @@ public class AIBankAnalyzer : IAIBankAnalyzer
     {
         try
         {
-            var prompt = "Extract financial transactions from the following text and return them as JSON.\n\n" +
-                "For each transaction, extract:\n" +
-                "- date: The transaction date (format: YYYY-MM-DD)\n" +
-                "- description: The merchant or transaction description\n" +
-                "- amount: The transaction amount (negative for expenses, positive for income)\n" +
-                "- category: Intelligently categorize based on common categories like:\n" +
-                "  * Food & Dining (restaurants, fast food, delivery)\n" +
+            var prompt = "Extract ONLY actual merchant transactions from this bank statement.\n\n" +
+                "STRICT RULES:\n" +
+                "1. IGNORE these summary items completely:\n" +
+                "   - Any line with: 'Total', 'Balance', 'Due', 'Period', 'Summary', 'Credit Line'\n" +
+                "   - Account summaries, payment due amounts, interest calculations\n" +
+                "   - Headers like 'Payments and Other Credits', 'Purchases and Adjustments'\n" +
+                "   - Generic entries like 'Transaction', 'Cash', 'Other Credits', 'Adjustments'\n" +
+                "2. ONLY extract lines that show actual merchants/services:\n" +
+                "   - Must have a specific business name (UBER, WALMART, NETFLIX, etc.)\n" +
+                "   - Must have a real transaction date (not account closing dates)\n" +
+                "   - Must have a specific transaction amount\n" +
+                "   - Look for entries with reference numbers or location info\n" +
+                "3. Examples of VALID transactions:\n" +
+                "   - '07/28 UBER *EATS HELP.UBER.COM CA 20.73'\n" +
+                "   - '08/05 WAL-MART #2280 MOUNTAIN VIEW CA 58.86'\n" +
+                "   - '08/06 OPENAI *CHATGPT SUBSCR OPENAI.COM CA 20.00'\n" +
+                "4. Examples of INVALID (skip these):\n" +
+                "   - 'Previous Balance $1,758.68'\n" +
+                "   - 'Total Payments $1,869.37'\n" +
+                "   - 'New Balance Total $1,941.78'\n" +
+                "   - 'TOTAL PURCHASES AND ADJUSTMENTS FOR THIS PERIOD'\n\n" +
+                "For each REAL transaction, extract:\n" +
+                "- date: Transaction date in YYYY-MM-DD format (use 2025 if year not specified)\n" +
+                "- description: The merchant/service name (e.g., 'WALMART', 'UBER *EATS', 'NETFLIX')\n" +
+                "- amount: Transaction amount (negative for purchases/debits, positive for payments/credits)\n" +
+                "- category: Choose from these categories:\n" +
+                "  * Food & Dining (restaurants, food delivery like Uber Eats, DoorDash)\n" +
                 "  * Groceries (supermarkets, grocery stores)\n" +
-                "  * Transportation (uber, lyft, gas, parking, public transit)\n" +
-                "  * Entertainment (movies, streaming, games, concerts)\n" +
-                "  * Shopping (retail, clothing, electronics)\n" +
-                "  * Utilities (phone, internet, electricity, water)\n" +
-                "  * Healthcare (medical, pharmacy, insurance)\n" +
-                "  * Travel (hotels, flights, vacation)\n" +
-                "  * Personal Care (salon, gym, spa)\n" +
-                "  * Education (tuition, books, courses)\n" +
-                "  * Home (rent, mortgage, maintenance)\n" +
-                "  * Financial (bank fees, investments)\n" +
-                "  * Miscellaneous (anything else)\n\n" +
-                "Use context clues to determine the best category. For example:\n" +
-                "- 'Uber' without 'Eats' is Transportation\n" +
-                "- 'Uber Eats' is Food & Dining\n" +
-                "- 'Netflix' is Entertainment\n" +
-                "- 'Fi' (Google Fi) is Utilities\n\n" +
+                "  * Transportation (Uber/Lyft rides, gas stations, parking)\n" +
+                "  * Entertainment (Netflix, Spotify, movies, games)\n" +
+                "  * Shopping (retail stores, Amazon, electronics)\n" +
+                "  * Bills & Utilities (recurring services, phone, internet)\n" +
+                "  * Healthcare (pharmacy, medical)\n" +
+                "  * Other (miscellaneous)\n\n" +
+                "Categorization examples:\n" +
+                "- UBER *EATS → Food & Dining\n" +
+                "- UBER (without EATS) → Transportation\n" +
+                "- WAL-MART → Shopping (unless context suggests groceries)\n" +
+                "- COSTCO → Shopping\n" +
+                "- SHELL OIL → Transportation\n" +
+                "- NETFLIX → Entertainment\n" +
+                "- GITHUB → Bills & Utilities\n\n" +
                 "Text to parse:\n" + content + "\n\n" +
-                "Return ONLY a JSON array of transactions, no other text. Example format:\n" +
-                "[{\"date\":\"2024-09-12\",\"description\":\"Uber\",\"amount\":-5.00,\"category\":\"Transportation\"}]";
+                "CRITICAL: Return ONLY valid merchant transactions as a JSON array. NO summary data, totals, or account info.\n" +
+                "If you find no valid merchant transactions, return an empty array: []\n" +
+                "Example format: [{\"date\":\"2025-07-28\",\"description\":\"UBER *EATS HELP.UBER.COM\",\"amount\":-20.73,\"category\":\"Food & Dining\"}]";
 
             var requestBody = new
             {
                 model = "gpt-3.5-turbo",
                 messages = new[]
                 {
-                    new { role = "system", content = "You are a financial data extraction assistant. Extract transactions from text and categorize them intelligently." },
+                    new { role = "system", content = "You are a strict transaction parser. ONLY extract individual merchant transactions. NEVER extract account summaries, totals, balances, headers, or any line that doesn't show a specific business transaction. If in doubt, skip it." },
                     new { role = "user", content = prompt }
                 },
                 temperature = 0.1,
@@ -434,12 +469,30 @@ public class AIBankAnalyzer : IAIBankAnalyzer
                 throw new InvalidOperationException("Empty response from OpenAI");
             }
 
+            // Clean the response - remove markdown code blocks if present
+            var cleanResponse = aiResponse.Trim();
+            if (cleanResponse.StartsWith("```json"))
+            {
+                cleanResponse = cleanResponse.Substring(7);
+            }
+            if (cleanResponse.StartsWith("```"))
+            {
+                cleanResponse = cleanResponse.Substring(3);
+            }
+            if (cleanResponse.EndsWith("```"))
+            {
+                cleanResponse = cleanResponse.Substring(0, cleanResponse.Length - 3);
+            }
+            cleanResponse = cleanResponse.Trim();
+
+            _logger.LogInformation("Cleaned OpenAI response: {Response}", cleanResponse.Substring(0, Math.Min(500, cleanResponse.Length)));
+
             // Parse the JSON response
-            var transactions = JsonSerializer.Deserialize<List<OpenAITransaction>>(aiResponse) ?? new List<OpenAITransaction>();
+            var transactions = JsonSerializer.Deserialize<List<OpenAITransaction>>(cleanResponse) ?? new List<OpenAITransaction>();
             
             var parsedTransactions = transactions.Select(t => new ParsedTransaction
             {
-                Date = DateTime.Parse(t.date),
+                Date = DateTime.SpecifyKind(DateTime.Parse(t.date), DateTimeKind.Utc),
                 Description = t.description,
                 Amount = t.amount,
                 Category = t.category

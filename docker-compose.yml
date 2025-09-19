@@ -10,7 +10,6 @@ services:
       POSTGRES_PASSWORD: postgres
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     ports:
       - "5432:5432"
     networks:
@@ -44,6 +43,10 @@ services:
       ASPNETCORE_URLS: http://+:5000
       ConnectionStrings__DefaultConnection: Host=postgres;Database=budget_tracker;Username=postgres;Password=postgres
       ConnectionStrings__Redis: redis:6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_KEY: ${JWT_KEY:-ThisIsAVerySecureKeyForDevelopmentOnly123456789}
+      JWT_ISSUER: ${JWT_ISSUER:-BudgetTrackerAPI}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-BudgetTrackerClient}
     ports:
       - "5000:5000"
     depends_on:
@@ -66,6 +69,10 @@ services:
       DOTNET_ENVIRONMENT: Development
       ConnectionStrings__DefaultConnection: Host=postgres;Database=budget_tracker;Username=postgres;Password=postgres
       ConnectionStrings__Redis: redis:6379
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      JWT_KEY: ${JWT_KEY:-ThisIsAVerySecureKeyForDevelopmentOnly123456789}
+      JWT_ISSUER: ${JWT_ISSUER:-BudgetTrackerAPI}
+      JWT_AUDIENCE: ${JWT_AUDIENCE:-BudgetTrackerClient}
     depends_on:
       postgres:
         condition: service_healthy

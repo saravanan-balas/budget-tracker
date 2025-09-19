@@ -219,8 +219,8 @@ public class TestPdfReader
                         {
                             var month = int.Parse(dateParts[0]);
                             var day = int.Parse(dateParts[1]);
-                            var year = DateTime.Now.Year; // Use current year as default
-                            var transactionDate = new DateTime(year, month, day);
+                            var year = DateTime.UtcNow.Year; // Use current year as default
+                            var transactionDate = DateTime.SpecifyKind(new DateTime(year, month, day), DateTimeKind.Utc);
                             
                             // Find amount (last numeric value in the line)
                             decimal? amount = null;
