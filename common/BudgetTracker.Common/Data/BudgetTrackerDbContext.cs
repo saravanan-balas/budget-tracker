@@ -24,6 +24,7 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
     public DbSet<EmbeddingCache> EmbeddingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -255,6 +256,20 @@ public class BudgetTrackerDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => new { e.Email, e.IsUsed });
+            entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+            
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

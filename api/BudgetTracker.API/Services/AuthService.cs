@@ -6,6 +6,7 @@ using Microsoft.IdentityModel.Tokens;
 using BudgetTracker.Common.Data;
 using BudgetTracker.Common.DTOs;
 using BudgetTracker.Common.Models;
+using BudgetTracker.Common.Services;
 using AutoMapper;
 using Google.Apis.Auth;
 
@@ -17,17 +18,20 @@ public class AuthService : IAuthService
     private readonly IConfiguration _configuration;
     private readonly IMapper _mapper;
     private readonly ILogger<AuthService> _logger;
+    private readonly IEmailService _emailService;
 
     public AuthService(
         BudgetTrackerDbContext context, 
         IConfiguration configuration,
         IMapper mapper,
-        ILogger<AuthService> logger)
+        ILogger<AuthService> logger,
+        IEmailService emailService)
     {
         _context = context;
         _configuration = configuration;
         _mapper = mapper;
         _logger = logger;
+        _emailService = emailService;
     }
 
     public async Task<AuthResponseDto> RegisterAsync(CreateUserDto createUserDto)
@@ -198,5 +202,147 @@ public class AuthService : IAuthService
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber);
+    }
+
+    public async Task<bool> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto)
+    {
+        try
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Email == forgotPasswordDto.Email);
+
+            if (user == null)
+            {
+                // Don't reveal if user exists or not for security
+                return true;
+            }
+
+            // Generate a secure token
+            var token = GenerateSecureToken();
+            var expiresAt = DateTime.UtcNow.AddHours(1); // Token expires in 1 hour
+
+            // Invalidate any existing tokens for this user
+            var existingTokens = await _context.PasswordResetTokens
+                .Where(t => t.UserId == user.Id && !t.IsUsed)
+                .ToListAsync();
+
+            foreach (var existingToken in existingTokens)
+            {
+                existingToken.IsUsed = true;
+                existingToken.UsedAt = DateTime.UtcNow;
+            }
+
+            // Create new reset token
+            var resetToken = new PasswordResetToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                Token = token,
+                Email = user.Email,
+                ExpiresAt = expiresAt,
+                CreatedAt = DateTime.UtcNow
+            };
+
+            _context.PasswordResetTokens.Add(resetToken);
+            await _context.SaveChangesAsync();
+
+            // Send email with reset link
+            var emailSent = await _emailService.SendPasswordResetEmailAsync(user.Email, token, user.FirstName);
+            
+            if (emailSent)
+            {
+                _logger.LogInformation("Password reset email sent successfully to {Email}", user.Email);
+            }
+            else
+            {
+                _logger.LogWarning("Failed to send password reset email to {Email}, but token was generated: {Token}", user.Email, token);
+            }
+
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing forgot password request for {Email}", forgotPasswordDto.Email);
+            return false;
+        }
+    }
+
+    public async Task<bool> ResetPasswordAsync(ResetPasswordDto resetPasswordDto)
+    {
+        try
+        {
+            var resetToken = await _context.PasswordResetTokens
+                .Include(t => t.User)
+                .FirstOrDefaultAsync(t => t.Token == resetPasswordDto.Token && 
+                                        t.Email == resetPasswordDto.Email && 
+                                        !t.IsUsed && 
+                                        t.ExpiresAt > DateTime.UtcNow);
+
+            if (resetToken == null)
+            {
+                return false;
+            }
+
+            // Update user password
+            resetToken.User.PasswordHash = BCrypt.Net.BCrypt.HashPassword(resetPasswordDto.Password);
+            resetToken.User.UpdatedAt = DateTime.UtcNow;
+
+            // Mark token as used
+            resetToken.IsUsed = true;
+            resetToken.UsedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Password reset successfully for user {UserId}", resetToken.UserId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password for token {Token}", resetPasswordDto.Token);
+            return false;
+        }
+    }
+
+    public async Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto)
+    {
+        try
+        {
+            var user = await _context.Users
+                .FirstOrDefaultAsync(u => u.Id == userId);
+
+            if (user == null)
+            {
+                return false;
+            }
+
+            // Verify current password
+            if (string.IsNullOrEmpty(user.PasswordHash) || 
+                !BCrypt.Net.BCrypt.Verify(changePasswordDto.CurrentPassword, user.PasswordHash))
+            {
+                return false;
+            }
+
+            // Update password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(changePasswordDto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            await _context.SaveChangesAsync();
+
+            _logger.LogInformation("Password changed successfully for user {UserId}", userId);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password for user {UserId}", userId);
+            return false;
+        }
+    }
+
+    private string GenerateSecureToken()
+    {
+        var randomNumber = new byte[32];
+        using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
+        rng.GetBytes(randomNumber);
+        return Convert.ToBase64String(randomNumber).Replace("+", "-").Replace("/", "_").Replace("=", "");
     }
 }

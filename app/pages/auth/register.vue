@@ -169,6 +169,8 @@ definePageMeta({
   layout: false
 })
 
+import { onMounted } from 'vue'
+
 const form = reactive({
   firstName: '',
   lastName: '',
@@ -233,21 +235,20 @@ const handleGoogleSignIn = async () => {
 
   try {
     // Load Google OAuth script if not already loaded
-    if (!window.google) {
+    if (!window.gapi) {
       await loadGoogleScript()
     }
 
-    // Initialize Google OAuth
-    window.google.accounts.id.initialize({
-      client_id: '715368478743-4vugo0hso9hmgouvepovj9jm56tkoutp.apps.googleusercontent.com',
-      callback: handleGoogleCallback
-    })
-
-    // Prompt the user to sign in
-    window.google.accounts.id.prompt()
+    // Use the older, more reliable gapi.auth2 method
+    const authInstance = window.gapi.auth2.getAuthInstance()
+    const user = await authInstance.signIn()
+    const idToken = user.getAuthResponse().id_token
+    
+    // Call our callback with the token
+    await handleGoogleCallback({ credential: idToken })
   } catch (err: any) {
     console.error('Google sign-in error:', err)
-    error.value = 'Failed to initialize Google sign-in. Please try again.'
+    error.value = 'Failed to sign in with Google. Please try again.'
     loading.value = false
   }
 }
@@ -275,20 +276,36 @@ const handleGoogleCallback = async (response: any) => {
 
 const loadGoogleScript = () => {
   return new Promise((resolve, reject) => {
-    if (window.google) {
+    if (window.gapi) {
       resolve(true)
       return
     }
 
     const script = document.createElement('script')
-    script.src = 'https://accounts.google.com/gsi/client'
+    script.src = 'https://apis.google.com/js/api.js'
     script.async = true
     script.defer = true
-    script.onload = () => resolve(true)
+    script.onload = () => {
+      window.gapi.load('auth2', () => {
+        window.gapi.auth2.init({
+          client_id: 'YOUR_GOOGLE_CLIENT_ID'
+        }).then(() => resolve(true))
+      })
+    }
     script.onerror = () => reject(new Error('Failed to load Google script'))
     document.head.appendChild(script)
   })
 }
+
+// Initialize Google Sign-In when component mounts
+onMounted(async () => {
+  try {
+    await loadGoogleScript()
+    console.log('Google Sign-In initialized successfully')
+  } catch (err) {
+    console.error('Failed to initialize Google Sign-In:', err)
+  }
+})
 </script>
 
 <style scoped>
