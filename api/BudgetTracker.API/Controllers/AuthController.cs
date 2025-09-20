@@ -107,6 +107,70 @@ public class AuthController : ControllerBase
         await _authService.LogoutAsync(Guid.Parse(userId));
         return Ok(new { message = "Logged out successfully" });
     }
+
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto forgotPasswordDto)
+    {
+        try
+        {
+            var result = await _authService.ForgotPasswordAsync(forgotPasswordDto);
+            if (result)
+            {
+                return Ok(new { message = "If an account with that email exists, a password reset link has been sent." });
+            }
+            return BadRequest(new { error = "Failed to process forgot password request" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error processing forgot password request");
+            return StatusCode(500, new { error = "An error occurred while processing your request" });
+        }
+    }
+
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto resetPasswordDto)
+    {
+        try
+        {
+            var result = await _authService.ResetPasswordAsync(resetPasswordDto);
+            if (result)
+            {
+                return Ok(new { message = "Password has been reset successfully" });
+            }
+            return BadRequest(new { error = "Invalid or expired reset token" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error resetting password");
+            return StatusCode(500, new { error = "An error occurred while resetting your password" });
+        }
+    }
+
+    [Authorize]
+    [HttpPost("change-password")]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto changePasswordDto)
+    {
+        try
+        {
+            var userId = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return BadRequest(new { error = "Invalid user" });
+            }
+
+            var result = await _authService.ChangePasswordAsync(Guid.Parse(userId), changePasswordDto);
+            if (result)
+            {
+                return Ok(new { message = "Password has been changed successfully" });
+            }
+            return BadRequest(new { error = "Current password is incorrect" });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error changing password");
+            return StatusCode(500, new { error = "An error occurred while changing your password" });
+        }
+    }
 }
 
 public class RefreshTokenDto

@@ -6,7 +6,22 @@ using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
+using BudgetTracker.Common.Services.Embeddings;
+using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Worker.Workers;
+using BudgetTracker.Worker;
+
+// Verify required environment variables are available
+var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
+if (string.IsNullOrEmpty(apiKey))
+{
+    Console.WriteLine("ERROR: OPENAI_API_KEY environment variable not found!");
+    Environment.Exit(1);
+}
+else
+{
+    Console.WriteLine($"OPENAI_API_KEY loaded successfully (length: {apiKey.Length})");
+}
 
 Log.Logger = new LoggerConfiguration()
     .WriteTo.Console()
@@ -15,21 +30,59 @@ Log.Logger = new LoggerConfiguration()
 
 try
 {
+    // Check if we're running in test mode
+    if (args.Length > 0 && args[0] == "test-pdf")
+    {
+        // Test mode - just read and print PDF
+        var testPdfPath = Path.Combine(Directory.GetCurrentDirectory(), "../../test-data/boa_credit_card_stmt.pdf");
+        
+        if (!File.Exists(testPdfPath))
+        {
+            Console.WriteLine($"Test PDF file not found at: {testPdfPath}");
+            return;
+        }
+
+        var services = new ServiceCollection();
+        services.AddLogging(builder => builder.AddSerilog());
+        services.AddScoped<TestPdfReader>();
+        
+        var serviceProvider = services.BuildServiceProvider();
+        var testReader = serviceProvider.GetRequiredService<TestPdfReader>();
+        
+        await testReader.TestReadPdf(testPdfPath);
+        
+        Console.WriteLine("\nTest completed. Press any key to exit...");
+        Console.ReadKey();
+        return;
+    }
+
+    // Normal worker mode
     var builder = Host.CreateApplicationBuilder(args);
 
     builder.Services.AddSerilog();
 
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
+            b => b.UseVector()));
 
     builder.Services.AddScoped<IBlobStorageService, LocalFileStorageService>();
+
+    // Configure HttpClient for AI services
+    builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
+    builder.Services.AddHttpClient<IEmbeddingService, OpenAIEmbeddingService>();
 
     // Universal Bank Import Services
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
-    builder.Services.AddScoped<IAIBankAnalyzer, AIBankAnalyzer>();
     builder.Services.AddScoped<IOCRService, OCRService>();
     builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
+
+    // Memory cache for embedding optimization
+    builder.Services.AddMemoryCache();
+
+    // Embedding and Merchant Services
+    builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
+    builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
 
     builder.Services.AddHostedService<ImportProcessorWorker>();
     builder.Services.AddHostedService<RecurringTransactionWorker>();

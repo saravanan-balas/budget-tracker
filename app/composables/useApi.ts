@@ -3,6 +3,9 @@ import type {
   LoginResponse,
   RegisterRequest,
   GoogleAuthRequest,
+  ForgotPasswordRequest,
+  ResetPasswordRequest,
+  ChangePasswordRequest,
   Transaction, 
   CreateTransaction, 
   UpdateTransaction,
@@ -75,6 +78,15 @@ export const useApi = () => {
   const googleAuth = (googleAuthData: GoogleAuthRequest): Promise<LoginResponse> =>
     apiCall('/auth/google', { method: 'POST', body: googleAuthData })
 
+  const forgotPassword = (forgotPasswordData: ForgotPasswordRequest): Promise<{ message: string }> =>
+    apiCall('/auth/forgot-password', { method: 'POST', body: forgotPasswordData })
+
+  const resetPassword = (resetPasswordData: ResetPasswordRequest): Promise<{ message: string }> =>
+    apiCall('/auth/reset-password', { method: 'POST', body: resetPasswordData })
+
+  const changePassword = (changePasswordData: ChangePasswordRequest): Promise<{ message: string }> =>
+    apiCall('/auth/change-password', { method: 'POST', body: changePasswordData })
+
   // Transaction endpoints
   const getTransactions = (filter?: TransactionFilter): Promise<Transaction[]> => {
     const queryParams = new URLSearchParams()
@@ -100,6 +112,9 @@ export const useApi = () => {
 
   const deleteTransaction = (id: string): Promise<void> =>
     apiCall(`/transactions/${id}`, { method: 'DELETE' })
+
+  const getTransactionsByImportId = (importId: string): Promise<Transaction[]> =>
+    apiCall(`/transactions/import/${importId}`)
 
   // Account endpoints
   const getAccounts = (): Promise<Account[]> =>
@@ -154,6 +169,9 @@ export const useApi = () => {
     register,
     logout,
     googleAuth,
+    forgotPassword,
+    resetPassword,
+    changePassword,
     
     // Transactions
     getTransactions,
@@ -161,6 +179,7 @@ export const useApi = () => {
     createTransaction,
     updateTransaction,
     deleteTransaction,
+    getTransactionsByImportId,
     
     // Accounts
     getAccounts,

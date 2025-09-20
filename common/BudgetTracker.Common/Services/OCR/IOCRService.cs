@@ -23,10 +23,10 @@ public class TextRegion
 {
     public string Text { get; set; } = string.Empty;
     public double Confidence { get; set; }
-    public Rectangle BoundingBox { get; set; } = new();
+    public BoundingRectangle BoundingBox { get; set; } = new();
 }
 
-public class Rectangle
+public class BoundingRectangle
 {
     public int X { get; set; }
     public int Y { get; set; }

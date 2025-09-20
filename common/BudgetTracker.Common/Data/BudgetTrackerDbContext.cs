@@ -22,7 +22,9 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<ImportedFile> ImportedFiles { get; set; } = null!;
     public DbSet<BankTemplate> BankTemplates { get; set; } = null!;
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
+    public DbSet<EmbeddingCache> EmbeddingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -140,7 +142,7 @@ public class BudgetTrackerDbContext : DbContext
             entity.Property(e => e.Category).HasMaxLength(100);
             entity.Property(e => e.Website).HasMaxLength(500);
             entity.Property(e => e.LogoUrl).HasMaxLength(500);
-            // entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
+            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
         });
 
         modelBuilder.Entity<RecurringSeries>(entity =>
@@ -232,6 +234,15 @@ public class BudgetTrackerDbContext : DbContext
                 .HasDatabaseName("IX_ImportParsingCache_FileHash");
         });
 
+        modelBuilder.Entity<EmbeddingCache>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.TextHash).IsUnique();
+            entity.Property(e => e.NormalizedText).IsRequired().HasMaxLength(500);
+            entity.Property(e => e.TextHash).IsRequired().HasMaxLength(64);
+            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
+        });
+
         modelBuilder.Entity<AuditEvent>(entity =>
         {
             entity.HasKey(e => e.Id);
@@ -245,6 +256,20 @@ public class BudgetTrackerDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Token).IsUnique();
+            entity.HasIndex(e => new { e.Email, e.IsUsed });
+            entity.Property(e => e.Token).IsRequired().HasMaxLength(255);
+            entity.Property(e => e.Email).IsRequired().HasMaxLength(256);
+            
+            entity.HasOne(e => e.User)
+                .WithMany()
+                .HasForeignKey(e => e.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

@@ -10,6 +10,8 @@ using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
+using BudgetTracker.Common.Services.Embeddings;
+using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -57,7 +59,10 @@ try
 
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
-            b => b.MigrationsAssembly("BudgetTracker.API")));
+            b => {
+                b.MigrationsAssembly("BudgetTracker.API");
+                b.UseVector();
+            }));
 
     builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -73,14 +78,23 @@ try
     builder.Services.AddScoped<ITransactionService, TransactionService>();
     builder.Services.AddScoped<IImportService, ImportService>();
     builder.Services.AddScoped<IChatService, ChatService>();
+    builder.Services.AddScoped<IEmailService, EmailService>();
 
     // Universal Bank Import Services
     builder.Services.AddScoped<ISmartImportService, SmartImportService>();
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
-    builder.Services.AddScoped<IAIBankAnalyzer, AIBankAnalyzer>();
+    builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
     builder.Services.AddScoped<IOCRService, OCRService>();
     builder.Services.AddScoped<IBankTemplateService, BankTemplateService>();
+
+    // Memory cache for embedding optimization
+    builder.Services.AddMemoryCache();
+
+    // Embedding and Merchant Services
+    builder.Services.AddHttpClient<IEmbeddingService, OpenAIEmbeddingService>();
+    builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
+    builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
 
     builder.Services.AddAuthentication(options =>
     {

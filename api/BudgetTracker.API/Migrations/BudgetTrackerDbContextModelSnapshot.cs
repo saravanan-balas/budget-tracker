@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
+using Pgvector;
 
 #nullable disable
 
@@ -232,6 +233,43 @@ namespace BudgetTracker.API.Migrations
                     b.ToTable("Categories");
                 });
 
+            modelBuilder.Entity("BudgetTracker.Common.Models.EmbeddingCache", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Vector>("Embedding")
+                        .IsRequired()
+                        .HasColumnType("vector(1536)");
+
+                    b.Property<DateTime>("LastUsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("NormalizedText")
+                        .IsRequired()
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)");
+
+                    b.Property<string>("TextHash")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)");
+
+                    b.Property<int>("UsageCount")
+                        .HasColumnType("integer");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("TextHash")
+                        .IsUnique();
+
+                    b.ToTable("EmbeddingCache");
+                });
+
             modelBuilder.Entity("BudgetTracker.Common.Models.Goal", b =>
                 {
                     b.Property<Guid>("Id")
@@ -446,6 +484,9 @@ namespace BudgetTracker.API.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)");
 
+                    b.Property<Vector>("Embedding")
+                        .HasColumnType("vector(1536)");
+
                     b.Property<string>("EnrichedData")
                         .HasColumnType("text");
 
@@ -465,6 +506,49 @@ namespace BudgetTracker.API.Migrations
                     b.HasIndex("DisplayName");
 
                     b.ToTable("Merchants");
+                });
+
+            modelBuilder.Entity("BudgetTracker.Common.Models.PasswordResetToken", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<bool>("IsUsed")
+                        .HasColumnType("boolean");
+
+                    b.Property<string>("Token")
+                        .IsRequired()
+                        .HasMaxLength(255)
+                        .HasColumnType("character varying(255)");
+
+                    b.Property<DateTime?>("UsedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uuid");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Token")
+                        .IsUnique();
+
+                    b.HasIndex("UserId");
+
+                    b.HasIndex("Email", "IsUsed");
+
+                    b.ToTable("PasswordResetTokens");
                 });
 
             modelBuilder.Entity("BudgetTracker.Common.Models.RecurringSeries", b =>
@@ -825,6 +909,17 @@ namespace BudgetTracker.API.Migrations
                 {
                     b.HasOne("BudgetTracker.Common.Models.User", "User")
                         .WithMany("ImportedFiles")
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
+                });
+
+            modelBuilder.Entity("BudgetTracker.Common.Models.PasswordResetToken", b =>
+                {
+                    b.HasOne("BudgetTracker.Common.Models.User", "User")
+                        .WithMany()
                         .HasForeignKey("UserId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();

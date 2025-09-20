@@ -12,7 +12,7 @@ public class Merchant
     public string? Website { get; set; }
     public string? LogoUrl { get; set; }
     public string[] Aliases { get; set; } = Array.Empty<string>();
-    // public Vector? Embedding { get; set; }
+    public Vector? Embedding { get; set; }
     public string? EnrichedData { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -9,4 +9,7 @@ public interface IAuthService
     Task<AuthResponseDto?> RefreshTokenAsync(string refreshToken);
     Task LogoutAsync(Guid userId);
     Task<AuthResponseDto> AuthenticateWithGoogleAsync(GoogleAuthDto googleAuthDto);
+    Task<bool> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);
+    Task<bool> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
+    Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto);
 }

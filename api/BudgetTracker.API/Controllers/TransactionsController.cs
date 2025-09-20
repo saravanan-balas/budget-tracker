@@ -138,4 +138,20 @@ public class TransactionsController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while splitting the transaction" });
         }
     }
+
+    [HttpGet("import/{importId}")]
+    public async Task<IActionResult> GetTransactionsByImportId(Guid importId)
+    {
+        try
+        {
+            var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
+            var transactions = await _transactionService.GetTransactionsByImportIdAsync(userId, importId);
+            return Ok(transactions);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error fetching transactions for import {ImportId}", importId);
+            return StatusCode(500, new { error = "An error occurred while fetching transactions" });
+        }
+    }
 }

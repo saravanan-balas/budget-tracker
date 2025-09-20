@@ -1,8 +1,11 @@
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 using System.Text;
 using BudgetTracker.Common.DTOs;
+using iTextSharp.text.pdf;
+using iTextSharp.text.pdf.parser;
 
 namespace BudgetTracker.Common.Services.Parsing;
 
@@ -10,13 +13,16 @@ public class UniversalBankParser : IUniversalBankParser
 {
     private readonly IFormatDetectionService _formatDetection;
     private readonly ILogger<UniversalBankParser> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     public UniversalBankParser(
         IFormatDetectionService formatDetection,
-        ILogger<UniversalBankParser> logger)
+        ILogger<UniversalBankParser> logger,
+        IServiceProvider serviceProvider)
     {
         _formatDetection = formatDetection;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<TransactionParsingResult> ParseFileAsync(
@@ -160,18 +166,322 @@ public class UniversalBankParser : IUniversalBankParser
 
     private async Task<TransactionParsingResult> ParsePdfAsync(byte[] fileData)
     {
-        await Task.CompletedTask;
+        var result = new TransactionParsingResult();
         
-        // Placeholder for PDF parsing - will be implemented with iTextSharp
-        throw new NotImplementedException("PDF parsing will be implemented with OCR support");
+        try
+        {
+            _logger.LogInformation("Starting PDF parsing with text extraction");
+            
+            var extractedText = ExtractTextFromPdf(fileData);
+            
+            if (string.IsNullOrWhiteSpace(extractedText))
+            {
+                throw new InvalidOperationException("Unable to extract text from PDF");
+            }
+            
+            _logger.LogInformation("PDF text extracted: {Length} characters", extractedText.Length);
+            
+            // Get AI analyzer for transaction parsing
+            var aiAnalyzer = _serviceProvider.GetService<AI.IAIBankAnalyzer>();
+            if (aiAnalyzer != null)
+            {
+                // Use AI to parse transactions from PDF text
+                var bankInfo = new BankDetectionResult
+                {
+                    BankName = "Unknown",
+                    Country = "US",
+                    FileFormat = "PDF"
+                };
+                
+                var aiResult = await aiAnalyzer.ParseTransactionsWithAIAsync(
+                    System.Text.Encoding.UTF8.GetBytes(extractedText),
+                    "pdf_text.txt", 
+                    bankInfo);
+                
+                if (aiResult.IsSuccessful)
+                {
+                    result.Transactions = aiResult.Transactions;
+                    result.AICost = aiResult.AICost;
+                    
+                    _logger.LogInformation("AI parsed {Count} transactions from PDF text", result.Transactions.Count);
+                    
+                    // Log each parsed transaction for debugging
+                    foreach (var txn in result.Transactions)
+                    {
+                        _logger.LogInformation("PDF Transaction: Date={Date}, Description={Desc}, Amount={Amount}, Category={Category}",
+                            txn.Date, txn.Description, txn.Amount, txn.Category ?? "N/A");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("AI parsing failed, falling back to basic pattern matching");
+                    result.Transactions = ParseTransactionsFromText(extractedText);
+                }
+            }
+            else
+            {
+                // Fallback to basic pattern matching if AI is not available
+                _logger.LogInformation("AI analyzer not available, using basic pattern matching");
+                result.Transactions = ParseTransactionsFromText(extractedText);
+            }
+            
+            result.IsSuccessful = true;
+            _logger.LogInformation("PDF parsing completed with {Count} transactions", result.Transactions.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parsing PDF");
+            result.IsSuccessful = false;
+            result.ErrorMessage = ex.Message;
+        }
+        
+        return result;
+    }
+    
+    private string ExtractTextFromPdf(byte[] pdfData)
+    {
+        var text = new StringBuilder();
+        
+        try
+        {
+            using (var reader = new PdfReader(pdfData))
+            {
+                _logger.LogInformation("PDF has {PageCount} pages", reader.NumberOfPages);
+                
+                for (int page = 1; page <= reader.NumberOfPages; page++)
+                {
+                    try
+                    {
+                        var pageText = PdfTextExtractor.GetTextFromPage(reader, page);
+                        if (!string.IsNullOrWhiteSpace(pageText))
+                        {
+                            text.AppendLine(pageText);
+                            _logger.LogDebug("Extracted {Length} characters from page {Page}", 
+                                pageText.Length, page);
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogWarning(ex, "Error extracting text from page {Page}", page);
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error reading PDF document");
+            throw new InvalidOperationException($"Failed to read PDF: {ex.Message}", ex);
+        }
+        
+        var extractedText = text.ToString();
+        
+        // Log sample of extracted text for debugging
+        var sampleText = extractedText.Length > 500 ? extractedText.Substring(0, 500) + "..." : extractedText;
+        _logger.LogDebug("PDF Text Sample: {Sample}", sampleText);
+        
+        return extractedText;
     }
 
     private async Task<TransactionParsingResult> ParseImageAsync(byte[] fileData)
     {
-        await Task.CompletedTask;
+        var result = new TransactionParsingResult();
         
-        // Placeholder for image parsing - will be implemented with OCR
-        throw new NotImplementedException("Image parsing will be implemented with OCR support");
+        try
+        {
+            _logger.LogInformation("Starting image parsing with OCR extraction");
+            
+            // Get OCR service
+            var ocrService = _serviceProvider.GetService<OCR.IOCRService>();
+            if (ocrService == null)
+            {
+                throw new InvalidOperationException("OCR service is not available");
+            }
+            
+            // Extract text from image
+            var ocrResult = await ocrService.ExtractTextWithConfidenceAsync(fileData, "image.png");
+            
+            if (!ocrResult.IsSuccessful)
+            {
+                throw new InvalidOperationException($"OCR extraction failed: {ocrResult.ErrorMessage}");
+            }
+            
+            _logger.LogInformation("OCR extracted {Length} characters with {Confidence}% confidence", 
+                ocrResult.ExtractedText.Length, ocrResult.OverallConfidence * 100);
+            
+            // Get AI analyzer
+            var aiAnalyzer = _serviceProvider.GetService<AI.IAIBankAnalyzer>();
+            if (aiAnalyzer != null)
+            {
+                // Use AI to parse transactions from OCR text
+                var bankInfo = new BankDetectionResult
+                {
+                    BankName = "Unknown",
+                    Country = "US",
+                    FileFormat = "IMAGE"
+                };
+                
+                var aiResult = await aiAnalyzer.ParseTransactionsWithAIAsync(
+                    System.Text.Encoding.UTF8.GetBytes(ocrResult.ExtractedText),
+                    "ocr_text.txt", 
+                    bankInfo);
+                
+                if (aiResult.IsSuccessful)
+                {
+                    result.Transactions = aiResult.Transactions;
+                    result.AICost = aiResult.AICost;
+                    
+                    _logger.LogInformation("AI parsed {Count} transactions from OCR text", result.Transactions.Count);
+                    
+                    // Log each parsed transaction for debugging
+                    foreach (var txn in result.Transactions)
+                    {
+                        _logger.LogInformation("Parsed transaction: Date={Date}, Description={Desc}, Amount={Amount}, Category={Category}",
+                            txn.Date, txn.Description, txn.Amount, txn.Category ?? "N/A");
+                    }
+                }
+                else
+                {
+                    _logger.LogWarning("AI parsing failed, falling back to pattern matching");
+                    result.Transactions = ParseTransactionsFromText(ocrResult.ExtractedText);
+                }
+            }
+            else
+            {
+                // Fallback to pattern matching if AI is not available
+                _logger.LogInformation("AI analyzer not available, using pattern matching");
+                result.Transactions = ParseTransactionsFromText(ocrResult.ExtractedText);
+            }
+            
+            result.IsSuccessful = true;
+            _logger.LogInformation("Image parsing completed with {Count} transactions", result.Transactions.Count);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error parsing image");
+            result.IsSuccessful = false;
+            result.ErrorMessage = ex.Message;
+        }
+        
+        return result;
+    }
+    
+    private List<ParsedTransaction> ParseTransactionsFromText(string text)
+    {
+        var transactions = new List<ParsedTransaction>();
+        var lines = text.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+        
+        _logger.LogInformation("Pattern matching on {Count} lines of OCR text", lines.Length);
+        
+        foreach (var line in lines)
+        {
+            // Skip header lines
+            if (line.Contains("Date") || line.Contains("Description") || line.Contains("Amount") ||
+                line.Contains("Latest Card") || line.Contains("Transactions") || line.Contains("Statement"))
+                continue;
+            
+            // Look for lines with dollar amounts
+            if (line.Contains("$"))
+            {
+                var transaction = ParseTransactionLine(line);
+                if (transaction != null)
+                {
+                    transactions.Add(transaction);
+                    _logger.LogDebug("Parsed line: '{Line}' -> Date={Date}, Desc={Desc}, Amount={Amount}",
+                        line, transaction.Date, transaction.Description, transaction.Amount);
+                }
+            }
+        }
+        
+        _logger.LogInformation("Pattern matching found {Count} transactions", transactions.Count);
+        return transactions;
+    }
+    
+    private ParsedTransaction? ParseTransactionLine(string line)
+    {
+        try
+        {
+            // Parse lines like "Sep 12     Uber                           $5.00"
+            // Also handle lines with "Pending" or other status indicators
+            
+            var cleanLine = line.Trim();
+            if (cleanLine.StartsWith("Pending") || cleanLine.Contains("ago"))
+                return null; // Skip status lines
+            
+            // Extract amount
+            var dollarIndex = cleanLine.IndexOf('$');
+            if (dollarIndex == -1) return null;
+            
+            var amountEnd = dollarIndex + 1;
+            while (amountEnd < cleanLine.Length && (char.IsDigit(cleanLine[amountEnd]) || cleanLine[amountEnd] == '.' || cleanLine[amountEnd] == ','))
+                amountEnd++;
+            
+            var amountStr = cleanLine.Substring(dollarIndex + 1, amountEnd - dollarIndex - 1).Replace(",", "");
+            if (!decimal.TryParse(amountStr, out var amount)) return null;
+            
+            // Extract date and description
+            var beforeAmount = cleanLine.Substring(0, dollarIndex).Trim();
+            var parts = beforeAmount.Split(new[] { ' ', '\t' }, StringSplitOptions.RemoveEmptyEntries);
+            
+            if (parts.Length < 2) return null;
+            
+            // Try to parse date (format: "Sep 12")
+            DateTime date = DateTime.UtcNow;
+            var monthStr = parts[0];
+            if (parts.Length > 1 && int.TryParse(parts[1], out var day))
+            {
+                var month = ParseMonth(monthStr);
+                if (month > 0)
+                {
+                    var year = DateTime.UtcNow.Year;
+                    if (month > DateTime.UtcNow.Month) year--; // Previous year if future month
+                    date = new DateTime(year, month, day);
+                }
+            }
+            
+            // Extract description (everything between date and amount)
+            var description = "";
+            for (int i = 2; i < parts.Length; i++)
+            {
+                description += parts[i] + " ";
+            }
+            description = description.Trim();
+            
+            if (string.IsNullOrEmpty(description))
+                description = "Transaction";
+            
+            return new ParsedTransaction
+            {
+                Date = date,
+                Description = description,
+                Amount = -amount, // Expenses are negative
+                Category = null // Let AI handle categorization
+            };
+        }
+        catch (Exception ex)
+        {
+            _logger.LogDebug("Failed to parse line '{Line}': {Error}", line, ex.Message);
+            return null;
+        }
+    }
+    
+    private int ParseMonth(string monthStr)
+    {
+        return monthStr.ToLower() switch
+        {
+            "jan" or "january" => 1,
+            "feb" or "february" => 2,
+            "mar" or "march" => 3,
+            "apr" or "april" => 4,
+            "may" => 5,
+            "jun" or "june" => 6,
+            "jul" or "july" => 7,
+            "aug" or "august" => 8,
+            "sep" or "september" => 9,
+            "oct" or "october" => 10,
+            "nov" or "november" => 11,
+            "dec" or "december" => 12,
+            _ => 0
+        };
     }
 
     private async Task<ImportPreviewDto> GenerateCsvPreviewAsync(byte[] fileData)

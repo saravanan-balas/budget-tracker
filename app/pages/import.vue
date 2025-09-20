@@ -210,10 +210,16 @@
             <li v-if="importStatus.detectedBankName">🏦 Detected bank: {{ importStatus.detectedBankName }}</li>
             <li v-if="importStatus.aiCost">💰 AI processing cost: ${{ importStatus.aiCost.toFixed(4) }}</li>
           </ul>
-          <div class="mt-4">
+          <div class="mt-4 flex space-x-4">
             <NuxtLink to="/transactions" class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700">
-              View Transactions
+              View All Transactions
             </NuxtLink>
+            <button 
+              @click="showImportedTransactions = true; loadImportedTransactions()"
+              class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
+            >
+              Show Imported Transactions
+            </button>
           </div>
         </div>
 
@@ -228,6 +234,73 @@
               Try Again
             </button>
           </div>
+        </div>
+      </div>
+
+      <!-- Imported Transactions Display -->
+      <div v-if="showImportedTransactions && importedTransactions.length > 0" class="bg-white rounded-lg shadow p-6 mt-6">
+        <div class="flex justify-between items-center mb-4">
+          <h2 class="text-xl font-semibold">Imported Transactions</h2>
+          <button 
+            @click="showImportedTransactions = false"
+            class="text-gray-500 hover:text-gray-700"
+          >
+            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+            </svg>
+          </button>
+        </div>
+
+        <!-- Category Summary -->
+        <div v-if="categorySummary.length > 0" class="mb-6 p-4 bg-gray-50 rounded-md">
+          <h3 class="text-sm font-medium text-gray-700 mb-3">Category Summary</h3>
+          <div class="grid grid-cols-2 md:grid-cols-3 gap-3">
+            <div v-for="cat in categorySummary" :key="cat.category" class="text-sm">
+              <span class="font-medium">{{ cat.category }}:</span>
+              <span class="text-gray-600"> ${{ cat.total.toFixed(2) }} ({{ cat.count }})</span>
+            </div>
+          </div>
+          <div class="mt-3 pt-3 border-t border-gray-200">
+            <span class="font-medium">Total:</span>
+            <span class="text-gray-900 font-semibold"> ${{ totalAmount.toFixed(2) }}</span>
+          </div>
+        </div>
+
+        <!-- Transactions Table -->
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-gray-200">
+            <thead class="bg-gray-50">
+              <tr>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
+                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+              </tr>
+            </thead>
+            <tbody class="bg-white divide-y divide-gray-200">
+              <tr v-for="transaction in importedTransactions" :key="transaction.id">
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
+                  {{ formatDate(transaction.transactionDate) }}
+                </td>
+                <td class="px-4 py-2 text-sm text-gray-900">
+                  {{ transaction.description || transaction.originalMerchant }}
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm">
+                  <span :class="[
+                    'inline-flex px-2 py-1 text-xs font-medium rounded-full',
+                    getCategoryColor(transaction.category?.name)
+                  ]">
+                    {{ transaction.category?.name || 'Uncategorized' }}
+                  </span>
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap text-sm text-right">
+                  <span :class="transaction.amount < 0 ? 'text-red-600' : 'text-green-600'">
+                    ${{ Math.abs(transaction.amount).toFixed(2) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </div>
     </div>
@@ -293,6 +366,9 @@ const importId = ref('')
 const jobId = ref('')
 const statusPollingInterval = ref<NodeJS.Timeout | null>(null)
 
+const showImportedTransactions = ref(false)
+const importedTransactions = ref<any[]>([])
+
 // Constants
 const fileAcceptTypes: Record<string, string> = {
   csv: '.csv,.txt',
@@ -318,6 +394,29 @@ const progressPercentage = computed(() => {
   }
   
   return 25 // Default progress for processing
+})
+
+const categorySummary = computed(() => {
+  const summary: Record<string, { count: number; total: number }> = {}
+  
+  importedTransactions.value.forEach(txn => {
+    const category = txn.category?.name || 'Uncategorized'
+    if (!summary[category]) {
+      summary[category] = { count: 0, total: 0 }
+    }
+    summary[category].count++
+    summary[category].total += Math.abs(txn.amount)
+  })
+  
+  return Object.entries(summary).map(([category, data]) => ({
+    category,
+    count: data.count,
+    total: data.total
+  })).sort((a, b) => b.total - a.total)
+})
+
+const totalAmount = computed(() => {
+  return importedTransactions.value.reduce((sum, txn) => sum + Math.abs(txn.amount), 0)
 })
 
 // Methods
@@ -448,6 +547,46 @@ const loadAccounts = async () => {
   } catch (error) {
     console.error('Error loading accounts:', error)
   }
+}
+
+const loadImportedTransactions = async () => {
+  if (!importId.value) return
+  
+  try {
+    const api = useApi()
+    importedTransactions.value = await api.getTransactionsByImportId(importId.value)
+    console.log(`Loaded ${importedTransactions.value.length} transactions from import`)
+  } catch (error) {
+    console.error('Error loading imported transactions:', error)
+  }
+}
+
+const formatDate = (dateString: string) => {
+  const date = new Date(dateString)
+  return date.toLocaleDateString('en-US', { 
+    year: 'numeric', 
+    month: 'short', 
+    day: 'numeric' 
+  })
+}
+
+const getCategoryColor = (categoryName: string | undefined) => {
+  if (!categoryName) return 'bg-gray-100 text-gray-800'
+  
+  const colors: Record<string, string> = {
+    'Food & Dining': 'bg-orange-100 text-orange-800',
+    'Transportation': 'bg-blue-100 text-blue-800',
+    'Entertainment': 'bg-purple-100 text-purple-800',
+    'Shopping': 'bg-pink-100 text-pink-800',
+    'Groceries': 'bg-green-100 text-green-800',
+    'Utilities': 'bg-yellow-100 text-yellow-800',
+    'Healthcare': 'bg-red-100 text-red-800',
+    'Banking': 'bg-indigo-100 text-indigo-800',
+    'Phone & Internet': 'bg-cyan-100 text-cyan-800',
+    'Uncategorized': 'bg-gray-100 text-gray-800'
+  }
+  
+  return colors[categoryName] || 'bg-gray-100 text-gray-800'
 }
 
 // Lifecycle

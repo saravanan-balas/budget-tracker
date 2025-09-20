@@ -9,7 +9,7 @@ budget-tracker/
 ├── api/                    # .NET Core Web API
 ├── worker/                 # Background processing service
 ├── common/                 # Shared models and infrastructure
-├── ui/                     # Nuxt/Vue frontend
+├── app/                     # Nuxt/Vue frontend
 ├── docs/                   # Documentation
 ├── docker-compose.yml      # Local development setup
 └── init.sql               # Database initialization
