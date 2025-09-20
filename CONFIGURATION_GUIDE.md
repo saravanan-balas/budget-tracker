@@ -70,3 +70,16 @@ dotnet ef database update
    - Login to application
    - Go to Settings → Change Password
    - Enter current and new password
+
+## Known Issues
+
+### Google SSO
+- **Status**: ⚠️ Partially Working
+- **Issue**: CORS and FedCM errors preventing Google Sign-In
+- **Workaround**: Use regular email/password login
+- **Documentation**: See `GOOGLE_SSO_ISSUES.md` for detailed troubleshooting
+
+### Priority
+- ✅ **Password Management**: Fully working
+- ✅ **Email Delivery**: Fully working  
+- ⚠️ **Google SSO**: Needs further investigation
