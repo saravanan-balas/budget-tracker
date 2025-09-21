@@ -433,14 +433,14 @@ public class AIBankAnalyzer : IAIBankAnalyzer
 
             var requestBody = new
             {
-                model = "gpt-3.5-turbo",
+                model = "gpt-4o-mini",
                 messages = new[]
                 {
                     new { role = "system", content = "You are a strict transaction parser. ONLY extract individual merchant transactions. NEVER extract account summaries, totals, balances, headers, or any line that doesn't show a specific business transaction. If in doubt, skip it." },
                     new { role = "user", content = prompt }
                 },
                 temperature = 0.1,
-                max_tokens = 2000
+                max_tokens = 4096
             };
 
             var jsonContent = JsonSerializer.Serialize(requestBody);
@@ -521,6 +521,65 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         public string description { get; set; } = string.Empty;
         public decimal amount { get; set; }
         public string category { get; set; } = "Miscellaneous";
+    }
+
+    public async Task<string> CategorizeTransactionAsync(string prompt)
+    {
+        try
+        {
+            var apiKey = _configuration["OPENAI_API_KEY"];
+            if (string.IsNullOrEmpty(apiKey))
+            {
+                _logger.LogWarning("OpenAI API key not configured, using fallback categorization");
+                return "Miscellaneous";
+            }
+
+            var requestBody = new
+            {
+                model = "gpt-4o-mini",
+                messages = new[]
+                {
+                    new { role = "system", content = "You are a transaction categorizer. Return ONLY the category name from this list: Food & Dining, Groceries, Transportation, Entertainment, Shopping, Bills & Utilities, Healthcare, Other. No explanation, just the category name." },
+                    new { role = "user", content = prompt }
+                },
+                temperature = 0.1,
+                max_tokens = 50
+            };
+
+            var jsonContent = JsonSerializer.Serialize(requestBody);
+            var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
+
+            var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", httpContent);
+            
+            if (!response.IsSuccessStatusCode)
+            {
+                var error = await response.Content.ReadAsStringAsync();
+                _logger.LogError("OpenAI API error for categorization: {StatusCode} - {Error}", response.StatusCode, error);
+                return "Miscellaneous";
+            }
+
+            var responseContent = await response.Content.ReadAsStringAsync();
+            var jsonDoc = JsonDocument.Parse(responseContent);
+            
+            var aiResponse = jsonDoc.RootElement
+                .GetProperty("choices")[0]
+                .GetProperty("message")
+                .GetProperty("content")
+                .GetString()?.Trim();
+
+            if (string.IsNullOrEmpty(aiResponse))
+            {
+                return "Miscellaneous";
+            }
+
+            _logger.LogDebug("AI categorized transaction: {Category}", aiResponse);
+            return aiResponse;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error calling OpenAI API for categorization");
+            return "Miscellaneous";
+        }
     }
 
     private string InferCategory(string description)

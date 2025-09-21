@@ -43,35 +43,20 @@ public class OptimizedMerchantService : IMerchantService
         if (string.IsNullOrWhiteSpace(rawMerchantName))
             return null;
 
-        var normalizedName = _embeddingService.NormalizeMerchantName(rawMerchantName);
+        var normalizedName = NormalizeMerchantName(rawMerchantName);
         var startTime = DateTime.UtcNow;
         
         _logger.LogDebug("Finding match for: '{Raw}' → '{Normalized}'", rawMerchantName, normalizedName);
 
-        // TIER 1: Fast String Matching (90% of cases, ~5ms, $0)
+        // Use string matching only - GPT-4o handles normalization well
         var stringMatch = await TryStringMatchingAsync(normalizedName);
         if (stringMatch != null)
         {
-            LogMatchResult("Tier 1 (String)", stringMatch, startTime);
+            LogMatchResult("String Match", stringMatch, startTime);
             return stringMatch;
         }
 
-        // TIER 2: Cached Embeddings (8% of cases, ~10ms, $0)
-        var cachedMatch = await TryCachedEmbeddingMatchAsync(normalizedName, similarityThreshold);
-        if (cachedMatch != null)
-        {
-            LogMatchResult("Tier 2 (Cached)", cachedMatch, startTime);
-            return cachedMatch;
-        }
-
-        // TIER 3: Generate New Embedding (2% of cases, ~200ms, $0.0001)
-        var embeddingMatch = await TryNewEmbeddingMatchAsync(normalizedName, similarityThreshold);
-        if (embeddingMatch != null)
-        {
-            LogMatchResult("Tier 3 (New)", embeddingMatch, startTime);
-            return embeddingMatch;
-        }
-
+        // Skip embeddings - rely on GPT-4o's merchant normalization
         _logger.LogDebug("No match found for: {Merchant}", normalizedName);
         return null;
     }
@@ -295,7 +280,7 @@ public class OptimizedMerchantService : IMerchantService
     // Implement remaining interface methods...
     public async Task<Merchant> CreateOrGetMerchantAsync(string merchantName, string? category = null)
     {
-        var normalizedName = _embeddingService.NormalizeMerchantName(merchantName);
+        var normalizedName = NormalizeMerchantName(merchantName);
         
         // Check if merchant already exists using optimized matching
         var existingMatch = await FindBestMatchAsync(merchantName);
@@ -315,20 +300,8 @@ public class OptimizedMerchantService : IMerchantService
             UpdatedAt = DateTime.UtcNow
         };
 
-        try
-        {
-            // Generate embedding for new merchant
-            merchant.Embedding = await _embeddingService.GenerateEmbeddingAsync(normalizedName);
-            
-            // Also cache it for future queries
-            await CacheEmbeddingAsync(normalizedName, merchant.Embedding);
-            
-            _logger.LogDebug("Generated embedding for new merchant: {Merchant}", normalizedName);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogWarning(ex, "Failed to generate embedding for merchant: {Merchant}", normalizedName);
-        }
+        // Skip embedding generation - GPT-4o handles normalization
+        merchant.Embedding = null;
 
         _context.Merchants.Add(merchant);
         await _context.SaveChangesAsync();
@@ -433,5 +406,60 @@ public class OptimizedMerchantService : IMerchantService
 
         _logger.LogDebug("Found {Count} similar merchants for {Merchant}", similarities.Count, sourceMerchant.DisplayName);
         return similarities;
+    }
+
+    private string NormalizeMerchantName(string rawMerchantName)
+    {
+        if (string.IsNullOrWhiteSpace(rawMerchantName))
+            return string.Empty;
+
+        // Simple normalization without AI
+        var normalized = rawMerchantName
+            .Replace("*", "")
+            .Replace("#", "")
+            .Trim();
+
+        // Remove common prefixes/suffixes
+        var commonPrefixes = new[] { "DD *", "AMZN MKTP", "AMAZON MKTPL", "SQ *", "TST*" };
+        foreach (var prefix in commonPrefixes)
+        {
+            if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
+            {
+                normalized = normalized.Substring(prefix.Length).Trim();
+                break;
+            }
+        }
+
+        // Extract recognizable merchant names
+        if (normalized.ToLowerInvariant().Contains("uber"))
+            return "Uber";
+        if (normalized.ToLowerInvariant().Contains("amazon"))
+            return "Amazon";
+        if (normalized.ToLowerInvariant().Contains("walmart") || normalized.ToLowerInvariant().Contains("wal-mart"))
+            return "Walmart";
+        if (normalized.ToLowerInvariant().Contains("target"))
+            return "Target";
+        if (normalized.ToLowerInvariant().Contains("costco"))
+            return "Costco";
+        if (normalized.ToLowerInvariant().Contains("mcdonald"))
+            return "McDonald's";
+        if (normalized.ToLowerInvariant().Contains("databricks"))
+            return "Databricks";
+        if (normalized.ToLowerInvariant().Contains("speedway"))
+            return "Speedway";
+
+        // Take first meaningful word if no specific match
+        var words = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length > 0)
+        {
+            var firstWord = words[0];
+            // Remove common suffixes
+            if (firstWord.Length > 3)
+            {
+                return char.ToUpper(firstWord[0]) + firstWord.Substring(1).ToLower();
+            }
+        }
+
+        return normalized;
     }
 }

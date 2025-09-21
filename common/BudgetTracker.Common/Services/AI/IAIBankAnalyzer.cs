@@ -13,4 +13,5 @@ public interface IAIBankAnalyzer
         BankDetectionResult bankInfo);
     Task<decimal> EstimateAICostAsync(int fileSize, string fileType);
     Task<bool> IsAIProcessingRequired(byte[] fileData, string fileName);
+    Task<string> CategorizeTransactionAsync(string prompt);
 }

@@ -54,7 +54,7 @@
 
     <div v-else>
       <!-- Quick Stats -->
-      <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between">
             <div>
@@ -104,6 +104,19 @@
             </div>
           </div>
         </div>
+
+        <NuxtLink to="/transactions?filter=uncategorized" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
+          <div class="flex items-center justify-between">
+            <div>
+              <p class="text-sm font-medium text-gray-500">Uncategorized</p>
+              <p class="text-2xl font-bold text-gray-900">{{ stats.uncategorizedCount }}</p>
+              <p class="text-xs text-amber-600 mt-1">Need attention</p>
+            </div>
+            <div class="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
+              <span class="text-amber-600">🔍</span>
+            </div>
+          </div>
+        </NuxtLink>
       </div>
 
       <!-- Main Content Grid -->
@@ -226,7 +239,8 @@ const stats = reactive({
   monthlyExpenses: 0,
   monthlyIncome: 0,
   netSavings: 0,
-  transactionCount: 0
+  transactionCount: 0,
+  uncategorizedCount: 0
 })
 const recentTransactions = ref<Transaction[]>([])
 const monthlyTransactions = ref<Transaction[]>([])
@@ -290,17 +304,20 @@ const loadDashboardData = async () => {
     // Calculate stats
     const expenses = monthlyTransactionsData.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const income = monthlyTransactionsData.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
+    const uncategorized = monthlyTransactionsData.filter(t => !t.categoryId || !t.categoryName).length
     
     stats.monthlyExpenses = expenses
     stats.monthlyIncome = income
     stats.netSavings = income - expenses
     stats.transactionCount = monthlyTransactionsData.length
+    stats.uncategorizedCount = uncategorized
     
     console.log('Dashboard data loaded:', {
       expenses,
       income,
       netSavings: income - expenses,
       transactionCount: monthlyTransactionsData.length,
+      uncategorizedCount: uncategorized,
       recentTransactions: recentTransactionsData.length
     })
     

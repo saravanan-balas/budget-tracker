@@ -57,6 +57,8 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select v-model="filters.categoryId" class="w-full border-gray-300 rounded-lg">
               <option value="">All Categories</option>
+              <option value="uncategorized">🔍 Uncategorized</option>
+              <option disabled>──────────</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -108,8 +110,13 @@
 
         <!-- Filter Actions -->
         <div class="mt-4 flex justify-between items-center">
-          <div class="text-sm text-gray-600">
-            Showing {{ filteredTransactions.length }} of {{ transactions.length }} transactions
+          <div class="flex items-center gap-4">
+            <div class="text-sm text-gray-600">
+              Showing {{ filteredTransactions.length }} of {{ transactions.length }} transactions
+            </div>
+            <div v-if="uncategorizedCount > 0" class="text-sm text-amber-600 font-medium">
+              ({{ uncategorizedCount }} uncategorized)
+            </div>
           </div>
           <button @click="resetFilters" class="text-sm text-blue-600 hover:text-blue-800">
             Reset Filters
@@ -123,10 +130,10 @@
       <!-- Transactions Table (Left Side) -->
       <div class="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200">
+            <table class="min-w-full divide-y divide-gray-200 table-fixed transactions-table" style="min-width: 800px;">
             <thead class="bg-gray-50">
             <tr>
-              <th @click="sortBy('transactionDate')" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+              <th @click="sortBy('transactionDate')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" style="width: 10%;">
                 <div class="flex items-center">
                   Date
                   <svg v-if="sortField === 'transactionDate'" class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -135,16 +142,16 @@
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                Merchant
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 35%;">
+                Merchant & Description
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">
                 Category
               </th>
-              <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 15%;">
                 Account
               </th>
-              <th @click="sortBy('amount')" class="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100">
+              <th @click="sortBy('amount')" class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" style="width: 12%;">
                 <div class="flex items-center justify-end">
                   Amount
                   <svg v-if="sortField === 'amount'" class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -153,43 +160,47 @@
                   </svg>
                 </div>
               </th>
-              <th class="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th class="px-4 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider" style="width: 13%;">
                 Actions
               </th>
             </tr>
           </thead>
           <tbody class="bg-white divide-y divide-gray-200">
             <tr v-for="transaction in paginatedTransactions" :key="transaction.id" class="hover:bg-gray-50">
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-gray-900" style="width: 10%;">
                 {{ formatDate(transaction.transactionDate) }}
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
-                <div>
-                  <div class="text-sm font-medium text-gray-900">{{ transaction.merchant }}</div>
-                  <div v-if="transaction.description" class="text-sm text-gray-500">{{ transaction.description }}</div>
+              <td class="px-4 py-4 text-sm" style="width: 35%;">
+                <div class="overflow-hidden">
+                  <div class="font-medium text-gray-900 truncate" :title="transaction.merchant">{{ transaction.merchant }}</div>
+                  <div v-if="transaction.description" class="text-gray-500 truncate text-xs mt-1" :title="transaction.description">
+                    {{ transaction.description }}
+                  </div>
                 </div>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap">
+              <td class="px-4 py-4 whitespace-nowrap" style="width: 15%;">
                 <span v-if="transaction.categoryName" class="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
-                  {{ transaction.categoryName }}
+                  <span class="truncate max-w-20">{{ transaction.categoryName }}</span>
                 </span>
                 <span v-else class="text-sm text-gray-400">Uncategorized</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                {{ transaction.accountName }}
+              <td class="px-4 py-4 text-sm text-gray-500" style="width: 15%;">
+                <span class="truncate block" :title="transaction.accountName">{{ transaction.accountName }}</span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
+              <td class="px-4 py-4 whitespace-nowrap text-sm text-right" style="width: 12%;">
                 <span :class="transaction.amount > 0 ? 'text-green-600' : 'text-red-600'" class="font-medium">
                   {{ formatCurrency(Math.abs(transaction.amount)) }}
                 </span>
               </td>
-              <td class="px-6 py-4 whitespace-nowrap text-center text-sm font-medium">
-                <button @click="editTransaction(transaction)" class="text-indigo-600 hover:text-indigo-900 mr-3">
-                  Edit
-                </button>
-                <button @click="confirmDelete(transaction)" class="text-red-600 hover:text-red-900">
-                  Delete
-                </button>
+              <td class="px-4 py-4 whitespace-nowrap text-center text-sm font-medium" style="width: 13%;">
+                <div class="flex justify-center space-x-2">
+                  <button @click="editTransaction(transaction)" class="text-indigo-600 hover:text-indigo-900 text-sm px-2 py-1 rounded hover:bg-indigo-50">
+                    Edit
+                  </button>
+                  <button @click="confirmDelete(transaction)" class="text-red-600 hover:text-red-900 text-sm px-2 py-1 rounded hover:bg-red-50">
+                    Delete
+                  </button>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -379,7 +390,11 @@ const filteredTransactions = computed(() => {
   }
   
   if (filters.value.categoryId) {
-    result = result.filter(t => t.categoryId === filters.value.categoryId)
+    if (filters.value.categoryId === 'uncategorized') {
+      result = result.filter(t => !t.categoryId || !t.categoryName)
+    } else {
+      result = result.filter(t => t.categoryId === filters.value.categoryId)
+    }
   }
   
   if (filters.value.searchTerm) {
@@ -448,6 +463,10 @@ const displayedPages = computed(() => {
   }
   
   return pages
+})
+
+const uncategorizedCount = computed(() => {
+  return transactions.value.filter(t => !t.categoryId || !t.categoryName).length
 })
 
 // Methods
@@ -820,6 +839,12 @@ watch(filteredTransactions, () => {
 
 // Initialize
 onMounted(() => {
+  // Check for URL parameters to preset filters
+  const route = useRoute()
+  if (route.query.filter === 'uncategorized') {
+    filters.value.categoryId = 'uncategorized'
+  }
+  
   loadTransactions()
   loadAccounts()
   loadCategories()
@@ -834,5 +859,28 @@ useHead({
 <style scoped>
 input[type="date"]::-webkit-calendar-picker-indicator {
   cursor: pointer;
+}
+
+/* Ensure table cells don't expand beyond their assigned widths */
+.transactions-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.transactions-table th,
+.transactions-table td {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Handle long text in merchant description */
+.merchant-description {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Ensure category badges don't overflow */
+.category-badge {
+  max-width: 100%;
 }
 </style>

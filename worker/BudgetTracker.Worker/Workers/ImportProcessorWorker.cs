@@ -409,7 +409,7 @@ public class ImportProcessorWorker : BackgroundService
             if (!string.IsNullOrEmpty(categoryName))
             {
                 var category = await context.Categories
-                    .FirstOrDefaultAsync(c => c.Name == categoryName, cancellationToken);
+                    .FirstOrDefaultAsync(c => c.Name.ToLower() == categoryName.ToLower() && c.UserId == import.UserId, cancellationToken);
                 if (category != null)
                 {
                     categoryId = category.Id;

@@ -167,6 +167,11 @@ public class ImportController : ControllerBase
                 return result.IsSuccessful ? Ok(result) : BadRequest(result);
             }
         }
+        catch (ArgumentException ex)
+        {
+            _logger.LogWarning(ex, "Validation error in smart import");
+            return BadRequest(new { error = ex.Message });
+        }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Error in smart import");

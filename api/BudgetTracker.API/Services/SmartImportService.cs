@@ -7,6 +7,7 @@ using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.Templates;
+using BudgetTracker.Common.Services.Merchants;
 using Microsoft.EntityFrameworkCore;
 
 namespace BudgetTracker.API.Services;
@@ -20,6 +21,7 @@ public class SmartImportService : ISmartImportService
     private readonly IAIBankAnalyzer _aiAnalyzer;
     private readonly IOCRService _ocrService;
     private readonly IBankTemplateService _templateService;
+    private readonly IMerchantService _merchantService;
     private readonly ILogger<SmartImportService> _logger;
 
     public SmartImportService(
@@ -30,6 +32,7 @@ public class SmartImportService : ISmartImportService
         IAIBankAnalyzer aiAnalyzer,
         IOCRService ocrService,
         IBankTemplateService templateService,
+        IMerchantService merchantService,
         ILogger<SmartImportService> logger)
     {
         _context = context;
@@ -39,6 +42,7 @@ public class SmartImportService : ISmartImportService
         _aiAnalyzer = aiAnalyzer;
         _ocrService = ocrService;
         _templateService = templateService;
+        _merchantService = merchantService;
         _logger = logger;
     }
 
@@ -234,6 +238,9 @@ public class SmartImportService : ISmartImportService
             // Get or create account
             var account = await GetOrCreateAccountAsync(importFile.UserId, importDto.AccountId);
 
+            // Ensure user has default categories
+            await EnsureDefaultCategoriesAsync(importFile.UserId);
+
             // Import transactions
             var importCount = await ImportTransactionsAsync(importFile, parseResult.Transactions, account.Id);
 
@@ -290,10 +297,63 @@ public class SmartImportService : ISmartImportService
 
         if (account == null)
         {
-            throw new InvalidOperationException($"Account {accountId} not found for user {userId}");
+            throw new ArgumentException($"Account {accountId} not found or not accessible to this user. Please ensure you're using a valid account ID.", nameof(accountId));
         }
 
         return account;
+    }
+
+    private async Task EnsureDefaultCategoriesAsync(Guid userId)
+    {
+        // Check if user already has categories
+        var hasCategories = await _context.Categories.AnyAsync(c => c.UserId == userId);
+        
+        if (hasCategories)
+        {
+            return; // User already has categories
+        }
+
+        _logger.LogInformation("Creating default categories for user {UserId}", userId);
+
+        var defaultCategories = new[]
+        {
+            // Income categories
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Salary", Type = CategoryType.Income, Icon = "💰", Color = "#10b981", DisplayOrder = 1 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Freelance", Type = CategoryType.Income, Icon = "💼", Color = "#10b981", DisplayOrder = 2 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Investments", Type = CategoryType.Income, Icon = "📈", Color = "#10b981", DisplayOrder = 3 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Other Income", Type = CategoryType.Income, Icon = "💵", Color = "#10b981", DisplayOrder = 4 },
+            
+            // Expense categories
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Food & Dining", Type = CategoryType.Expense, Icon = "🍔", Color = "#ef4444", DisplayOrder = 10 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Groceries", Type = CategoryType.Expense, Icon = "🛒", Color = "#f97316", DisplayOrder = 11 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Transportation", Type = CategoryType.Expense, Icon = "🚗", Color = "#eab308", DisplayOrder = 12 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Shopping", Type = CategoryType.Expense, Icon = "🛍️", Color = "#a855f7", DisplayOrder = 13 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Entertainment", Type = CategoryType.Expense, Icon = "🎬", Color = "#8b5cf6", DisplayOrder = 14 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Bills & Utilities", Type = CategoryType.Expense, Icon = "📱", Color = "#3b82f6", DisplayOrder = 15 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Healthcare", Type = CategoryType.Expense, Icon = "🏥", Color = "#06b6d4", DisplayOrder = 16 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Education", Type = CategoryType.Expense, Icon = "📚", Color = "#14b8a6", DisplayOrder = 17 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Travel", Type = CategoryType.Expense, Icon = "✈️", Color = "#ec4899", DisplayOrder = 18 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Insurance", Type = CategoryType.Expense, Icon = "🛡️", Color = "#6366f1", DisplayOrder = 19 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Rent/Mortgage", Type = CategoryType.Expense, Icon = "🏠", Color = "#f43f5e", DisplayOrder = 20 },
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Personal Care", Type = CategoryType.Expense, Icon = "💅", Color = "#fb923c", DisplayOrder = 21 },
+            
+            // Transfer category
+            new Category { Id = Guid.NewGuid(), UserId = userId, Name = "Transfer", Type = CategoryType.Transfer, Icon = "↔️", Color = "#6b7280", DisplayOrder = 30 }
+        };
+
+        var utcNow = DateTime.UtcNow;
+        foreach (var category in defaultCategories)
+        {
+            category.IsSystem = false;
+            category.IsActive = true;
+            category.CreatedAt = utcNow;
+            category.UpdatedAt = utcNow;
+        }
+
+        _context.Categories.AddRange(defaultCategories);
+        await _context.SaveChangesAsync();
+        
+        _logger.LogInformation("Created {Count} default categories for user {UserId}", defaultCategories.Length, userId);
     }
 
     private async Task<(int imported, int duplicates)> ImportTransactionsAsync(
@@ -304,8 +364,11 @@ public class SmartImportService : ISmartImportService
         int imported = 0;
         int duplicates = 0;
 
-        foreach (var txn in transactions)
+        _logger.LogInformation("Processing {Count} transactions for import", transactions.Count);
+
+        for (int i = 0; i < transactions.Count; i++)
         {
+            var txn = transactions[i];
             var hash = GenerateTransactionHash(txn, accountId);
             
             var exists = await _context.Transactions
@@ -317,17 +380,88 @@ public class SmartImportService : ISmartImportService
                 continue;
             }
 
+            // Merchant normalization
+            Merchant? merchant = null;
+            if (!string.IsNullOrWhiteSpace(txn.Description))
+            {
+                try
+                {
+                    var matchResult = await _merchantService.FindBestMatchAsync(txn.Description, 0.7);
+                    if (matchResult != null)
+                    {
+                        merchant = matchResult.Merchant;
+                        if (i < 5) // Log first 5 for debugging
+                        {
+                            _logger.LogInformation("Matched merchant '{Original}' to '{Normalized}' (method: {Method}, score: {Score:F3})",
+                                txn.Description, merchant.DisplayName, matchResult.MatchMethod, matchResult.SimilarityScore);
+                        }
+                    }
+                    else
+                    {
+                        // Create new merchant if no good match found
+                        merchant = await _merchantService.CreateOrGetMerchantAsync(txn.Description, txn.Category);
+                        if (i < 5) // Log first 5 for debugging
+                        {
+                            _logger.LogInformation("Created new merchant '{Name}' for '{Original}'", 
+                                merchant.DisplayName, txn.Description);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing merchant for transaction: {Description}", txn.Description);
+                }
+            }
+
+            // Categorization
+            string? categoryName = txn.Category;
+            Guid? categoryId = null;
+            
+            // Try to get category from merchant defaults first
+            if (string.IsNullOrEmpty(categoryName) && merchant != null)
+            {
+                categoryName = merchant.Category;
+            }
+            
+            // Look up category ID from category name if we have one
+            if (!string.IsNullOrEmpty(categoryName))
+            {
+                var category = await _context.Categories
+                    .FirstOrDefaultAsync(c => c.Name.ToLower() == categoryName.ToLower() && c.UserId == importFile.UserId);
+                
+                if (category != null)
+                {
+                    categoryId = category.Id;
+                    if (i < 5) // Log first 5 for debugging
+                    {
+                        _logger.LogInformation("Categorized transaction as '{Category}'", category.Name);
+                    }
+                }
+                else if (i < 5)
+                {
+                    _logger.LogWarning("Category '{CategoryName}' not found for user", categoryName);
+                }
+            }
+
+            // Ensure DateTime values are UTC
+            var transactionDate = txn.Date.Kind == DateTimeKind.Unspecified 
+                ? DateTime.SpecifyKind(txn.Date, DateTimeKind.Utc) 
+                : txn.Date.ToUniversalTime();
+
             var transaction = new Transaction
             {
                 Id = Guid.NewGuid(),
                 UserId = importFile.UserId,
                 AccountId = accountId,
-                TransactionDate = txn.Date,
-                PostedDate = txn.Date,
+                TransactionDate = transactionDate,
+                PostedDate = transactionDate,
                 Amount = txn.Amount,
                 Type = txn.Amount < 0 ? TransactionType.Debit : TransactionType.Credit,
                 OriginalMerchant = txn.Description,
+                NormalizedMerchant = merchant?.DisplayName ?? txn.Description,
+                MerchantId = merchant?.Id,
                 Description = txn.Description,
+                CategoryId = categoryId,
                 ImportHash = hash,
                 ImportedFileId = importFile.Id,
                 CreatedAt = DateTime.UtcNow,
@@ -339,6 +473,8 @@ public class SmartImportService : ISmartImportService
         }
 
         await _context.SaveChangesAsync();
+        _logger.LogInformation("Import completed: {Imported} imported, {Duplicates} duplicates", imported, duplicates);
+        
         return (imported, duplicates);
     }
 

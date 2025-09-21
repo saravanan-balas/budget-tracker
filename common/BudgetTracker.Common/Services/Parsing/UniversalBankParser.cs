@@ -99,17 +99,38 @@ public class UniversalBankParser : IUniversalBankParser
                 throw new InvalidDataException("CSV file must contain at least header and one data row");
             }
 
-            // Simple CSV parsing - this will be enhanced with AI later
-            var headers = lines[0].Split(',').Select(h => h.Trim('"')).ToArray();
+            // Find the actual header line (look for line with "Date" column)
+            int headerLineIndex = -1;
+            string[] headers = null;
+            
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var potentialHeaders = lines[i].Split(',').Select(h => h.Trim('"')).ToArray();
+                if (potentialHeaders.Any(h => h.ToLowerInvariant().Contains("date")) && 
+                    potentialHeaders.Any(h => h.ToLowerInvariant().Contains("amount") || h.ToLowerInvariant().Contains("description")))
+                {
+                    headerLineIndex = i;
+                    headers = potentialHeaders;
+                    break;
+                }
+            }
+
+            if (headerLineIndex == -1 || headers == null)
+            {
+                throw new InvalidDataException("Could not find valid header line in CSV");
+            }
+
+            _logger.LogInformation("Found header line at index {Index}: {Headers}", headerLineIndex, string.Join(", ", headers));
+
             var transactions = new List<ParsedTransaction>();
 
             // Try to identify column indices
             var dateIndex = FindColumnIndex(headers, new[] { "date", "transaction date", "posting date" });
             var amountIndex = FindColumnIndex(headers, new[] { "amount", "transaction amount", "debit", "credit" });
             var descriptionIndex = FindColumnIndex(headers, new[] { "description", "memo", "details", "merchant" });
-            var balanceIndex = FindColumnIndex(headers, new[] { "balance", "running balance" });
+            var balanceIndex = FindColumnIndex(headers, new[] { "balance", "running balance", "running bal" });
 
-            for (int i = 1; i < lines.Length; i++)
+            for (int i = headerLineIndex + 1; i < lines.Length; i++)
             {
                 try
                 {
@@ -143,9 +164,15 @@ public class UniversalBankParser : IUniversalBankParser
                         transaction.Balance = balance;
                     }
 
-                    if (transaction.Date != default && transaction.Amount != 0)
+                    // Filter out summary lines and invalid transactions
+                    if (transaction.Date != default && transaction.Amount != 0 && 
+                        !string.IsNullOrWhiteSpace(transaction.Description) &&
+                        !transaction.Description.ToLowerInvariant().Contains("beginning balance") &&
+                        !transaction.Description.ToLowerInvariant().Contains("ending balance"))
                     {
                         transactions.Add(transaction);
+                        _logger.LogDebug("Added transaction: Date={Date}, Description={Description}, Amount={Amount}", 
+                            transaction.Date, transaction.Description, transaction.Amount);
                     }
                 }
                 catch (Exception ex)
@@ -154,6 +181,9 @@ public class UniversalBankParser : IUniversalBankParser
                 }
             }
 
+            // Apply AI categorization to parsed transactions
+            await ApplyAICategorization(transactions);
+            
             result.Transactions = transactions;
         }
         catch (Exception ex)
@@ -496,11 +526,33 @@ public class UniversalBankParser : IUniversalBankParser
 
             if (lines.Length == 0) return preview;
 
-            var headers = lines[0].Split(',').Select(h => h.Trim('"')).ToList();
+            // Find the actual header line (look for line with "Date" column)
+            int headerLineIndex = -1;
+            List<string> headers = null;
+            
+            for (int i = 0; i < lines.Length; i++)
+            {
+                var potentialHeaders = lines[i].Split(',').Select(h => h.Trim('"')).ToList();
+                if (potentialHeaders.Any(h => h.ToLowerInvariant().Contains("date")) && 
+                    potentialHeaders.Any(h => h.ToLowerInvariant().Contains("amount") || h.ToLowerInvariant().Contains("description")))
+                {
+                    headerLineIndex = i;
+                    headers = potentialHeaders;
+                    break;
+                }
+            }
+
+            if (headerLineIndex == -1 || headers == null)
+            {
+                // Fallback to first line if no clear header is found
+                headerLineIndex = 0;
+                headers = lines[0].Split(',').Select(h => h.Trim('"')).ToList();
+            }
+
             preview.Headers = headers;
 
             // Generate sample rows (up to 5)
-            for (int i = 1; i < Math.Min(lines.Length, 6); i++)
+            for (int i = headerLineIndex + 1; i < Math.Min(lines.Length, headerLineIndex + 6); i++)
             {
                 var fields = ParseCsvLine(lines[i]);
                 var row = new Dictionary<string, string>();
@@ -588,5 +640,89 @@ public class UniversalBankParser : IUniversalBankParser
 
         fields.Add(current.ToString());
         return fields.ToArray();
+    }
+
+    private async Task ApplyAICategorization(List<ParsedTransaction> transactions)
+    {
+        if (!transactions.Any()) return;
+
+        try
+        {
+            // Get AI analyzer from service provider
+            var aiAnalyzer = _serviceProvider.GetService<AI.IAIBankAnalyzer>();
+            if (aiAnalyzer == null)
+            {
+                _logger.LogWarning("AI analyzer not available for transaction categorization");
+                return;
+            }
+
+            _logger.LogInformation("Applying AI categorization to {Count} transactions", transactions.Count);
+
+            foreach (var transaction in transactions)
+            {
+                try
+                {
+                    // Use AI to categorize individual transaction
+                    var category = await CategorizeTransactionWithAI(aiAnalyzer, transaction);
+                    if (!string.IsNullOrEmpty(category))
+                    {
+                        transaction.Category = category;
+                        _logger.LogDebug("Categorized '{Description}' as '{Category}'", 
+                            transaction.Description, category);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Failed to categorize transaction: {Description}", transaction.Description);
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error during AI categorization");
+        }
+    }
+
+    private async Task<string?> CategorizeTransactionWithAI(AI.IAIBankAnalyzer aiAnalyzer, ParsedTransaction transaction)
+    {
+        // Create a simple categorization prompt for individual transactions
+        var prompt = $@"Categorize this financial transaction into one of these categories:
+
+Categories:
+- Food & Dining
+- Groceries  
+- Transportation
+- Shopping
+- Entertainment
+- Bills & Utilities
+- Healthcare
+- Education
+- Travel
+- Insurance
+- Rent/Mortgage
+- Personal Care
+- Salary
+- Freelance
+- Investments
+- Other Income
+- Transfer
+
+Transaction: {transaction.Description}
+Amount: ${transaction.Amount:F2}
+Date: {transaction.Date:yyyy-MM-dd}
+
+Return only the category name, nothing else.";
+
+        try
+        {
+            // Use the AI analyzer's HTTP client to make a categorization request
+            var result = await aiAnalyzer.CategorizeTransactionAsync(prompt);
+            return result?.Trim();
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "AI categorization failed for transaction: {Description}", transaction.Description);
+            return null;
+        }
     }
 }
