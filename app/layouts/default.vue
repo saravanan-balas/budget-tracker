@@ -36,7 +36,7 @@
                 </button>
                 <div v-show="showDropdown" class="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-50 border">
                   <div class="py-1">
-                    <NuxtLink to="/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                    <NuxtLink to="/settings/profile" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
                       Profile
                     </NuxtLink>
                     <NuxtLink to="/settings" class="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">

@@ -137,6 +137,19 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
+    updateUser(updatedUser: User) {
+      this.user = updatedUser
+      
+      // Update user in cookie
+      const userCookie = useCookie('auth-user', {
+        default: () => null,
+        maxAge: 60 * 60 * 24 * 7,
+        serialize: JSON.stringify,
+        deserialize: JSON.parse
+      })
+      userCookie.value = updatedUser
+    },
+
     clearAuth() {
       this.user = null
       this.token = null

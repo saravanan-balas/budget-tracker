@@ -39,15 +39,15 @@
             Update your personal information and preferences.
           </p>
           <div class="space-y-3">
-            <button
-              disabled
-              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed"
+            <NuxtLink
+              to="/settings/profile"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
               </svg>
-              Edit Profile (Coming Soon)
-            </button>
+              Edit Profile
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -85,15 +85,15 @@
             Manage your data and privacy settings.
           </p>
           <div class="space-y-3">
-            <button
-              disabled
-              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-400 bg-gray-50 cursor-not-allowed"
+            <NuxtLink
+              to="/settings/data-privacy"
+              class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
               </svg>
-              Privacy Settings (Coming Soon)
-            </button>
+              Data & Privacy
+            </NuxtLink>
           </div>
         </div>
       </div>
@@ -103,7 +103,7 @@
 
 <script setup lang="ts">
 definePageMeta({
-  layout: 'dashboard',
+  layout: 'default',
   middleware: 'auth'
 })
 </script>
