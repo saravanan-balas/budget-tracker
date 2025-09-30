@@ -6,7 +6,6 @@ using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
-using BudgetTracker.Common.Services.Embeddings;
 using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Worker.Workers;
 using BudgetTracker.Worker;
@@ -74,7 +73,6 @@ try
 
     // Configure HttpClient for AI services
     builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();
-    builder.Services.AddHttpClient<IEmbeddingService, OpenAIEmbeddingService>();
 
     // Universal Bank Import Services
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
@@ -85,8 +83,7 @@ try
     // Memory cache for embedding optimization
     builder.Services.AddMemoryCache();
 
-    // Embedding and Merchant Services
-    builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
+    // Merchant Services
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
 
     // Unified Transaction Processing

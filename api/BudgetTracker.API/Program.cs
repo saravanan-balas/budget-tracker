@@ -10,7 +10,6 @@ using BudgetTracker.Common.Services.Parsing;
 using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
-using BudgetTracker.Common.Services.Embeddings;
 using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.API.Middleware;
 using FluentValidation;
@@ -91,8 +90,6 @@ try
     builder.Services.AddMemoryCache();
 
     // Embedding and Merchant Services
-    builder.Services.AddHttpClient<IEmbeddingService, OpenAIEmbeddingService>();
-    builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
 
     builder.Services.AddAuthentication(options =>

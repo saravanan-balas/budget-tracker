@@ -40,6 +40,7 @@ public class TransactionService : ITransactionService
             var startDateUtc = filter.StartDate.Value.Kind == DateTimeKind.Utc 
                 ? filter.StartDate.Value 
                 : DateTime.SpecifyKind(filter.StartDate.Value, DateTimeKind.Utc);
+            _logger.LogInformation("Date filter - StartDate: {StartDate} -> {StartDateUtc}", filter.StartDate.Value, startDateUtc);
             query = query.Where(t => t.TransactionDate >= startDateUtc);
         }
 
@@ -48,6 +49,7 @@ public class TransactionService : ITransactionService
             var endDateUtc = filter.EndDate.Value.Kind == DateTimeKind.Utc 
                 ? filter.EndDate.Value 
                 : DateTime.SpecifyKind(filter.EndDate.Value.AddDays(1).AddSeconds(-1), DateTimeKind.Utc);
+            _logger.LogInformation("Date filter - EndDate: {EndDate} -> {EndDateUtc}", filter.EndDate.Value, endDateUtc);
             query = query.Where(t => t.TransactionDate <= endDateUtc);
         }
 

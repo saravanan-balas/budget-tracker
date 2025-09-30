@@ -63,8 +63,8 @@ public class MerchantsController : ControllerBase
     {
         try
         {
-            var count = await _merchantService.GenerateMissingEmbeddingsAsync();
-            return Ok(new { message = $"Generated embeddings for {count} merchants" });
+            await _merchantService.GenerateMissingEmbeddingsAsync();
+            return Ok(new { message = "Embeddings generation skipped - using string-based matching" });
         }
         catch (Exception ex)
         {
@@ -108,8 +108,8 @@ public class MerchantsController : ControllerBase
     {
         try
         {
-            var merchant = await _merchantService.UpdateMerchantEmbeddingAsync(id);
-            return Ok(new { message = $"Updated embedding for merchant: {merchant.DisplayName}" });
+            await _merchantService.UpdateMerchantEmbeddingAsync(id);
+            return Ok(new { message = "Embedding update skipped - using string-based matching" });
         }
         catch (ArgumentException)
         {

@@ -22,19 +22,6 @@ public interface IMerchantService
     Task<Merchant> CreateOrGetMerchantAsync(string merchantName, string? category = null);
     
     /// <summary>
-    /// Generate and update embedding for a merchant
-    /// </summary>
-    /// <param name="merchantId">Merchant ID</param>
-    /// <returns>Updated merchant</returns>
-    Task<Merchant> UpdateMerchantEmbeddingAsync(Guid merchantId);
-    
-    /// <summary>
-    /// Batch process to generate embeddings for all merchants missing them
-    /// </summary>
-    /// <returns>Number of merchants processed</returns>
-    Task<int> GenerateMissingEmbeddingsAsync();
-    
-    /// <summary>
     /// Find similar merchants to the given merchant
     /// </summary>
     /// <param name="merchantId">Source merchant ID</param>
@@ -42,4 +29,21 @@ public interface IMerchantService
     /// <param name="minSimilarity">Minimum similarity threshold</param>
     /// <returns>List of similar merchants with similarity scores</returns>
     Task<List<MerchantSimilarityResult>> FindSimilarMerchantsAsync(Guid merchantId, int limit = 10, double minSimilarity = 0.5);
+    
+    /// <summary>
+    /// Get optimization statistics and performance metrics
+    /// </summary>
+    /// <returns>Dictionary of optimization stats</returns>
+    Task<Dictionary<string, object>> GetOptimizationStatsAsync();
+    
+    /// <summary>
+    /// Update merchant embedding (no-op for string-based implementation)
+    /// </summary>
+    /// <param name="merchantId">Merchant ID</param>
+    Task UpdateMerchantEmbeddingAsync(Guid merchantId);
+    
+    /// <summary>
+    /// Generate missing embeddings (no-op for string-based implementation)
+    /// </summary>
+    Task GenerateMissingEmbeddingsAsync();
 }

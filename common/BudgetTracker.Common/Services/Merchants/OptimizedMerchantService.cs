@@ -4,8 +4,6 @@ using Microsoft.Extensions.Caching.Memory;
 using BudgetTracker.Common.Data;
 using BudgetTracker.Common.Models;
 using BudgetTracker.Common.DTOs;
-using BudgetTracker.Common.Services.Embeddings;
-using Pgvector;
 using System.Security.Cryptography;
 using System.Text;
 
@@ -14,26 +12,22 @@ namespace BudgetTracker.Common.Services.Merchants;
 public class OptimizedMerchantService : IMerchantService
 {
     private readonly BudgetTrackerDbContext _context;
-    private readonly IEmbeddingService _embeddingService;
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<OptimizedMerchantService> _logger;
 
     // Cache settings
     private readonly TimeSpan _memoryCacheExpiry = TimeSpan.FromHours(1);
-    private readonly string _embeddingCachePrefix = "emb:";
+    private readonly string _merchantCachePrefix = "merchant:";
 
     // Similarity thresholds
     private const double StringSimilarityThreshold = 0.8;
-    private const double EmbeddingSimilarityThreshold = 0.7;
 
     public OptimizedMerchantService(
         BudgetTrackerDbContext context,
-        IEmbeddingService embeddingService,
         IMemoryCache memoryCache,
         ILogger<OptimizedMerchantService> logger)
     {
         _context = context;
-        _embeddingService = embeddingService;
         _memoryCache = memoryCache;
         _logger = logger;
     }
@@ -48,7 +42,7 @@ public class OptimizedMerchantService : IMerchantService
         
         _logger.LogDebug("Finding match for: '{Raw}' → '{Normalized}'", rawMerchantName, normalizedName);
 
-        // Use string matching only - GPT-4o handles normalization well
+        // Use string matching only
         var stringMatch = await TryStringMatchingAsync(normalizedName);
         if (stringMatch != null)
         {
@@ -56,25 +50,37 @@ public class OptimizedMerchantService : IMerchantService
             return stringMatch;
         }
 
-        // Skip embeddings - rely on GPT-4o's merchant normalization
         _logger.LogDebug("No match found for: {Merchant}", normalizedName);
         return null;
     }
 
     private async Task<MerchantMatchResult?> TryStringMatchingAsync(string normalizedName)
     {
+        // Check cache first (using first 15 chars as suggested)
+        var keyPrefix = normalizedName.Length > 15 ? normalizedName.Substring(0, 15) : normalizedName;
+        var cacheKey = $"{_merchantCachePrefix}{keyPrefix}";
+        if (_memoryCache.TryGetValue(cacheKey, out MerchantMatchResult? cachedResult))
+        {
+            _logger.LogDebug("Cache hit for merchant: {Merchant}", normalizedName);
+            return cachedResult;
+        }
+
         // 1. Exact match
         var exactMatch = await _context.Merchants
             .FirstOrDefaultAsync(m => EF.Functions.ILike(m.DisplayName, normalizedName));
         
         if (exactMatch != null)
         {
-            return new MerchantMatchResult
+            var result = new MerchantMatchResult
             {
                 Merchant = exactMatch,
                 SimilarityScore = 1.0,
                 MatchMethod = "exact"
             };
+            
+            // Cache the result
+            _memoryCache.Set(cacheKey, result, _memoryCacheExpiry);
+            return result;
         }
 
         // 2. Common mappings (AMZN → Amazon, etc.)
@@ -86,178 +92,61 @@ public class OptimizedMerchantService : IMerchantService
             
             if (mappingMatch != null)
             {
-                return new MerchantMatchResult
+                var result = new MerchantMatchResult
                 {
                     Merchant = mappingMatch,
                     SimilarityScore = 0.95,
                     MatchMethod = "mapping"
                 };
+                
+                // Cache the result
+                _memoryCache.Set(cacheKey, result, _memoryCacheExpiry);
+                return result;
             }
         }
 
         // 3. Alias match
         var aliasMatch = await _context.Merchants
-            .FirstOrDefaultAsync(m => m.Aliases.Any(alias => EF.Functions.ILike(alias, normalizedName)));
+            .Where(m => m.Aliases.Any(a => EF.Functions.ILike(a, normalizedName)))
+            .FirstOrDefaultAsync();
         
         if (aliasMatch != null)
         {
-            return new MerchantMatchResult
+            var result = new MerchantMatchResult
             {
                 Merchant = aliasMatch,
-                SimilarityScore = 0.95,
+                SimilarityScore = 0.9,
                 MatchMethod = "alias"
             };
+            
+            // Cache the result
+            _memoryCache.Set(cacheKey, result, _memoryCacheExpiry);
+            return result;
         }
 
-        // 4. Fuzzy string matching (for typos and variations)
-        var merchants = await _context.Merchants
-            .Select(m => new { m.Id, m.DisplayName })
+        // 4. Fuzzy string matching (first 15 chars optimization)
+        var searchPrefix = normalizedName.Length > 15 ? normalizedName.Substring(0, 15) : normalizedName;
+        
+        var candidates = await _context.Merchants
+            .Where(m => EF.Functions.ILike(m.DisplayName, $"{searchPrefix}%"))
             .ToListAsync();
 
-        var fuzzyMatches = merchants
-            .Select(m => new { 
-                Merchant = m, 
-                Similarity = StringSimilarityHelper.CalculateSimilarity(normalizedName, m.DisplayName)
-            })
-            .Where(x => x.Similarity >= StringSimilarityThreshold)
-            .OrderByDescending(x => x.Similarity)
-            .FirstOrDefault();
-
-        if (fuzzyMatches != null)
+        foreach (var candidate in candidates)
         {
-            var fullMerchant = await _context.Merchants.FindAsync(fuzzyMatches.Merchant.Id);
-            if (fullMerchant != null)
+            var similarity = StringSimilarityHelper.CalculateSimilarity(normalizedName, candidate.DisplayName);
+            if (similarity >= StringSimilarityThreshold)
             {
-                return new MerchantMatchResult
+                var result = new MerchantMatchResult
                 {
-                    Merchant = fullMerchant,
-                    SimilarityScore = fuzzyMatches.Similarity,
+                    Merchant = candidate,
+                    SimilarityScore = similarity,
                     MatchMethod = "fuzzy"
                 };
+                
+                // Cache the result
+                _memoryCache.Set(cacheKey, result, _memoryCacheExpiry);
+                return result;
             }
-        }
-
-        return null;
-    }
-
-    private async Task<MerchantMatchResult?> TryCachedEmbeddingMatchAsync(string normalizedName, double threshold)
-    {
-        var embedding = await GetCachedEmbeddingAsync(normalizedName);
-        if (embedding == null) return null;
-
-        return await FindSimilarMerchantByEmbeddingAsync(embedding, threshold, "cached");
-    }
-
-    private async Task<MerchantMatchResult?> TryNewEmbeddingMatchAsync(string normalizedName, double threshold)
-    {
-        try
-        {
-            _logger.LogInformation("Generating new embedding for: {Merchant} (cost: ~$0.0001)", normalizedName);
-            
-            var embedding = await _embeddingService.GenerateEmbeddingAsync(normalizedName);
-            
-            // Cache the new embedding
-            await CacheEmbeddingAsync(normalizedName, embedding);
-            
-            return await FindSimilarMerchantByEmbeddingAsync(embedding, threshold, "generated");
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate embedding for: {Merchant}", normalizedName);
-            return null;
-        }
-    }
-
-    private async Task<Vector?> GetCachedEmbeddingAsync(string normalizedText)
-    {
-        var textHash = ComputeTextHash(normalizedText);
-        var cacheKey = $"{_embeddingCachePrefix}{textHash}";
-
-        // 1. Try memory cache first (fastest - ~0.1ms)
-        if (_memoryCache.TryGetValue(cacheKey, out Vector? cachedEmbedding))
-        {
-            _logger.LogDebug("Memory cache hit for: {Text}", normalizedText);
-            return cachedEmbedding;
-        }
-
-        // 2. Try database cache (~5ms)
-        var dbCached = await _context.EmbeddingCache
-            .FirstOrDefaultAsync(e => e.TextHash == textHash);
-
-        if (dbCached != null)
-        {
-            _logger.LogDebug("Database cache hit for: {Text}", normalizedText);
-            
-            // Update usage stats
-            dbCached.LastUsedAt = DateTime.UtcNow;
-            dbCached.UsageCount++;
-            
-            // Cache in memory for next time
-            _memoryCache.Set(cacheKey, dbCached.Embedding, _memoryCacheExpiry);
-            
-            await _context.SaveChangesAsync();
-            return dbCached.Embedding;
-        }
-
-        return null;
-    }
-
-    private async Task CacheEmbeddingAsync(string normalizedText, Vector embedding)
-    {
-        var textHash = ComputeTextHash(normalizedText);
-        var cacheKey = $"{_embeddingCachePrefix}{textHash}";
-
-        // 1. Save to database
-        var cacheEntry = new EmbeddingCache
-        {
-            Id = Guid.NewGuid(),
-            NormalizedText = normalizedText,
-            TextHash = textHash,
-            Embedding = embedding,
-            CreatedAt = DateTime.UtcNow,
-            LastUsedAt = DateTime.UtcNow,
-            UsageCount = 1
-        };
-
-        _context.EmbeddingCache.Add(cacheEntry);
-        await _context.SaveChangesAsync();
-
-        // 2. Cache in memory
-        _memoryCache.Set(cacheKey, embedding, _memoryCacheExpiry);
-        
-        _logger.LogDebug("Cached embedding for: {Text}", normalizedText);
-    }
-
-    private async Task<MerchantMatchResult?> FindSimilarMerchantByEmbeddingAsync(Vector queryEmbedding, double threshold, string method)
-    {
-        var merchantsWithEmbeddings = await _context.Merchants
-            .Where(m => m.Embedding != null)
-            .ToListAsync();
-
-        if (!merchantsWithEmbeddings.Any())
-        {
-            _logger.LogWarning("No merchants have embeddings generated yet");
-            return null;
-        }
-
-        var similarities = merchantsWithEmbeddings
-            .Select(m => new 
-            {
-                Merchant = m,
-                Similarity = _embeddingService.CalculateSimilarity(queryEmbedding, m.Embedding!)
-            })
-            .Where(s => s.Similarity >= threshold)
-            .OrderByDescending(s => s.Similarity)
-            .FirstOrDefault();
-
-        if (similarities != null)
-        {
-            return new MerchantMatchResult
-            {
-                Merchant = similarities.Merchant,
-                SimilarityScore = similarities.Similarity,
-                MatchMethod = $"embedding-{method}"
-            };
         }
 
         return null;
@@ -273,20 +162,42 @@ public class OptimizedMerchantService : IMerchantService
     private void LogMatchResult(string tier, MerchantMatchResult match, DateTime startTime)
     {
         var elapsed = DateTime.UtcNow - startTime;
-        _logger.LogDebug("{Tier} match: '{Merchant}' (method: {Method}, score: {Score:F3}, time: {Time}ms)",
-            tier, match.Merchant.DisplayName, match.MatchMethod, match.SimilarityScore, elapsed.TotalMilliseconds);
+        _logger.LogDebug("[{Tier}] Found {Merchant} (score: {Score:F3}, method: {Method}) in {Ms}ms",
+            tier, match.Merchant.DisplayName, match.SimilarityScore, match.MatchMethod, elapsed.TotalMilliseconds);
     }
 
-    // Implement remaining interface methods...
+    private static string NormalizeMerchantName(string rawName)
+    {
+        if (string.IsNullOrWhiteSpace(rawName))
+            return string.Empty;
+
+        // Basic normalization - remove common prefixes/suffixes, trim, etc.
+        return rawName
+            .Replace("*", "")
+            .Replace("#", "")
+            .Trim()
+            .ToUpperInvariant();
+    }
+
     public async Task<Merchant> CreateOrGetMerchantAsync(string merchantName, string? category = null)
     {
-        var normalizedName = NormalizeMerchantName(merchantName);
+        return await CreateMerchantAsync(merchantName, category);
+    }
+
+    public async Task<Merchant> CreateMerchantAsync(string normalizedName, string? category = null)
+    {
+        // Validate input
+        if (string.IsNullOrWhiteSpace(normalizedName))
+            throw new ArgumentException("Merchant name cannot be empty", nameof(normalizedName));
+
+        // Check if merchant already exists
+        var existing = await _context.Merchants
+            .FirstOrDefaultAsync(m => m.DisplayName == normalizedName);
         
-        // Check if merchant already exists using optimized matching
-        var existingMatch = await FindBestMatchAsync(merchantName);
-        if (existingMatch != null)
+        if (existing != null)
         {
-            return existingMatch.Merchant;
+            _logger.LogDebug("Merchant already exists: {Merchant}", normalizedName);
+            return existing;
         }
 
         // Create new merchant
@@ -294,14 +205,10 @@ public class OptimizedMerchantService : IMerchantService
         {
             Id = Guid.NewGuid(),
             DisplayName = normalizedName,
-            Category = category,
-            Aliases = new[] { merchantName.Trim() },
+            Category = category ?? "Uncategorized",
             CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
+            Aliases = Array.Empty<string>()
         };
-
-        // Skip embedding generation - GPT-4o handles normalization
-        merchant.Embedding = null;
 
         _context.Merchants.Add(merchant);
         await _context.SaveChangesAsync();
@@ -310,156 +217,74 @@ public class OptimizedMerchantService : IMerchantService
         return merchant;
     }
 
-    public async Task<Merchant> UpdateMerchantEmbeddingAsync(Guid merchantId)
-    {
-        var merchant = await _context.Merchants.FindAsync(merchantId);
-        if (merchant == null)
-        {
-            throw new ArgumentException($"Merchant not found: {merchantId}");
-        }
-
-        try
-        {
-            merchant.Embedding = await _embeddingService.GenerateEmbeddingAsync(merchant.DisplayName);
-            merchant.UpdatedAt = DateTime.UtcNow;
-            
-            // Update cache as well
-            await CacheEmbeddingAsync(merchant.DisplayName, merchant.Embedding);
-            
-            await _context.SaveChangesAsync();
-            
-            _logger.LogDebug("Updated embedding for merchant: {Merchant}", merchant.DisplayName);
-            return merchant;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to update embedding for merchant: {Merchant}", merchant.DisplayName);
-            throw;
-        }
-    }
-
-    public async Task<int> GenerateMissingEmbeddingsAsync()
-    {
-        var merchantsWithoutEmbeddings = await _context.Merchants
-            .Where(m => m.Embedding == null)
-            .Take(50)
-            .ToListAsync();
-
-        if (!merchantsWithoutEmbeddings.Any())
-        {
-            _logger.LogInformation("All merchants already have embeddings");
-            return 0;
-        }
-
-        _logger.LogInformation("Generating embeddings for {Count} merchants", merchantsWithoutEmbeddings.Count);
-
-        var merchantNames = merchantsWithoutEmbeddings.Select(m => m.DisplayName).ToArray();
-        
-        try
-        {
-            var embeddings = await _embeddingService.GenerateEmbeddingsAsync(merchantNames);
-            
-            for (int i = 0; i < merchantsWithoutEmbeddings.Count; i++)
-            {
-                merchantsWithoutEmbeddings[i].Embedding = embeddings[i];
-                merchantsWithoutEmbeddings[i].UpdatedAt = DateTime.UtcNow;
-                
-                // Cache the embedding
-                await CacheEmbeddingAsync(merchantNames[i], embeddings[i]);
-            }
-
-            await _context.SaveChangesAsync();
-            
-            _logger.LogInformation("Successfully generated embeddings for {Count} merchants", merchantsWithoutEmbeddings.Count);
-            return merchantsWithoutEmbeddings.Count;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to generate embeddings for merchants");
-            throw;
-        }
-    }
-
     public async Task<List<MerchantSimilarityResult>> FindSimilarMerchantsAsync(Guid merchantId, int limit = 10, double minSimilarity = 0.5)
     {
         var sourceMerchant = await _context.Merchants.FindAsync(merchantId);
-        if (sourceMerchant?.Embedding == null)
+        if (sourceMerchant == null)
         {
-            _logger.LogWarning("Source merchant not found or has no embedding: {MerchantId}", merchantId);
+            _logger.LogWarning("Source merchant not found: {MerchantId}", merchantId);
             return new List<MerchantSimilarityResult>();
         }
 
-        var otherMerchants = await _context.Merchants
-            .Where(m => m.Id != merchantId && m.Embedding != null)
+        // String-based similarity search
+        var merchants = await _context.Merchants
+            .Where(m => m.Id != merchantId)
             .ToListAsync();
 
-        var similarities = otherMerchants
-            .Select(m => new MerchantSimilarityResult
+        var results = new List<MerchantSimilarityResult>();
+
+        foreach (var merchant in merchants)
+        {
+            var similarity = StringSimilarityHelper.CalculateSimilarity(sourceMerchant.DisplayName, merchant.DisplayName);
+            
+            if (similarity >= minSimilarity)
             {
-                Merchant = m,
-                SimilarityScore = _embeddingService.CalculateSimilarity(sourceMerchant.Embedding, m.Embedding!)
-            })
-            .Where(s => s.SimilarityScore >= minSimilarity)
-            .OrderByDescending(s => s.SimilarityScore)
+                results.Add(new MerchantSimilarityResult
+                {
+                    Merchant = merchant,
+                    SimilarityScore = similarity
+                });
+            }
+        }
+
+        return results
+            .OrderByDescending(r => r.SimilarityScore)
             .Take(limit)
             .ToList();
-
-        _logger.LogDebug("Found {Count} similar merchants for {Merchant}", similarities.Count, sourceMerchant.DisplayName);
-        return similarities;
     }
 
-    private string NormalizeMerchantName(string rawMerchantName)
+    public async Task UpdateMerchantEmbeddingAsync(Guid merchantId)
     {
-        if (string.IsNullOrWhiteSpace(rawMerchantName))
-            return string.Empty;
+        // No-op since we removed embedding functionality
+        _logger.LogDebug("Embedding update skipped for merchant: {MerchantId}", merchantId);
+        await Task.CompletedTask;
+    }
 
-        // Simple normalization without AI
-        var normalized = rawMerchantName
-            .Replace("*", "")
-            .Replace("#", "")
-            .Trim();
+    public async Task BatchUpdateEmbeddingsAsync(List<Guid> merchantIds)
+    {
+        // No-op since we removed embedding functionality
+        _logger.LogDebug("Batch embedding update skipped for {Count} merchants", merchantIds.Count);
+        await Task.CompletedTask;
+    }
 
-        // Remove common prefixes/suffixes
-        var commonPrefixes = new[] { "DD *", "AMZN MKTP", "AMAZON MKTPL", "SQ *", "TST*" };
-        foreach (var prefix in commonPrefixes)
+    public async Task GenerateMissingEmbeddingsAsync()
+    {
+        // No-op since we removed embedding functionality
+        _logger.LogDebug("Generate missing embeddings skipped - using string-based matching");
+        await Task.CompletedTask;
+    }
+
+    public async Task<Dictionary<string, object>> GetOptimizationStatsAsync()
+    {
+        var totalMerchants = await _context.Merchants.CountAsync();
+        var merchantsWithAliases = await _context.Merchants.CountAsync(m => m.Aliases.Any());
+
+        return new Dictionary<string, object>
         {
-            if (normalized.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
-            {
-                normalized = normalized.Substring(prefix.Length).Trim();
-                break;
-            }
-        }
-
-        // Extract recognizable merchant names
-        if (normalized.ToLowerInvariant().Contains("uber"))
-            return "Uber";
-        if (normalized.ToLowerInvariant().Contains("amazon"))
-            return "Amazon";
-        if (normalized.ToLowerInvariant().Contains("walmart") || normalized.ToLowerInvariant().Contains("wal-mart"))
-            return "Walmart";
-        if (normalized.ToLowerInvariant().Contains("target"))
-            return "Target";
-        if (normalized.ToLowerInvariant().Contains("costco"))
-            return "Costco";
-        if (normalized.ToLowerInvariant().Contains("mcdonald"))
-            return "McDonald's";
-        if (normalized.ToLowerInvariant().Contains("databricks"))
-            return "Databricks";
-        if (normalized.ToLowerInvariant().Contains("speedway"))
-            return "Speedway";
-
-        // Take first meaningful word if no specific match
-        var words = normalized.Split(' ', StringSplitOptions.RemoveEmptyEntries);
-        if (words.Length > 0)
-        {
-            var firstWord = words[0];
-            // Remove common suffixes
-            if (firstWord.Length > 3)
-            {
-                return char.ToUpper(firstWord[0]) + firstWord.Substring(1).ToLower();
-            }
-        }
-
-        return normalized;
+            ["total_merchants"] = totalMerchants,
+            ["merchants_with_aliases"] = merchantsWithAliases,
+            ["cache_optimization"] = "string-based with 15-char prefix caching",
+            ["embedding_status"] = "disabled"
+        };
     }
 }

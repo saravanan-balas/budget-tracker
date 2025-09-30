@@ -420,7 +420,11 @@ const filteredTransactions = computed(() => {
     result = result.filter(t => new Date(t.transactionDate) >= new Date(filters.value.startDate))
   }
   if (filters.value.endDate) {
-    result = result.filter(t => new Date(t.transactionDate) <= new Date(filters.value.endDate))
+    // Add 1 day and subtract 1ms to include the entire end date
+    const endOfDay = new Date(filters.value.endDate)
+    endOfDay.setDate(endOfDay.getDate() + 1)
+    endOfDay.setMilliseconds(endOfDay.getMilliseconds() - 1)
+    result = result.filter(t => new Date(t.transactionDate) <= endOfDay)
   }
 
   // Sort

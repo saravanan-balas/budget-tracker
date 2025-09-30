@@ -22,7 +22,6 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<ImportedFile> ImportedFiles { get; set; } = null!;
     public DbSet<BankTemplate> BankTemplates { get; set; } = null!;
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
-    public DbSet<EmbeddingCache> EmbeddingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
 
@@ -234,14 +233,6 @@ public class BudgetTrackerDbContext : DbContext
                 .HasDatabaseName("IX_ImportParsingCache_FileHash");
         });
 
-        modelBuilder.Entity<EmbeddingCache>(entity =>
-        {
-            entity.HasKey(e => e.Id);
-            entity.HasIndex(e => e.TextHash).IsUnique();
-            entity.Property(e => e.NormalizedText).IsRequired().HasMaxLength(500);
-            entity.Property(e => e.TextHash).IsRequired().HasMaxLength(64);
-            entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
-        });
 
         modelBuilder.Entity<AuditEvent>(entity =>
         {
