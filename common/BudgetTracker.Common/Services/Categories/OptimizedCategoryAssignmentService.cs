@@ -191,6 +191,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         
         if (_memoryCache.TryGetValue(ruleKey, out Guid? cachedRule))
         {
+            _logger.LogDebug("Rule cache hit for merchant: {Merchant}", merchant);
             return cachedRule;
         }
 
@@ -198,13 +199,17 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var merchantLower = merchant.ToLowerInvariant();
         var descriptionLower = description?.ToLowerInvariant() ?? "";
 
+        _logger.LogDebug("Applying rule-based categorization for merchant: {Merchant}", merchant);
+
         // Grocery stores
         if (IsGroceryStore(merchantLower) || descriptionLower.Contains("grocery"))
         {
+            _logger.LogDebug("Merchant {Merchant} matched grocery store rule", merchant);
             var category = await GetCategoryByNameAsync("Groceries", userId);
             if (category.HasValue)
             {
                 _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                _logger.LogDebug("Assigned {Merchant} to Groceries category", merchant);
                 return category.Value;
             }
         }
@@ -308,6 +313,37 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var category = await _context.Categories
             .Where(c => c.Name == categoryName && (c.UserId == userId || c.IsSystem))
             .FirstOrDefaultAsync();
+        
+        if (category == null)
+        {
+            _logger.LogDebug("Category '{CategoryName}' not found for user {UserId}", categoryName, userId);
+            
+            // Try to create a default category for this user
+            try
+            {
+                category = new Category
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Name = categoryName,
+                    Type = CategoryType.Expense,
+                    IsSystem = false,
+                    IsActive = true,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                
+                _context.Categories.Add(category);
+                await _context.SaveChangesAsync();
+                
+                _logger.LogInformation("Created new category '{CategoryName}' for user {UserId}", categoryName, userId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to create category '{CategoryName}' for user {UserId}", categoryName, userId);
+                return null;
+            }
+        }
         
         return category?.Id;
     }
