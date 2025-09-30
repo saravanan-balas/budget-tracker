@@ -27,6 +27,7 @@ public class Transaction
     public Guid? ParentTransactionId { get; set; }
     public string? Tags { get; set; }
     public string? ImportHash { get; set; }
+    public string? TransactionHash { get; set; }
     public Guid? ImportedFileId { get; set; }
     // public Vector? Embedding { get; set; }
     public string? Metadata { get; set; }

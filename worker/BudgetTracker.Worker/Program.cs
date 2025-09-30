@@ -7,6 +7,8 @@ using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Common.Services.Merchants;
+using BudgetTracker.Common.Services.Categories;
+using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.Worker.Workers;
 using BudgetTracker.Worker;
 
@@ -23,6 +25,8 @@ else
 }
 
 Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
     .WriteTo.Console()
     .WriteTo.File("logs/worker-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
@@ -83,11 +87,10 @@ try
     // Memory cache for embedding optimization
     builder.Services.AddMemoryCache();
 
-    // Merchant Services
+    // Optimized Services
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
-
-    // Unified Transaction Processing
-    // Transaction processing handled inline in worker
+    builder.Services.AddScoped<ICategoryAssignmentService, OptimizedCategoryAssignmentService>();
+    builder.Services.AddScoped<IBatchTransactionService, OptimizedBatchTransactionService>();
 
     builder.Services.AddHostedService<ImportProcessorWorker>();
     builder.Services.AddHostedService<RecurringTransactionWorker>();

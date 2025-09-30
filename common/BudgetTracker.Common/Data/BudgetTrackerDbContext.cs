@@ -20,6 +20,7 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<Rule> Rules { get; set; } = null!;
     public DbSet<Goal> Goals { get; set; } = null!;
     public DbSet<ImportedFile> ImportedFiles { get; set; } = null!;
+    public DbSet<UserMerchantCategoryMapping> UserMerchantCategoryMappings { get; set; } = null!;
     public DbSet<BankTemplate> BankTemplates { get; set; } = null!;
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
@@ -63,6 +64,7 @@ public class BudgetTrackerDbContext : DbContext
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => new { e.UserId, e.TransactionDate });
             entity.HasIndex(e => e.ImportHash);
+            entity.HasIndex(e => new { e.UserId, e.TransactionHash });
             entity.Property(e => e.Amount).HasPrecision(18, 2);
             entity.Property(e => e.OriginalMerchant).IsRequired().HasMaxLength(500);
             entity.Property(e => e.NormalizedMerchant).HasMaxLength(500);
@@ -70,6 +72,7 @@ public class BudgetTrackerDbContext : DbContext
             entity.Property(e => e.Notes).HasMaxLength(2000);
             entity.Property(e => e.Tags).HasMaxLength(500);
             entity.Property(e => e.ImportHash).HasMaxLength(64);
+            entity.Property(e => e.TransactionHash).HasMaxLength(64);
             // entity.Property(e => e.Embedding).HasColumnType("vector(1536)");
             
             entity.HasOne(e => e.User)
@@ -207,6 +210,16 @@ public class BudgetTrackerDbContext : DbContext
                 .WithMany(u => u.ImportedFiles)
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<UserMerchantCategoryMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => new { e.UserId, e.MerchantName }).IsUnique();
+            entity.Property(e => e.MerchantName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.ConfidenceScore).HasPrecision(5, 2);
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
+            entity.HasOne(e => e.Category).WithMany().HasForeignKey(e => e.CategoryId);
         });
 
         modelBuilder.Entity<BankTemplate>(entity =>

@@ -7,6 +7,7 @@ using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Common.Services.Merchants;
+using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.Common.DTOs;
 using System.Security.Cryptography;
 using System.Text;
@@ -271,62 +272,45 @@ public class ImportProcessorWorker : BackgroundService
         Guid accountId, 
         CancellationToken cancellationToken)
     {
-        _logger.LogInformation("🔄 Processing {Count} transactions...", transactions.Count);
+        _logger.LogInformation("🔄 Processing {Count} transactions with optimized batch service...", transactions.Count);
         
-        int processedCount = 0;
-        int duplicateCount = 0;
+        var batchService = serviceProvider.GetRequiredService<IBatchTransactionService>();
         
-        foreach (var parsedTxn in transactions)
+        // Convert ParsedTransactions to Transaction objects
+        var transactionList = transactions.Select(parsedTxn => new Transaction
         {
-            try
+            TransactionDate = parsedTxn.Date,
+            PostedDate = parsedTxn.Date,
+            Amount = parsedTxn.Amount,
+            Type = parsedTxn.Amount >= 0 ? TransactionType.Credit : TransactionType.Debit,
+            Description = parsedTxn.Description ?? "Import",
+            OriginalMerchant = ExtractMerchantFromDescription(parsedTxn.Description),
+            ImportedFileId = import.Id
+        }).ToList();
+        
+        // Process batch with optimized service
+        var result = await batchService.ProcessTransactionBatchAsync(
+            transactionList, 
+            import.UserId, 
+            accountId, 
+            import.Id);
+        
+        _logger.LogInformation("📊 Batch processing summary:");
+        _logger.LogInformation("  ✅ Processed: {TotalProcessed}", result.TotalProcessed);
+        _logger.LogInformation("  ✅ Inserted: {Inserted}", result.Inserted);
+        _logger.LogInformation("  🔄 Duplicates: {Duplicates}", result.Duplicates);
+        _logger.LogInformation("  ❌ Errors: {Errors}", result.Errors);
+        _logger.LogInformation("  ⏱️ Processing time: {ProcessingTime}ms", result.ProcessingTime.TotalMilliseconds);
+        
+        if (result.ErrorMessages.Any())
+        {
+            foreach (var error in result.ErrorMessages)
             {
-                // Generate hash for duplicate detection
-                var hash = GenerateTransactionHash(parsedTxn, accountId);
-                
-                // Check for existing transaction
-                var existingTransaction = await context.Transactions
-                    .FirstOrDefaultAsync(t => t.ImportHash == hash && t.UserId == import.UserId, cancellationToken);
-                
-                if (existingTransaction != null)
-                {
-                    duplicateCount++;
-                    continue;
-                }
-                
-                // Create new transaction
-                var transaction = new Transaction
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = import.UserId,
-                    AccountId = accountId,
-                    ImportedFileId = import.Id,
-                    TransactionDate = parsedTxn.Date,
-                    PostedDate = parsedTxn.Date,
-                    Amount = parsedTxn.Amount,
-                    Type = parsedTxn.Amount >= 0 ? TransactionType.Credit : TransactionType.Debit,
-                    Description = parsedTxn.Description ?? "Import",
-                    OriginalMerchant = ExtractMerchantFromDescription(parsedTxn.Description),
-                    ImportHash = hash,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                
-                context.Transactions.Add(transaction);
-                processedCount++;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing transaction: {@Transaction}", parsedTxn);
+                _logger.LogWarning("  ⚠️ Error: {Error}", error);
             }
         }
-        
-        await context.SaveChangesAsync(cancellationToken);
-        
-        _logger.LogInformation("📊 Transaction processing summary:");
-        _logger.LogInformation("  ✅ Processed: {Processed}", processedCount);
-        _logger.LogInformation("  🔄 Duplicates: {Duplicates}", duplicateCount);
 
-        return (processedCount, duplicateCount);
+        return (result.Inserted, result.Duplicates);
     }
 
     private string GenerateTransactionHash(ParsedTransaction txn, Guid accountId)

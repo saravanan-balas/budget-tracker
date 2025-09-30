@@ -11,11 +11,15 @@ using BudgetTracker.Common.Services.AI;
 using BudgetTracker.Common.Services.OCR;
 using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Common.Services.Merchants;
+using BudgetTracker.Common.Services.Categories;
+using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 
 Log.Logger = new LoggerConfiguration()
+    .MinimumLevel.Information()
+    .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
     .WriteTo.Console()
     .WriteTo.File("logs/budget-tracker-.txt", rollingInterval: RollingInterval.Day)
     .CreateLogger();
@@ -57,11 +61,16 @@ try
     });
 
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
-        options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
-            b => {
-                b.MigrationsAssembly("BudgetTracker.API");
-                b.UseVector();
-            }));
+        {
+            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
+                b => {
+                    b.MigrationsAssembly("BudgetTracker.API");
+                    b.UseVector();
+                });
+            
+            // Reduce SQL logging verbosity - only log warnings and errors
+            options.LogTo(Console.WriteLine, LogLevel.Warning);
+        });
 
     builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
@@ -89,8 +98,10 @@ try
     // Memory cache for embedding optimization
     builder.Services.AddMemoryCache();
 
-    // Embedding and Merchant Services
+    // Optimized Services
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
+    builder.Services.AddScoped<ICategoryAssignmentService, OptimizedCategoryAssignmentService>();
+    builder.Services.AddScoped<IBatchTransactionService, OptimizedBatchTransactionService>();
 
     builder.Services.AddAuthentication(options =>
     {
