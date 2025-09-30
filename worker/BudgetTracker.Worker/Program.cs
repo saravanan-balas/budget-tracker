@@ -62,8 +62,13 @@ try
     builder.Services.AddSerilog();
 
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
+    {
         options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
-            b => b.UseVector()));
+            b => b.UseVector());
+        
+        // Suppress EF Core command logging to reduce noise
+        options.LogTo(Console.WriteLine, LogLevel.Warning);
+    });
 
     builder.Services.AddScoped<IBlobStorageService, LocalFileStorageService>();
 
@@ -83,6 +88,9 @@ try
     // Embedding and Merchant Services
     builder.Services.AddScoped<IEmbeddingService, OpenAIEmbeddingService>();
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
+
+    // Unified Transaction Processing
+    // Transaction processing handled inline in worker
 
     builder.Services.AddHostedService<ImportProcessorWorker>();
     builder.Services.AddHostedService<RecurringTransactionWorker>();

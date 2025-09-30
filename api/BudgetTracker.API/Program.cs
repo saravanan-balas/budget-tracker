@@ -76,12 +76,11 @@ try
     // Existing services
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITransactionService, TransactionService>();
-    builder.Services.AddScoped<IImportService, ImportService>();
+    builder.Services.AddScoped<ISimplifiedImportService, SimplifiedImportService>();
     builder.Services.AddScoped<IChatService, ChatService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
 
     // Universal Bank Import Services
-    builder.Services.AddScoped<ISmartImportService, SmartImportService>();
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
     builder.Services.AddScoped<IUniversalBankParser, UniversalBankParser>();
     builder.Services.AddHttpClient<IAIBankAnalyzer, AIBankAnalyzer>();

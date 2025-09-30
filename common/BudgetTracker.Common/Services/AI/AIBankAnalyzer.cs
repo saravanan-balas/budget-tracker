@@ -527,10 +527,12 @@ public class AIBankAnalyzer : IAIBankAnalyzer
     {
         try
         {
+            _logger.LogDebug("[AI-CATEGORIZE-START] Categorizing transaction with AI. Prompt length: {Length} chars", prompt.Length);
+            
             var apiKey = _configuration["OPENAI_API_KEY"];
             if (string.IsNullOrEmpty(apiKey))
             {
-                _logger.LogWarning("OpenAI API key not configured, using fallback categorization");
+                _logger.LogWarning("[AI-CATEGORIZE-NO-KEY] OpenAI API key not configured, using fallback categorization");
                 return "Miscellaneous";
             }
 
@@ -539,7 +541,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
                 model = "gpt-4o-mini",
                 messages = new[]
                 {
-                    new { role = "system", content = "You are a transaction categorizer. Return ONLY the category name from this list: Food & Dining, Groceries, Transportation, Entertainment, Shopping, Bills & Utilities, Healthcare, Other. No explanation, just the category name." },
+                    new { role = "system", content = "You are a transaction categorizer. Return ONLY the category name from this list: Food & Dining, Groceries, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Education, Travel, Insurance, Rent/Mortgage, Personal Care, Salary, Freelance, Investments, Other Income, Transfer. No explanation, just the category name." },
                     new { role = "user", content = prompt }
                 },
                 temperature = 0.1,
@@ -549,12 +551,15 @@ public class AIBankAnalyzer : IAIBankAnalyzer
             var jsonContent = JsonSerializer.Serialize(requestBody);
             var httpContent = new StringContent(jsonContent, Encoding.UTF8, "application/json");
 
+            _logger.LogDebug("[AI-CATEGORIZE-API] Sending request to OpenAI API");
             var response = await _httpClient.PostAsync("https://api.openai.com/v1/chat/completions", httpContent);
+            
+            _logger.LogDebug("[AI-CATEGORIZE-API] Response status: {StatusCode}", response.StatusCode);
             
             if (!response.IsSuccessStatusCode)
             {
                 var error = await response.Content.ReadAsStringAsync();
-                _logger.LogError("OpenAI API error for categorization: {StatusCode} - {Error}", response.StatusCode, error);
+                _logger.LogError("[AI-CATEGORIZE-API-ERROR] OpenAI API error for categorization: {StatusCode} - {Error}", response.StatusCode, error);
                 return "Miscellaneous";
             }
 
@@ -572,12 +577,12 @@ public class AIBankAnalyzer : IAIBankAnalyzer
                 return "Miscellaneous";
             }
 
-            _logger.LogDebug("AI categorized transaction: {Category}", aiResponse);
+            _logger.LogDebug("[AI-CATEGORIZE-SUCCESS] AI categorized transaction as: {Category}", aiResponse);
             return aiResponse;
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error calling OpenAI API for categorization");
+            _logger.LogError(ex, "[AI-CATEGORIZE-ERROR] Error calling OpenAI API for categorization");
             return "Miscellaneous";
         }
     }

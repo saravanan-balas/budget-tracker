@@ -33,11 +33,17 @@ public class UniversalBankParser : IUniversalBankParser
         var stopwatch = Stopwatch.StartNew();
         var result = new TransactionParsingResult();
 
+        _logger.LogInformation("[PARSER-START] ParseFileAsync called for {FileName}, FileSize: {FileSize} bytes", 
+            fileName, fileData.Length);
+
         try
         {
+            _logger.LogDebug("[PARSER-STEP-1] Detecting file format");
             var format = await _formatDetection.DetectFormatAsync(fileData, fileName);
-            _logger.LogInformation("Parsing file {FileName} with format {Format}", fileName, format);
+            _logger.LogInformation("[PARSER-STEP-1-COMPLETE] File {FileName} detected as format: {Format}", fileName, format);
 
+            _logger.LogDebug("[PARSER-STEP-2] Starting format-specific parsing for {Format}", format);
+            
             result = format switch
             {
                 "CSV" => await ParseCsvAsync(fileData),
@@ -45,14 +51,17 @@ public class UniversalBankParser : IUniversalBankParser
                 "PNG" or "JPEG" => await ParseImageAsync(fileData),
                 _ => throw new NotSupportedException($"File format {format} is not supported")
             };
+            
+            _logger.LogDebug("[PARSER-STEP-2-COMPLETE] Format-specific parsing completed");
 
             result.IsSuccessful = true;
-            _logger.LogInformation("Successfully parsed {Count} transactions from {FileName}", 
-                result.Transactions.Count, fileName);
+            _logger.LogInformation("[PARSER-SUCCESS] Successfully parsed {Count} transactions from {FileName}. Processing time: {ProcessingTime}ms", 
+                result.Transactions.Count, fileName, stopwatch.ElapsedMilliseconds);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing file {FileName}", fileName);
+            _logger.LogError(ex, "[PARSER-ERROR] Error parsing file {FileName}. Error: {ErrorMessage}", 
+                fileName, ex.Message);
             result.IsSuccessful = false;
             result.ErrorMessage = ex.Message;
         }
@@ -60,6 +69,8 @@ public class UniversalBankParser : IUniversalBankParser
         {
             stopwatch.Stop();
             result.ProcessingTime = stopwatch.Elapsed;
+            _logger.LogInformation("[PARSER-COMPLETE] Total parsing time: {TotalTime}ms for {FileName}", 
+                stopwatch.ElapsedMilliseconds, fileName);
         }
 
         return result;
@@ -89,10 +100,14 @@ public class UniversalBankParser : IUniversalBankParser
         await Task.CompletedTask;
         var result = new TransactionParsingResult();
 
+        _logger.LogDebug("[CSV-START] Starting CSV parsing, FileSize: {FileSize} bytes", fileData.Length);
+
         try
         {
             var csvContent = Encoding.UTF8.GetString(fileData);
             var lines = csvContent.Split('\n', StringSplitOptions.RemoveEmptyEntries);
+            
+            _logger.LogDebug("[CSV-STEP-1] CSV split into {LineCount} lines", lines.Length);
 
             if (lines.Length < 2)
             {
@@ -100,17 +115,21 @@ public class UniversalBankParser : IUniversalBankParser
             }
 
             // Find the actual header line (look for line with "Date" column)
+            _logger.LogDebug("[CSV-STEP-2] Searching for header line");
             int headerLineIndex = -1;
-            string[] headers = null;
+            string[]? headers = null;
             
             for (int i = 0; i < lines.Length; i++)
             {
                 var potentialHeaders = lines[i].Split(',').Select(h => h.Trim('"')).ToArray();
+                _logger.LogDebug("[CSV-STEP-2] Line {LineIndex} headers: {Headers}", i, string.Join(", ", potentialHeaders));
+                
                 if (potentialHeaders.Any(h => h.ToLowerInvariant().Contains("date")) && 
                     potentialHeaders.Any(h => h.ToLowerInvariant().Contains("amount") || h.ToLowerInvariant().Contains("description")))
                 {
                     headerLineIndex = i;
                     headers = potentialHeaders;
+                    _logger.LogInformation("[CSV-STEP-2-COMPLETE] Found header at line {LineIndex}", i);
                     break;
                 }
             }
@@ -120,20 +139,27 @@ public class UniversalBankParser : IUniversalBankParser
                 throw new InvalidDataException("Could not find valid header line in CSV");
             }
 
-            _logger.LogInformation("Found header line at index {Index}: {Headers}", headerLineIndex, string.Join(", ", headers));
+            _logger.LogInformation("[CSV-HEADERS] Header line at index {Index}: {Headers}", headerLineIndex, string.Join(", ", headers));
 
             var transactions = new List<ParsedTransaction>();
 
             // Try to identify column indices
+            _logger.LogDebug("[CSV-STEP-3] Identifying column indices");
             var dateIndex = FindColumnIndex(headers, new[] { "date", "transaction date", "posting date" });
             var amountIndex = FindColumnIndex(headers, new[] { "amount", "transaction amount", "debit", "credit" });
             var descriptionIndex = FindColumnIndex(headers, new[] { "description", "memo", "details", "merchant" });
             var balanceIndex = FindColumnIndex(headers, new[] { "balance", "running balance", "running bal" });
+            
+            _logger.LogInformation("[CSV-COLUMNS] DateIndex: {DateIndex}, AmountIndex: {AmountIndex}, DescriptionIndex: {DescIndex}, BalanceIndex: {BalIndex}",
+                dateIndex, amountIndex, descriptionIndex, balanceIndex);
 
+            _logger.LogDebug("[CSV-STEP-4] Parsing {Count} data rows", lines.Length - headerLineIndex - 1);
+            
             for (int i = headerLineIndex + 1; i < lines.Length; i++)
             {
                 try
                 {
+                    _logger.LogDebug("[CSV-ROW-{LineNumber}] Processing line: {Line}", i, lines[i]);
                     var fields = ParseCsvLine(lines[i]);
                     if (fields.Length < Math.Max(dateIndex + 1, amountIndex + 1)) continue;
 
@@ -171,23 +197,32 @@ public class UniversalBankParser : IUniversalBankParser
                         !transaction.Description.ToLowerInvariant().Contains("ending balance"))
                     {
                         transactions.Add(transaction);
-                        _logger.LogDebug("Added transaction: Date={Date}, Description={Description}, Amount={Amount}", 
-                            transaction.Date, transaction.Description, transaction.Amount);
+                        _logger.LogDebug("[CSV-TRANSACTION-{Index}] Added: Date={Date}, Description={Description}, Amount={Amount}, Balance={Balance}", 
+                            transactions.Count, transaction.Date, transaction.Description, transaction.Amount, transaction.Balance);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[CSV-SKIP-{LineNumber}] Skipped invalid/summary line", i);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning("Error parsing line {LineNumber}: {Error}", i + 1, ex.Message);
+                    _logger.LogWarning("[CSV-ROW-ERROR] Error parsing line {LineNumber}: {Error}. Line content: {Line}", 
+                        i + 1, ex.Message, lines[i]);
                 }
             }
 
+            _logger.LogInformation("[CSV-STEP-5] Parsed {Count} valid transactions, applying AI categorization", transactions.Count);
+            
             // Apply AI categorization to parsed transactions
             await ApplyAICategorization(transactions);
             
             result.Transactions = transactions;
+            _logger.LogInformation("[CSV-COMPLETE] CSV parsing completed with {Count} transactions", result.Transactions.Count);
         }
         catch (Exception ex)
         {
+            _logger.LogError(ex, "[CSV-ERROR] Failed to parse CSV");
             throw new InvalidDataException($"Failed to parse CSV: {ex.Message}");
         }
 
@@ -198,23 +233,28 @@ public class UniversalBankParser : IUniversalBankParser
     {
         var result = new TransactionParsingResult();
         
+        _logger.LogInformation("[PDF-START] Starting PDF parsing, FileSize: {FileSize} bytes", fileData.Length);
+        
         try
         {
-            _logger.LogInformation("Starting PDF parsing with text extraction");
+            _logger.LogDebug("[PDF-STEP-1] Extracting text from PDF");
             
             var extractedText = ExtractTextFromPdf(fileData);
             
             if (string.IsNullOrWhiteSpace(extractedText))
             {
+                _logger.LogError("[PDF-ERROR] Unable to extract text from PDF");
                 throw new InvalidOperationException("Unable to extract text from PDF");
             }
             
-            _logger.LogInformation("PDF text extracted: {Length} characters", extractedText.Length);
+            _logger.LogInformation("[PDF-STEP-1-COMPLETE] PDF text extracted: {Length} characters", extractedText.Length);
             
             // Get AI analyzer for transaction parsing
+            _logger.LogDebug("[PDF-STEP-2] Getting AI analyzer for transaction parsing");
             var aiAnalyzer = _serviceProvider.GetService<AI.IAIBankAnalyzer>();
             if (aiAnalyzer != null)
             {
+                _logger.LogDebug("[PDF-STEP-2] AI analyzer available, using AI parsing");
                 // Use AI to parse transactions from PDF text
                 var bankInfo = new BankDetectionResult
                 {
@@ -223,44 +263,51 @@ public class UniversalBankParser : IUniversalBankParser
                     FileFormat = "PDF"
                 };
                 
+                _logger.LogDebug("[PDF-AI] Calling AI analyzer to parse transactions");
                 var aiResult = await aiAnalyzer.ParseTransactionsWithAIAsync(
                     System.Text.Encoding.UTF8.GetBytes(extractedText),
                     "pdf_text.txt", 
                     bankInfo);
+                
+                _logger.LogDebug("[PDF-AI] AI parsing result: IsSuccessful={IsSuccessful}, TransactionCount={Count}", 
+                    aiResult.IsSuccessful, aiResult.Transactions?.Count ?? 0);
                 
                 if (aiResult.IsSuccessful)
                 {
                     result.Transactions = aiResult.Transactions;
                     result.AICost = aiResult.AICost;
                     
-                    _logger.LogInformation("AI parsed {Count} transactions from PDF text", result.Transactions.Count);
+                    _logger.LogInformation("[PDF-AI-SUCCESS] AI parsed {Count} transactions from PDF text. AI Cost: ${Cost}", 
+                        result.Transactions.Count, result.AICost);
                     
                     // Log each parsed transaction for debugging
+                    int txnIndex = 0;
                     foreach (var txn in result.Transactions)
                     {
-                        _logger.LogInformation("PDF Transaction: Date={Date}, Description={Desc}, Amount={Amount}, Category={Category}",
-                            txn.Date, txn.Description, txn.Amount, txn.Category ?? "N/A");
+                        _logger.LogDebug("[PDF-TXN-{Index}] Date={Date}, Description={Desc}, Amount={Amount}, Category={Category}",
+                            ++txnIndex, txn.Date, txn.Description, txn.Amount, txn.Category ?? "N/A");
                     }
                 }
                 else
                 {
-                    _logger.LogWarning("AI parsing failed, falling back to basic pattern matching");
+                    _logger.LogWarning("[PDF-AI-FALLBACK] AI parsing failed: {ErrorMessage}, falling back to basic pattern matching", 
+                        aiResult.ErrorMessage ?? "Unknown error");
                     result.Transactions = ParseTransactionsFromText(extractedText);
                 }
             }
             else
             {
                 // Fallback to basic pattern matching if AI is not available
-                _logger.LogInformation("AI analyzer not available, using basic pattern matching");
+                _logger.LogWarning("[PDF-NO-AI] AI analyzer not available, using basic pattern matching");
                 result.Transactions = ParseTransactionsFromText(extractedText);
             }
             
             result.IsSuccessful = true;
-            _logger.LogInformation("PDF parsing completed with {Count} transactions", result.Transactions.Count);
+            _logger.LogInformation("[PDF-SUCCESS] PDF parsing completed with {Count} transactions", result.Transactions.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error parsing PDF");
+            _logger.LogError(ex, "[PDF-ERROR] Error parsing PDF: {ErrorMessage}", ex.Message);
             result.IsSuccessful = false;
             result.ErrorMessage = ex.Message;
         }
@@ -528,7 +575,7 @@ public class UniversalBankParser : IUniversalBankParser
 
             // Find the actual header line (look for line with "Date" column)
             int headerLineIndex = -1;
-            List<string> headers = null;
+            List<string>? headers = null;
             
             for (int i = 0; i < lines.Length; i++)
             {
@@ -646,40 +693,56 @@ public class UniversalBankParser : IUniversalBankParser
     {
         if (!transactions.Any()) return;
 
+        _logger.LogDebug("[AI-CATEGORIZATION-START] Starting categorization for {Count} transactions", transactions.Count);
+
         try
         {
             // Get AI analyzer from service provider
             var aiAnalyzer = _serviceProvider.GetService<AI.IAIBankAnalyzer>();
             if (aiAnalyzer == null)
             {
-                _logger.LogWarning("AI analyzer not available for transaction categorization");
+                _logger.LogWarning("[AI-CATEGORIZATION] AI analyzer not available for transaction categorization");
                 return;
             }
 
-            _logger.LogInformation("Applying AI categorization to {Count} transactions", transactions.Count);
+            _logger.LogInformation("[AI-CATEGORIZATION] Applying AI categorization to {Count} transactions", transactions.Count);
 
-            foreach (var transaction in transactions)
+            int categorizedCount = 0;
+            for (int i = 0; i < transactions.Count; i++)
             {
+                var transaction = transactions[i];
                 try
                 {
+                    _logger.LogDebug("[AI-CAT-{Index}] Categorizing: {Description}", i + 1, transaction.Description);
+                    
                     // Use AI to categorize individual transaction
                     var category = await CategorizeTransactionWithAI(aiAnalyzer, transaction);
                     if (!string.IsNullOrEmpty(category))
                     {
                         transaction.Category = category;
-                        _logger.LogDebug("Categorized '{Description}' as '{Category}'", 
-                            transaction.Description, category);
+                        categorizedCount++;
+                        _logger.LogDebug("[AI-CAT-{Index}-SUCCESS] '{Description}' categorized as '{Category}'", 
+                            i + 1, transaction.Description, category);
+                    }
+                    else
+                    {
+                        _logger.LogDebug("[AI-CAT-{Index}-EMPTY] No category returned for '{Description}'", 
+                            i + 1, transaction.Description);
                     }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogError(ex, "Failed to categorize transaction: {Description}", transaction.Description);
+                    _logger.LogError(ex, "[AI-CAT-{Index}-ERROR] Failed to categorize transaction: {Description}", 
+                        i + 1, transaction.Description);
                 }
             }
+            
+            _logger.LogInformation("[AI-CATEGORIZATION-COMPLETE] Categorized {CategorizedCount}/{TotalCount} transactions", 
+                categorizedCount, transactions.Count);
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error during AI categorization");
+            _logger.LogError(ex, "[AI-CATEGORIZATION-ERROR] Error during AI categorization");
         }
     }
 

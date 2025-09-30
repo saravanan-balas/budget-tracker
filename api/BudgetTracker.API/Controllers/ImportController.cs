@@ -11,19 +11,16 @@ namespace BudgetTracker.API.Controllers;
 [Route("api/[controller]")]
 public class ImportController : ControllerBase
 {
-    private readonly IImportService _importService;
-    private readonly ISmartImportService _smartImportService;
+    private readonly ISimplifiedImportService _simplifiedImportService;
     private readonly IBankTemplateService _templateService;
     private readonly ILogger<ImportController> _logger;
 
     public ImportController(
-        IImportService importService,
-        ISmartImportService smartImportService,
+        ISimplifiedImportService simplifiedImportService,
         IBankTemplateService templateService,
         ILogger<ImportController> logger)
     {
-        _importService = importService;
-        _smartImportService = smartImportService;
+        _simplifiedImportService = simplifiedImportService;
         _templateService = templateService;
         _logger = logger;
     }
@@ -42,7 +39,7 @@ public class ImportController : ControllerBase
             await file.CopyToAsync(stream);
             var fileData = stream.ToArray();
 
-            var preview = await _importService.PreviewImportAsync(file.FileName, fileData);
+            var preview = await _simplifiedImportService.GeneratePreviewAsync(fileData, file.FileName);
             return Ok(preview);
         }
         catch (Exception ex)
@@ -76,9 +73,9 @@ public class ImportController : ControllerBase
                 BankTemplate = bankTemplate
             };
 
-            var importId = await _importService.StartImportAsync(userId, importDto);
+            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
             
-            return Ok(new { importId, message = "Import started successfully" });
+            return result.IsSuccessful ? Ok(result) : BadRequest(result);
         }
         catch (Exception ex)
         {
@@ -93,7 +90,7 @@ public class ImportController : ControllerBase
         try
         {
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
-            var status = await _importService.GetImportStatusAsync(userId, importId);
+            var status = await _simplifiedImportService.GetImportStatusAsync(userId, importId);
             
             if (status == null)
             {
@@ -115,7 +112,7 @@ public class ImportController : ControllerBase
         try
         {
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
-            var history = await _importService.GetImportHistoryAsync(userId);
+            var history = await _simplifiedImportService.GetImportHistoryAsync(userId);
             return Ok(history);
         }
         catch (Exception ex)
@@ -125,10 +122,16 @@ public class ImportController : ControllerBase
         }
     }
 
-    // New Universal Bank Import Endpoints
-
+    // Smart Import Endpoint - Used by frontend
     [HttpPost("smart")]
     public async Task<IActionResult> SmartImport([FromForm] IFormFile file, [FromForm] Guid accountId)
+    {
+        return await UploadUnified(file, accountId);
+    }
+
+    // New Unified Import Endpoint - All processing moved to worker
+    [HttpPost("upload-unified")]
+    public async Task<IActionResult> UploadUnified([FromForm] IFormFile file, [FromForm] Guid accountId)
     {
         try
         {
@@ -150,32 +153,19 @@ public class ImportController : ControllerBase
                 FileData = stream.ToArray()
             };
 
-            var result = await _smartImportService.ProcessSmartImportAsync(userId, importDto);
+            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
             
-            if (result.IsAsync)
-            {
-                return Accepted(new 
-                { 
-                    jobId = result.JobId,
-                    importId = result.ImportId,
-                    message = result.Message,
-                    estimatedSeconds = result.EstimatedSeconds
-                });
-            }
-            else
-            {
-                return result.IsSuccessful ? Ok(result) : BadRequest(result);
-            }
+            return result.IsSuccessful ? Ok(result) : BadRequest(result);
         }
         catch (ArgumentException ex)
         {
-            _logger.LogWarning(ex, "Validation error in smart import");
+            _logger.LogWarning(ex, "Validation error in unified upload");
             return BadRequest(new { error = ex.Message });
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Error in smart import");
-            return StatusCode(500, new { error = "An error occurred during smart import" });
+            _logger.LogError(ex, "Error in unified upload");
+            return StatusCode(500, new { error = "An error occurred during file upload" });
         }
     }
 
@@ -189,23 +179,17 @@ public class ImportController : ControllerBase
                 return BadRequest(new { error = "File is required" });
             }
 
-            using var stream = new MemoryStream();
-            await file.CopyToAsync(stream);
-            var fileData = stream.ToArray();
-
-            var analysis = await _smartImportService.AnalyzeImportFileAsync(fileData, file.FileName);
-            var costEstimate = await _smartImportService.EstimateProcessingCostAsync(fileData, file.FileName);
-
+            // Simple analysis - all processing is now done in worker
             return Ok(new
             {
-                fileFormat = analysis.FileFormat,
-                fileSize = analysis.FileSize,
-                canProcessSynchronously = analysis.CanProcessSynchronously,
-                asyncReason = analysis.AsyncReason,
-                estimatedSeconds = analysis.EstimatedSeconds,
-                hasKnownTemplate = analysis.HasKnownTemplate,
-                estimatedCost = costEstimate,
-                estimatedRowCount = analysis.EstimatedRowCount
+                fileFormat = Path.GetExtension(file.FileName).ToLowerInvariant(),
+                fileSize = file.Length,
+                canProcessSynchronously = false,
+                asyncReason = "All processing moved to worker for better performance",
+                estimatedSeconds = EstimateProcessingTime(file.Length, Path.GetExtension(file.FileName)),
+                hasKnownTemplate = false,
+                estimatedCost = 0.05m, // Default estimate
+                estimatedRowCount = EstimateRowCount(file.Length)
             });
         }
         catch (Exception ex)
@@ -244,16 +228,9 @@ public class ImportController : ControllerBase
                 FileData = stream.ToArray()
             };
 
-            var result = await _smartImportService.ProcessSmartImportAsync(userId, importDto);
+            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
             
-            // Images are always processed asynchronously due to OCR requirements
-            return Accepted(new 
-            { 
-                jobId = result.JobId,
-                importId = result.ImportId,
-                message = result.Message,
-                estimatedSeconds = result.EstimatedSeconds
-            });
+            return result.IsSuccessful ? Ok(result) : BadRequest(result);
         }
         catch (Exception ex)
         {
@@ -294,15 +271,12 @@ public class ImportController : ControllerBase
     {
         try
         {
-            // Create dummy file data for cost estimation
-            var dummyData = new byte[fileSizeBytes];
-            var fileName = $"dummy.{fileType}";
-            
-            var cost = await _smartImportService.EstimateProcessingCostAsync(dummyData, fileName);
+            // Simple cost estimation - all processing is now done in worker
+            var estimatedCost = EstimateCostByFileType(fileType, fileSizeBytes);
             
             return Ok(new
             {
-                estimatedCost = cost,
+                estimatedCost = estimatedCost,
                 currency = "USD",
                 fileSize = fileSizeBytes,
                 fileType = fileType
@@ -319,5 +293,45 @@ public class ImportController : ControllerBase
                 fileType = fileType
             });
         }
+    }
+
+    private int EstimateProcessingTime(long fileSize, string fileType)
+    {
+        // Estimate processing time based on file size and type
+        var baseTime = fileType.ToLowerInvariant() switch
+        {
+            ".csv" => 30, // 30 seconds for CSV
+            ".pdf" => 120, // 2 minutes for PDF
+            ".png" or ".jpg" or ".jpeg" => 90, // 1.5 minutes for images
+            _ => 60 // 1 minute default
+        };
+
+        // Add time based on file size (1 second per 10KB)
+        var sizeTime = (int)(fileSize / 10240);
+        
+        return Math.Min(baseTime + sizeTime, 300); // Cap at 5 minutes
+    }
+
+    private int EstimateRowCount(long fileSize)
+    {
+        // Rough estimate: 1KB per transaction row
+        return Math.Max(1, (int)(fileSize / 1024));
+    }
+
+    private decimal EstimateCostByFileType(string fileType, int fileSizeBytes)
+    {
+        // Simple cost estimation based on file type and size
+        var baseCost = fileType.ToLowerInvariant() switch
+        {
+            ".csv" => 0.001m, // Low cost for CSV
+            ".pdf" => 0.01m,  // Medium cost for PDF
+            ".png" or ".jpg" or ".jpeg" => 0.02m, // Higher cost for images
+            _ => 0.005m // Default
+        };
+
+        // Add cost based on file size
+        var sizeCost = fileSizeBytes / 1024 * 0.0001m; // $0.0001 per KB
+        
+        return Math.Min(baseCost + sizeCost, 0.1m); // Cap at $0.10
     }
 }
