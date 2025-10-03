@@ -42,6 +42,7 @@ public class UpdateTransactionDto
     public string? Notes { get; set; }
     public string? Tags { get; set; }
     public string? Merchant { get; set; }
+    public string? Description { get; set; }
 }
 
 public class SplitTransactionDto

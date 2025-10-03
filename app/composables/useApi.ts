@@ -107,7 +107,7 @@ export const useApi = () => {
   const createTransaction = (transaction: CreateTransaction): Promise<Transaction> =>
     apiCall('/transactions', { method: 'POST', body: transaction })
 
-  const updateTransaction = (id: string, update: UpdateTransaction): Promise<Transaction> =>
+  const updateTransaction = (id: string, update: UpdateTransaction | any): Promise<Transaction> =>
     apiCall(`/transactions/${id}`, { method: 'PUT', body: update })
 
   const deleteTransaction = (id: string): Promise<void> =>

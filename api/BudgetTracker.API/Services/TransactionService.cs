@@ -180,6 +180,9 @@ public class TransactionService : ITransactionService
         if (!string.IsNullOrEmpty(updateDto.Merchant))
             transaction.OriginalMerchant = updateDto.Merchant;
 
+        if (!string.IsNullOrEmpty(updateDto.Description))
+            transaction.Description = updateDto.Description;
+
         transaction.UpdatedAt = DateTime.UtcNow;
 
         await _context.SaveChangesAsync();

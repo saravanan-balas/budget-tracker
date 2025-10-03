@@ -200,6 +200,23 @@
               :style="{ width: progressPercentage + '%' }"
             ></div>
           </div>
+          
+          <!-- Processing Details -->
+          <div class="mt-3 text-sm text-gray-600">
+            <div v-if="importStatus.totalRows > 0" class="flex justify-between">
+              <span>Processed: {{ importStatus.processedRows }} / {{ importStatus.totalRows }} rows</span>
+              <span>{{ progressPercentage }}%</span>
+            </div>
+            <div v-if="importStatus.importedTransactions > 0" class="mt-1">
+              <span class="text-green-600">✓ {{ importStatus.importedTransactions }} transactions imported</span>
+            </div>
+            <div v-if="importStatus.duplicateTransactions > 0" class="mt-1">
+              <span class="text-yellow-600">⚠ {{ importStatus.duplicateTransactions }} duplicates skipped</span>
+            </div>
+            <div v-if="importStatus.failedRows > 0" class="mt-1">
+              <span class="text-red-600">✗ {{ importStatus.failedRows }} rows failed</span>
+            </div>
+          </div>
         </div>
 
         <div v-if="importStatus.status === 'Completed'" class="bg-green-50 border border-green-200 rounded-md p-4">
@@ -218,7 +235,7 @@
               @click="showImportedTransactions = true; loadImportedTransactions()"
               class="bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
             >
-              Show Imported Transactions
+              Review & Edit Imported Transactions ({{ importStatus.importedTransactions }})
             </button>
           </div>
         </div>
@@ -268,35 +285,124 @@
 
         <!-- Transactions Table -->
         <div class="overflow-x-auto">
+          <div class="flex justify-between items-center mb-4">
+            <div class="text-sm text-gray-600">
+              {{ importedTransactions.length }} transactions loaded
+            </div>
+            <div class="flex space-x-2">
+              <button 
+                @click="enableBulkEdit = !enableBulkEdit"
+                :class="[
+                  'px-3 py-1 text-xs rounded',
+                  enableBulkEdit ? 'bg-blue-100 text-blue-800' : 'bg-gray-100 text-gray-600'
+                ]"
+              >
+                {{ enableBulkEdit ? 'Exit Bulk Edit' : 'Bulk Edit' }}
+              </button>
+              <button 
+                v-if="selectedTransactions.length > 0"
+                @click="bulkDeleteSelected"
+                class="px-3 py-1 text-xs bg-red-100 text-red-800 rounded hover:bg-red-200"
+              >
+                Delete Selected ({{ selectedTransactions.length }})
+              </button>
+            </div>
+          </div>
+          
           <table class="min-w-full divide-y divide-gray-200">
             <thead class="bg-gray-50">
               <tr>
+                <th v-if="enableBulkEdit" class="px-4 py-2 text-left">
+                  <input 
+                    type="checkbox" 
+                    @change="toggleSelectAll"
+                    :checked="allSelected"
+                    class="rounded border-gray-300"
+                  >
+                </th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Description</th>
                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount</th>
+                <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
               </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200">
-              <tr v-for="transaction in importedTransactions" :key="transaction.id">
+              <tr v-for="transaction in importedTransactions" :key="transaction.id" class="hover:bg-gray-50">
+                <td v-if="enableBulkEdit" class="px-4 py-2">
+                  <input 
+                    type="checkbox" 
+                    :value="transaction.id"
+                    v-model="selectedTransactions"
+                    class="rounded border-gray-300"
+                  >
+                </td>
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">
                   {{ formatDate(transaction.transactionDate) }}
                 </td>
                 <td class="px-4 py-2 text-sm text-gray-900">
-                  {{ transaction.description || transaction.originalMerchant }}
+                  <div v-if="editingTransaction === transaction.id">
+                    <input 
+                      v-model="editForm.description"
+                      type="text"
+                      class="w-full px-2 py-1 text-sm border border-gray-300 rounded"
+                      @blur="saveTransactionEdit(transaction.id)"
+                      @keyup.enter="saveTransactionEdit(transaction.id)"
+                      @keyup.escape="cancelEdit"
+                    >
+                  </div>
+                  <div v-else @click="startEdit(transaction)" class="cursor-pointer hover:bg-gray-100 px-1 py-1 rounded">
+                    {{ transaction.description || transaction.originalMerchant }}
+                  </div>
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-sm">
-                  <span :class="[
-                    'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                    getCategoryColor(transaction.category?.name)
-                  ]">
-                    {{ transaction.category?.name || 'Uncategorized' }}
-                  </span>
+                  <div v-if="editingTransaction === transaction.id">
+                    <select 
+                      v-model="editForm.categoryId"
+                      class="text-xs border border-gray-300 rounded px-1 py-1"
+                      @change="saveTransactionEdit(transaction.id)"
+                    >
+                      <option value="">Uncategorized</option>
+                      <option 
+                        v-for="category in categories" 
+                        :key="category.id" 
+                        :value="category.id"
+                      >
+                        {{ category.name }}
+                      </option>
+                    </select>
+                  </div>
+                  <div v-else @click="startEdit(transaction)" class="cursor-pointer hover:bg-gray-100 px-1 py-1 rounded">
+                    <span :class="[
+                      'inline-flex px-2 py-1 text-xs font-medium rounded-full',
+                      getCategoryColor(transaction.category?.name)
+                    ]">
+                      {{ transaction.category?.name || 'Uncategorized' }}
+                    </span>
+                  </div>
                 </td>
                 <td class="px-4 py-2 whitespace-nowrap text-sm text-right">
                   <span :class="transaction.amount < 0 ? 'text-red-600' : 'text-green-600'">
                     ${{ Math.abs(transaction.amount).toFixed(2) }}
                   </span>
+                </td>
+                <td class="px-4 py-2 whitespace-nowrap text-right text-sm">
+                  <div class="flex space-x-1 justify-end">
+                    <button 
+                      @click="startEdit(transaction)"
+                      class="text-blue-600 hover:text-blue-900 text-xs px-2 py-1 rounded hover:bg-blue-50"
+                      title="Edit"
+                    >
+                      ✏️
+                    </button>
+                    <button 
+                      @click="deleteTransaction(transaction.id)"
+                      class="text-red-600 hover:text-red-900 text-xs px-2 py-1 rounded hover:bg-red-50"
+                      title="Delete"
+                    >
+                      🗑️
+                    </button>
+                  </div>
                 </td>
               </tr>
             </tbody>
@@ -368,6 +474,16 @@ const statusPollingInterval = ref<NodeJS.Timeout | null>(null)
 
 const showImportedTransactions = ref(false)
 const importedTransactions = ref<any[]>([])
+const enableBulkEdit = ref(false)
+const selectedTransactions = ref<string[]>([])
+const editingTransaction = ref<string | null>(null)
+const editForm = reactive({
+  description: '',
+  categoryId: '',
+  notes: '',
+  tags: ''
+})
+const categories = ref<any[]>([])
 
 // Constants
 const fileAcceptTypes: Record<string, string> = {
@@ -507,6 +623,7 @@ const startStatusPolling = () => {
     clearInterval(statusPollingInterval.value)
   }
   
+  // Poll more frequently for better user experience
   statusPollingInterval.value = setInterval(async () => {
     if (!importId.value) return
     
@@ -518,11 +635,17 @@ const startStatusPolling = () => {
       if (status.status === 'Completed' || status.status === 'Failed') {
         clearInterval(statusPollingInterval.value!)
         statusPollingInterval.value = null
+        
+        // Auto-load transactions when completed
+        if (status.status === 'Completed' && status.importedTransactions > 0) {
+          await loadImportedTransactions()
+          showImportedTransactions.value = true
+        }
       }
     } catch (error) {
       console.error('Error fetching status:', error)
     }
-  }, 2000)
+  }, 1000) // Poll every second for better responsiveness
 }
 
 const goBack = () => {
@@ -561,6 +684,107 @@ const loadImportedTransactions = async () => {
   }
 }
 
+const loadCategories = async () => {
+  try {
+    const api = useApi()
+    categories.value = await api.getCategories()
+  } catch (error) {
+    console.error('Error loading categories:', error)
+  }
+}
+
+const startEdit = (transaction: any) => {
+  editingTransaction.value = transaction.id
+  editForm.description = transaction.description || transaction.originalMerchant
+  editForm.categoryId = transaction.categoryId || ''
+  editForm.notes = transaction.notes || ''
+  editForm.tags = transaction.tags || ''
+}
+
+const cancelEdit = () => {
+  editingTransaction.value = null
+  Object.assign(editForm, {
+    description: '',
+    categoryId: '',
+    notes: '',
+    tags: ''
+  })
+}
+
+const saveTransactionEdit = async (transactionId: string) => {
+  if (!transactionId) return
+  
+  try {
+    const api = useApi()
+    await api.updateTransaction(transactionId, {
+      description: editForm.description || undefined,
+      categoryId: editForm.categoryId || undefined,
+      notes: editForm.notes || undefined,
+      tags: editForm.tags || undefined
+    })
+    
+    // Reload transactions to show updated data
+    await loadImportedTransactions()
+    cancelEdit()
+  } catch (error) {
+    console.error('Error updating transaction:', error)
+  }
+}
+
+const deleteTransaction = async (transactionId: string) => {
+  if (!confirm('Are you sure you want to delete this transaction?')) return
+  
+  try {
+    const api = useApi()
+    await api.deleteTransaction(transactionId)
+    
+    // Remove from local array and update import status
+    importedTransactions.value = importedTransactions.value.filter(t => t.id !== transactionId)
+    if (importStatus.value) {
+      importStatus.value.importedTransactions = Math.max(0, importStatus.value.importedTransactions - 1)
+    }
+  } catch (error) {
+    console.error('Error deleting transaction:', error)
+  }
+}
+
+const toggleSelectAll = () => {
+  if (allSelected.value) {
+    selectedTransactions.value = []
+  } else {
+    selectedTransactions.value = importedTransactions.value.map(t => t.id)
+  }
+}
+
+const bulkDeleteSelected = async () => {
+  if (selectedTransactions.value.length === 0) return
+  
+  const count = selectedTransactions.value.length
+  if (!confirm(`Are you sure you want to delete ${count} selected transactions?`)) return
+  
+  try {
+    const api = useApi()
+    
+    // Delete all selected transactions
+    await Promise.all(
+      selectedTransactions.value.map(id => api.deleteTransaction(id))
+    )
+    
+    // Remove from local array and update import status
+    importedTransactions.value = importedTransactions.value.filter(
+      t => !selectedTransactions.value.includes(t.id)
+    )
+    
+    if (importStatus.value) {
+      importStatus.value.importedTransactions = Math.max(0, importStatus.value.importedTransactions - count)
+    }
+    
+    selectedTransactions.value = []
+  } catch (error) {
+    console.error('Error deleting transactions:', error)
+  }
+}
+
 const formatDate = (dateString: string) => {
   const date = new Date(dateString)
   return date.toLocaleDateString('en-US', { 
@@ -589,9 +813,16 @@ const getCategoryColor = (categoryName: string | undefined) => {
   return colors[categoryName] || 'bg-gray-100 text-gray-800'
 }
 
+// Computed for bulk edit
+const allSelected = computed(() => {
+  return importedTransactions.value.length > 0 && 
+         selectedTransactions.value.length === importedTransactions.value.length
+})
+
 // Lifecycle
 onMounted(() => {
   loadAccounts()
+  loadCategories()
 })
 
 onUnmounted(() => {

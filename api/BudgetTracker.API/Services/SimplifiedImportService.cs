@@ -72,6 +72,7 @@ public class SimplifiedImportService : ISimplifiedImportService
             return new ImportResult
             {
                 ImportId = importFile.Id,
+                JobId = importFile.Id, // Use ImportId as JobId for tracking
                 IsAsync = true,
                 IsSuccessful = true,
                 Message = "File uploaded successfully and queued for processing",
