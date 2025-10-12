@@ -244,26 +244,49 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
         // Prepare data for batch category assignment
         var transactionData = transactions
             .Select(t => (
-                merchant: t.OriginalMerchant,
+                merchant: t.Description ?? t.OriginalMerchant, // Use Description (full name) instead of OriginalMerchant (truncated)
                 description: t.Description,
                 amount: t.Amount
             ))
             .ToList();
 
         // Batch assign categories
+        _logger.LogInformation("Starting batch categorization for {Count} transactions", transactionData.Count);
         var categoryAssignments = await _categoryService.BatchAssignCategoriesAsync(transactionData, userId);
+        _logger.LogInformation("Batch categorization returned {Count} assignments", categoryAssignments.Count);
+
+        // Log the keys from category assignments for debugging
+        _logger.LogDebug("Category assignment keys: {Keys}", string.Join(", ", categoryAssignments.Keys.Take(5)));
 
         // Apply category assignments to transactions
+        int categorizedCount = 0;
         for (int i = 0; i < transactions.Count; i++)
         {
             var transaction = transactions[i];
-            var lookupKey = $"{transaction.OriginalMerchant}|{transaction.Description}|{transaction.Amount}";
+            var merchantForLookup = transaction.Description ?? transaction.OriginalMerchant;
+            var lookupKey = $"{merchantForLookup}|{transaction.Description}|{transaction.Amount}";
+            
+            _logger.LogDebug("Looking for key: '{LookupKey}' for transaction: {Merchant}", lookupKey, transaction.OriginalMerchant);
             
             if (categoryAssignments.TryGetValue(lookupKey, out var categoryId))
             {
                 transaction.CategoryId = categoryId;
+                if (categoryId.HasValue)
+                {
+                    categorizedCount++;
+                    _logger.LogInformation("Successfully categorized {Merchant} with category ID {CategoryId}", transaction.OriginalMerchant, categoryId);
+                }
+                else
+                {
+                    _logger.LogWarning("Category assignment returned null for {Merchant}", transaction.OriginalMerchant);
+                }
+            }
+            else
+            {
+                _logger.LogWarning("No category assignment found for key: '{LookupKey}' (merchant: {Merchant})", lookupKey, transaction.OriginalMerchant);
             }
         }
+        _logger.LogInformation("Applied categories to {Count} out of {Total} transactions", categorizedCount, transactions.Count);
     }
 
     private string GenerateTransactionHash(Transaction transaction)

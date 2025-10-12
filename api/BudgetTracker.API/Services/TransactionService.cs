@@ -24,16 +24,34 @@ public class TransactionService : ITransactionService
 
     public async Task<IEnumerable<TransactionDto>> GetTransactionsAsync(Guid userId, TransactionFilterDto filter)
     {
+        _logger.LogInformation("=== GetTransactionsAsync START ===");
+        _logger.LogInformation("Request - UserId: {UserId}", userId);
+        _logger.LogInformation("Request - Filter: {@Filter}", filter);
+
+        // First, let's check the total count in the database
+        var totalCount = await _context.Transactions.CountAsync();
+        var userCount = await _context.Transactions.CountAsync(t => t.UserId == userId);
+        _logger.LogInformation("Database check - Total transactions in DB: {TotalCount}", totalCount);
+        _logger.LogInformation("Database check - User transactions in DB: {UserCount}", userCount);
+
         var query = _context.Transactions
             .Include(t => t.Account)
             .Include(t => t.Category)
             .Where(t => t.UserId == userId);
 
+        _logger.LogInformation("Base query created for UserId: {UserId}", userId);
+
         if (filter.AccountId.HasValue)
+        {
+            _logger.LogInformation("Applying AccountId filter: {AccountId}", filter.AccountId.Value);
             query = query.Where(t => t.AccountId == filter.AccountId.Value);
+        }
 
         if (filter.CategoryId.HasValue)
+        {
+            _logger.LogInformation("Applying CategoryId filter: {CategoryId}", filter.CategoryId.Value);
             query = query.Where(t => t.CategoryId == filter.CategoryId.Value);
+        }
 
         if (filter.StartDate.HasValue)
         {
@@ -54,14 +72,21 @@ public class TransactionService : ITransactionService
         }
 
         if (filter.MinAmount.HasValue)
+        {
+            _logger.LogInformation("Applying MinAmount filter: {MinAmount}", filter.MinAmount.Value);
             query = query.Where(t => Math.Abs(t.Amount) >= filter.MinAmount.Value);
+        }
 
         if (filter.MaxAmount.HasValue)
+        {
+            _logger.LogInformation("Applying MaxAmount filter: {MaxAmount}", filter.MaxAmount.Value);
             query = query.Where(t => Math.Abs(t.Amount) <= filter.MaxAmount.Value);
+        }
 
         if (!string.IsNullOrEmpty(filter.SearchTerm))
         {
             var searchTerm = filter.SearchTerm.ToLower();
+            _logger.LogInformation("Applying SearchTerm filter: {SearchTerm}", searchTerm);
             query = query.Where(t => 
                 t.OriginalMerchant.ToLower().Contains(searchTerm) ||
                 (t.Description != null && t.Description.ToLower().Contains(searchTerm)) ||
@@ -70,12 +95,23 @@ public class TransactionService : ITransactionService
         }
 
         if (filter.IsRecurring.HasValue)
+        {
+            _logger.LogInformation("Applying IsRecurring filter: {IsRecurring}", filter.IsRecurring.Value);
             query = query.Where(t => t.IsRecurring == filter.IsRecurring.Value);
+        }
 
         if (filter.IsPending.HasValue)
+        {
+            _logger.LogInformation("Applying IsPending filter: {IsPending}", filter.IsPending.Value);
             query = query.Where(t => t.IsPending == filter.IsPending.Value);
+        }
+
+        // Get the count after applying filters but before pagination
+        var filteredCount = await query.CountAsync();
+        _logger.LogInformation("Filtered query count (before pagination): {FilteredCount}", filteredCount);
 
         var skip = (filter.Page - 1) * filter.PageSize;
+        _logger.LogInformation("Pagination - Page: {Page}, PageSize: {PageSize}, Skip: {Skip}", filter.Page, filter.PageSize, skip);
         
         var transactions = await query
             .OrderByDescending(t => t.TransactionDate)
@@ -83,7 +119,23 @@ public class TransactionService : ITransactionService
             .Take(filter.PageSize)
             .ToListAsync();
 
-        return _mapper.Map<IEnumerable<TransactionDto>>(transactions);
+        _logger.LogInformation("Database query executed - Found {Count} transactions", transactions.Count);
+
+        if (transactions.Any())
+        {
+            _logger.LogInformation("Sample transaction data:");
+            var sample = transactions.First();
+            _logger.LogInformation("  ID: {Id}, Date: {Date}, Amount: {Amount}, Merchant: {Merchant}, UserId: {UserId}", 
+                sample.Id, sample.TransactionDate, sample.Amount, sample.OriginalMerchant, sample.UserId);
+        }
+
+        var result = _mapper.Map<IEnumerable<TransactionDto>>(transactions);
+        var resultList = result.ToList();
+        
+        _logger.LogInformation("Mapping completed - Returning {Count} TransactionDto objects", resultList.Count);
+        _logger.LogInformation("=== GetTransactionsAsync END ===");
+
+        return resultList;
     }
 
     public async Task<TransactionDto?> GetTransactionByIdAsync(Guid userId, Guid transactionId)

@@ -112,17 +112,20 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         foreach (var (lookupKey, merchant, description, amount) in uncachedTransactions)
         {
             Guid? categoryId = null;
+            _logger.LogDebug("Processing uncached transaction: {LookupKey} (merchant: {Merchant})", lookupKey, merchant);
 
             // Try rule-based first
             categoryId = await TryRuleBasedAssignment(merchant, description, amount, userId);
             if (categoryId.HasValue)
             {
                 Interlocked.Increment(ref _ruleMappings);
+                _logger.LogDebug("Rule-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
             }
             else if (merchantCategories.TryGetValue(merchant, out var merchantCat))
             {
                 categoryId = merchantCat;
                 Interlocked.Increment(ref _merchantMappings);
+                _logger.LogDebug("Merchant-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
             }
             else
             {
@@ -131,10 +134,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 if (categoryId.HasValue)
                 {
                     Interlocked.Increment(ref _aiFallbacks);
+                    _logger.LogDebug("Default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                }
+                else
+                {
+                    _logger.LogWarning("All categorization methods failed for {Merchant}", merchant);
                 }
             }
 
             results[lookupKey] = categoryId;
+            _logger.LogDebug("Storing result for key '{LookupKey}': {CategoryId}", lookupKey, categoryId?.ToString() ?? "null");
 
             // Cache the result
             var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
@@ -199,17 +208,17 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var merchantLower = merchant.ToLowerInvariant();
         var descriptionLower = description?.ToLowerInvariant() ?? "";
 
-        _logger.LogDebug("Applying rule-based categorization for merchant: {Merchant}", merchant);
+        _logger.LogInformation("Applying rule-based categorization for merchant: {Merchant}", merchant);
 
         // Grocery stores
         if (IsGroceryStore(merchantLower) || descriptionLower.Contains("grocery"))
         {
-            _logger.LogDebug("Merchant {Merchant} matched grocery store rule", merchant);
+            _logger.LogInformation("Merchant {Merchant} matched grocery store rule", merchant);
             var category = await GetCategoryByNameAsync("Groceries", userId);
             if (category.HasValue)
             {
                 _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
-                _logger.LogDebug("Assigned {Merchant} to Groceries category", merchant);
+                _logger.LogInformation("Assigned {Merchant} to Groceries category", merchant);
                 return category.Value;
             }
         }
@@ -376,7 +385,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     {
         // For now, assign to "Uncategorized" or most common category
         // This could be enhanced with AI in the future
+        _logger.LogDebug("Attempting default assignment for {Merchant} to 'Uncategorized' category", merchant);
         var uncategorized = await GetCategoryByNameAsync("Uncategorized", userId);
+        if (uncategorized.HasValue)
+        {
+            _logger.LogDebug("Default assignment successful for {Merchant}: {CategoryId}", merchant, uncategorized);
+        }
+        else
+        {
+            _logger.LogWarning("Failed to get 'Uncategorized' category for user {UserId}", userId);
+        }
         return uncategorized;
     }
 
@@ -392,13 +410,15 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
     private async Task<Guid?> GetCategoryByNameAsync(string categoryName, Guid userId)
     {
+        _logger.LogDebug("Looking for category '{CategoryName}' for user {UserId}", categoryName, userId);
+        
         var category = await _context.Categories
             .Where(c => c.Name == categoryName && (c.UserId == userId || c.IsSystem))
             .FirstOrDefaultAsync();
         
         if (category == null)
         {
-            _logger.LogDebug("Category '{CategoryName}' not found for user {UserId}", categoryName, userId);
+            _logger.LogDebug("Category '{CategoryName}' not found for user {UserId}, attempting to create", categoryName, userId);
             
             // Try to create a default category for this user
             try
@@ -418,13 +438,17 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 _context.Categories.Add(category);
                 await _context.SaveChangesAsync();
                 
-                _logger.LogInformation("Created new category '{CategoryName}' for user {UserId}", categoryName, userId);
+                _logger.LogInformation("Created new category '{CategoryName}' for user {UserId} with ID {CategoryId}", categoryName, userId, category.Id);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to create category '{CategoryName}' for user {UserId}", categoryName, userId);
                 return null;
             }
+        }
+        else
+        {
+            _logger.LogDebug("Found existing category '{CategoryName}' for user {UserId} with ID {CategoryId}", categoryName, userId, category.Id);
         }
         
         return category?.Id;

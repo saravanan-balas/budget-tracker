@@ -24,9 +24,20 @@ public class TransactionsController : ControllerBase
     {
         try
         {
+            _logger.LogInformation("=== TransactionsController.GetTransactions START ===");
+            _logger.LogInformation("Raw query string: {QueryString}", Request.QueryString);
+            _logger.LogInformation("Filter received: {@Filter}", filter);
+
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
+            _logger.LogInformation("Extracted UserId from token: {UserId}", userId);
+
             var transactions = await _transactionService.GetTransactionsAsync(userId, filter);
-            return Ok(transactions);
+            var transactionsList = transactions.ToList();
+            
+            _logger.LogInformation("Service returned {Count} transactions", transactionsList.Count);
+            _logger.LogInformation("=== TransactionsController.GetTransactions END ===");
+            
+            return Ok(transactionsList);
         }
         catch (Exception ex)
         {
