@@ -25,6 +25,8 @@
     <PackageReference Include="Serilog.Sinks.File" Version="5.0.0" />
     <PackageReference Include="Microsoft.AspNetCore.Authentication.Google" Version="8.0.0" />
     <PackageReference Include="Google.Apis.Auth" Version="1.68.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.9.25" />
+    <PackageReference Include="StackExchange.Redis.Extensions.System.Text.Json" Version="9.0.0" />
   </ItemGroup>
 
   <ItemGroup>

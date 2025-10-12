@@ -645,7 +645,7 @@ const startStatusPolling = () => {
     } catch (error) {
       console.error('Error fetching status:', error)
     }
-  }, 1000) // Poll every second for better responsiveness
+  }, 5000) // Poll every 5 seconds to reduce server load
 }
 
 const goBack = () => {

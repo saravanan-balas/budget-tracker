@@ -1,7 +1,9 @@
 using BudgetTracker.Common.Data;
 using BudgetTracker.Common.DTOs;
+using BudgetTracker.Common.DTOs.Messaging;
 using BudgetTracker.Common.Models;
 using BudgetTracker.Common.Services;
+using BudgetTracker.Common.Services.Messaging;
 using Microsoft.EntityFrameworkCore;
 
 namespace BudgetTracker.API.Services;
@@ -19,15 +21,18 @@ public class SimplifiedImportService : ISimplifiedImportService
     private readonly BudgetTrackerDbContext _context;
     private readonly IBlobStorageService _blobStorageService;
     private readonly ILogger<SimplifiedImportService> _logger;
+    private readonly IMessageQueueService? _messageQueue;
 
     public SimplifiedImportService(
         BudgetTrackerDbContext context,
         IBlobStorageService blobStorageService,
-        ILogger<SimplifiedImportService> logger)
+        ILogger<SimplifiedImportService> logger,
+        IMessageQueueService? messageQueue = null)
     {
         _context = context;
         _blobStorageService = blobStorageService;
         _logger = logger;
+        _messageQueue = messageQueue;
     }
 
     public async Task<ImportResult> UploadFileAsync(Guid userId, FileImportDto importDto)
@@ -55,13 +60,37 @@ public class SimplifiedImportService : ISimplifiedImportService
             );
             _logger.LogInformation("[IMPORT-STEP-2-COMPLETE] File uploaded to blob storage: {BlobUrl}", blobUrl);
 
-            _logger.LogDebug("[IMPORT-STEP-3] Updating import record status to Processing");
+            _logger.LogDebug("[IMPORT-STEP-3] Updating import record and publishing message to Redis");
             importFile.BlobUrl = blobUrl;
-            importFile.Status = ImportStatus.Processing; // Worker will pick this up
+            importFile.Status = ImportStatus.Processing;
             importFile.ProcessingStartedAt = DateTime.UtcNow;
             
             _logger.LogDebug("[IMPORT-STEP-3] Saving changes to database");
             await _context.SaveChangesAsync();
+
+            _logger.LogDebug("[IMPORT-STEP-4] Publishing message to Redis message queue");
+            if (_messageQueue != null)
+            {
+                var message = new ImportProcessingMessage
+                {
+                    ImportId = importFile.Id,
+                    UserId = userId,
+                    FileName = importDto.FileName,
+                    FileType = importDto.FileType,
+                    BlobUrl = blobUrl,
+                    DetectedBankName = importFile.DetectedBankName,
+                    DetectedCountry = importFile.DetectedCountry,
+                    DetectedFormat = importFile.DetectedFormat,
+                    Priority = 10 // High priority for imports
+                };
+
+                await _messageQueue.PublishMessageAsync("import-processing", message);
+                _logger.LogInformation("[IMPORT-STEP-4-COMPLETE] Message published to Redis queue");
+            }
+            else
+            {
+                _logger.LogWarning("[IMPORT-STEP-4] Redis message queue not available, falling back to polling");
+            }
 
             _logger.LogInformation("[IMPORT-COMPLETE] File uploaded successfully. Import {ImportId} queued for worker processing. Status: {Status}", 
                 importFile.Id, importFile.Status);

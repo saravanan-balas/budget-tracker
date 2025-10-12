@@ -228,7 +228,89 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         // Restaurants
         if (IsRestaurant(merchantLower) || descriptionLower.Contains("restaurant") || descriptionLower.Contains("cafe"))
         {
-            var category = await GetCategoryByNameAsync("Dining Out", userId);
+            var category = await GetCategoryByNameAsync("Dining Out", userId) ?? 
+                           await GetCategoryByNameAsync("Food & Dining", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Hotels and Lodging
+        if (IsHotel(merchantLower) || descriptionLower.Contains("hotel") || descriptionLower.Contains("inn") || 
+            descriptionLower.Contains("lodge") || descriptionLower.Contains("motel"))
+        {
+            var category = await GetCategoryByNameAsync("Hotel", userId) ?? 
+                           await GetCategoryByNameAsync("Travel", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Car Rental and Transportation
+        if (IsCarRental(merchantLower) || IsTransportation(merchantLower) || 
+            descriptionLower.Contains("uber") || descriptionLower.Contains("lyft") || 
+            descriptionLower.Contains("taxi") || descriptionLower.Contains("transit"))
+        {
+            var category = await GetCategoryByNameAsync("Transportation", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Pet Care
+        if (IsPetCare(merchantLower) || descriptionLower.Contains("animal") || 
+            descriptionLower.Contains("veterinar") || descriptionLower.Contains("pet"))
+        {
+            var category = await GetCategoryByNameAsync("Pet Care", userId) ?? 
+                           await GetCategoryByNameAsync("Pets", userId) ??
+                           await GetCategoryByNameAsync("Personal Care", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Online Shopping
+        if (IsOnlineShopping(merchantLower) || descriptionLower.Contains("amazon") || 
+            descriptionLower.Contains("ebay") || descriptionLower.Contains("etsy"))
+        {
+            var category = await GetCategoryByNameAsync("Shopping", userId) ?? 
+                           await GetCategoryByNameAsync("Online Shopping", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Subscriptions and Software
+        if (IsSubscription(merchantLower) || descriptionLower.Contains("subscription") || 
+            descriptionLower.Contains("software"))
+        {
+            var category = await GetCategoryByNameAsync("Subscriptions", userId) ?? 
+                           await GetCategoryByNameAsync("Software", userId) ??
+                           await GetCategoryByNameAsync("Technology", userId);
+            if (category.HasValue)
+            {
+                _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
+                return category.Value;
+            }
+        }
+        
+        // Alcohol and Liquor stores
+        if (IsLiquorStore(merchantLower) || descriptionLower.Contains("liquor") || 
+            descriptionLower.Contains("wine") || descriptionLower.Contains("beer"))
+        {
+            var category = await GetCategoryByNameAsync("Alcohol", userId) ?? 
+                           await GetCategoryByNameAsync("Beverages", userId) ??
+                           await GetCategoryByNameAsync("Food & Dining", userId);
             if (category.HasValue)
             {
                 _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
@@ -368,8 +450,61 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
     private static bool IsRestaurant(string merchant)
     {
-        var restaurantKeywords = new[] { "mcdonald", "burger", "pizza", "starbucks", "subway", "taco", "kfc", "wendy", "domino", "restaurant" };
+        var restaurantKeywords = new[] { "mcdonald", "burger", "pizza", "starbucks", "subway", "taco", "kfc", 
+            "wendy", "domino", "restaurant", "chipotle", "panera", "dunkin", "diner", "grill", "bakery", 
+            "coffee", "doordash", "grubhub", "uber eats", "postmates" };
         return restaurantKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsHotel(string merchant)
+    {
+        var hotelKeywords = new[] { "hotel", "inn", "suites", "marriott", "hilton", "hyatt", "sheraton", 
+            "holiday inn", "la quinta", "baymont", "comfort inn", "best western", "radisson", "ramada",
+            "days inn", "motel", "lodge", "resort", "airbnb", "vrbo" };
+        return hotelKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsCarRental(string merchant)
+    {
+        var carRentalKeywords = new[] { "hertz", "avis", "budget", "enterprise", "national", "alamo", 
+            "thrifty", "dollar", "zipcar", "turo", "rent-a-car", "rental car" };
+        return carRentalKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsTransportation(string merchant)
+    {
+        var transportKeywords = new[] { "uber", "lyft", "taxi", "cab", "transit", "metro", "subway", 
+            "train", "amtrak", "greyhound", "airlines", "airport", "parking" };
+        return transportKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsPetCare(string merchant)
+    {
+        var petKeywords = new[] { "vet", "veterinary", "animal hospital", "pet", "petco", "petsmart", 
+            "chewy", "animal clinic", "grooming", "kennel", "boarding" };
+        return petKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsOnlineShopping(string merchant)
+    {
+        var shoppingKeywords = new[] { "amazon", "ebay", "etsy", "walmart.com", "target.com", "bestbuy", 
+            "newegg", "alibaba", "wish", "shopify", "amzn.com" };
+        return shoppingKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsSubscription(string merchant)
+    {
+        var subscriptionKeywords = new[] { "netflix", "spotify", "hulu", "disney", "youtube", "apple.com", 
+            "microsoft", "adobe", "github", "openai", "chatgpt", "claude", "google", "dropbox", "icloud",
+            "xbox", "playstation", "nintendo" };
+        return subscriptionKeywords.Any(keyword => merchant.Contains(keyword));
+    }
+    
+    private static bool IsLiquorStore(string merchant)
+    {
+        var liquorKeywords = new[] { "liquor", "wine", "spirits", "bevmo", "total wine", "abc store", 
+            "beer", "brewery", "penguin liquor", "beverage" };
+        return liquorKeywords.Any(keyword => merchant.Contains(keyword));
     }
 
     public async Task<Dictionary<string, object>> GetAssignmentStatsAsync()

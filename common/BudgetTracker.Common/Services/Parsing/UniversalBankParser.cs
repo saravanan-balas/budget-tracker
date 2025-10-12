@@ -145,13 +145,59 @@ public class UniversalBankParser : IUniversalBankParser
 
             // Try to identify column indices
             _logger.LogDebug("[CSV-STEP-3] Identifying column indices");
-            var dateIndex = FindColumnIndex(headers, new[] { "date", "transaction date", "posting date" });
-            var amountIndex = FindColumnIndex(headers, new[] { "amount", "transaction amount", "debit", "credit" });
-            var descriptionIndex = FindColumnIndex(headers, new[] { "description", "memo", "details", "merchant" });
-            var balanceIndex = FindColumnIndex(headers, new[] { "balance", "running balance", "running bal" });
+            var dateIndex = FindColumnIndex(headers, new[] { 
+                "date", "transaction date", "posting date", "posted date", "trans date",
+                "post date", "trans. date", "transaction dt", "value date", "booking date",
+                "settlement date", "processed date", "effective date", "activity date",
+                "payment date", "purchase date"
+            });
+            var amountIndex = FindColumnIndex(headers, new[] { 
+                "amount", "transaction amount", "trans amount", "payment", "charge", 
+                "trans. amount", "transaction amt", "money", "sum", "value", "net amount",
+                "transaction value", "payment amount"
+            });
             
-            _logger.LogInformation("[CSV-COLUMNS] DateIndex: {DateIndex}, AmountIndex: {AmountIndex}, DescriptionIndex: {DescIndex}, BalanceIndex: {BalIndex}",
-                dateIndex, amountIndex, descriptionIndex, balanceIndex);
+            // Check for separate debit/credit columns (common in many banks)
+            var debitIndex = FindColumnIndex(headers, new[] { 
+                "debit", "withdrawal", "debit amount", "withdrawals", "paid out", 
+                "money out", "debits", "debit amt", "charges", "expense", "outflow"
+            });
+            var creditIndex = FindColumnIndex(headers, new[] { 
+                "credit", "deposit", "credit amount", "deposits", "paid in", 
+                "money in", "credits", "credit amt", "income", "inflow", "lodgement"
+            });
+            var descriptionIndex = FindColumnIndex(headers, new[] { 
+                "payee", "description", "memo", "details", "merchant", "narrative", 
+                "transaction description", "trans description", "merchant name", "vendor",
+                "particulars", "transaction details", "payment details",
+                "trans. description", "transaction desc", "name", "to/from", "beneficiary",
+                "counterparty", "recipient", "statement description", "transaction narrative"
+            });
+            var balanceIndex = FindColumnIndex(headers, new[] { 
+                "balance", "running balance", "running bal", "available balance", 
+                "current balance", "closing balance", "ending balance", "new balance",
+                "balance after", "post balance", "ledger balance", "available bal",
+                "account balance", "total balance", "final balance"
+            });
+            
+            // Try to find reference/check number column (must check after description to avoid conflicts)
+            var referenceIndex = FindColumnIndex(headers, new[] {
+                "reference number", "ref number", "ref no", "reference no",
+                "check number", "cheque number", "check no", "cheque no", "check #",
+                "transaction id", "trans id", "transaction ref", "trans ref", "confirmation number",
+                "confirmation code", "auth code", "authorization code", "trace number",
+                "reference" // Check "reference" last to avoid matching columns like "Payment Reference"
+            });
+            
+            // Try to find transaction type column (indicates debit/credit)
+            var typeIndex = FindColumnIndex(headers, new[] {
+                "type", "transaction type", "trans type", "txn type", "transaction kind",
+                "debit/credit", "dr/cr", "d/c", "direction", "payment type", "category",
+                "transaction category", "trans. type"
+            });
+            
+            _logger.LogInformation("[CSV-COLUMNS] DateIndex: {DateIndex}, AmountIndex: {AmountIndex}, DebitIndex: {DebitIndex}, CreditIndex: {CreditIndex}, TypeIndex: {TypeIndex}, DescriptionIndex: {DescIndex}, BalanceIndex: {BalIndex}, ReferenceIndex: {RefIndex}",
+                dateIndex, amountIndex, debitIndex, creditIndex, typeIndex, descriptionIndex, balanceIndex, referenceIndex);
 
             _logger.LogDebug("[CSV-STEP-4] Parsing {Count} data rows", lines.Length - headerLineIndex - 1);
             
@@ -165,16 +211,62 @@ public class UniversalBankParser : IUniversalBankParser
 
                     var transaction = new ParsedTransaction();
 
-                    // Parse date
-                    if (dateIndex >= 0 && DateTime.TryParse(fields[dateIndex], out var date))
+                    // Parse date - try various formats
+                    if (dateIndex >= 0 && dateIndex < fields.Length)
                     {
-                        transaction.Date = date;
+                        transaction.Date = ParseFlexibleDate(fields[dateIndex]);
                     }
 
-                    // Parse amount
-                    if (amountIndex >= 0 && decimal.TryParse(fields[amountIndex].Replace("$", "").Replace(",", ""), out var amount))
+                    // Parse amount - handle both single amount column and separate debit/credit columns
+                    if (amountIndex >= 0 && amountIndex < fields.Length)
                     {
-                        transaction.Amount = amount;
+                        var amountStr = fields[amountIndex].Replace("$", "").Replace(",", "").Replace("(", "-").Replace(")", "");
+                        if (decimal.TryParse(amountStr, out var amount))
+                        {
+                            transaction.Amount = amount;
+                            
+                            // Check if there's a type column to determine sign
+                            if (typeIndex >= 0 && typeIndex < fields.Length)
+                            {
+                                var typeStr = fields[typeIndex].ToLowerInvariant();
+                                if (typeStr.Contains("debit") || typeStr.Contains("withdrawal") || 
+                                    typeStr.Contains("expense") || typeStr.Contains("charge") ||
+                                    typeStr.Contains("payment") || typeStr.Contains("dr") ||
+                                    typeStr == "d")
+                                {
+                                    transaction.Amount = -Math.Abs(amount);
+                                }
+                                else if (typeStr.Contains("credit") || typeStr.Contains("deposit") ||
+                                         typeStr.Contains("income") || typeStr.Contains("cr") ||
+                                         typeStr.Contains("refund") || typeStr == "c")
+                                {
+                                    transaction.Amount = Math.Abs(amount);
+                                }
+                            }
+                        }
+                    }
+                    else if (debitIndex >= 0 || creditIndex >= 0)
+                    {
+                        // Handle separate debit/credit columns
+                        decimal debitAmount = 0, creditAmount = 0;
+                        
+                        if (debitIndex >= 0 && debitIndex < fields.Length && !string.IsNullOrWhiteSpace(fields[debitIndex]))
+                        {
+                            var debitStr = fields[debitIndex].Replace("$", "").Replace(",", "").Replace("(", "").Replace(")", "");
+                            decimal.TryParse(debitStr, out debitAmount);
+                        }
+                        
+                        if (creditIndex >= 0 && creditIndex < fields.Length && !string.IsNullOrWhiteSpace(fields[creditIndex]))
+                        {
+                            var creditStr = fields[creditIndex].Replace("$", "").Replace(",", "").Replace("(", "").Replace(")", "");
+                            decimal.TryParse(creditStr, out creditAmount);
+                        }
+                        
+                        // Debits are negative (money out), credits are positive (money in)
+                        if (debitAmount != 0)
+                            transaction.Amount = -Math.Abs(debitAmount);
+                        else if (creditAmount != 0)
+                            transaction.Amount = Math.Abs(creditAmount);
                     }
 
                     // Parse description
@@ -188,6 +280,12 @@ public class UniversalBankParser : IUniversalBankParser
                         decimal.TryParse(fields[balanceIndex].Replace("$", "").Replace(",", ""), out var balance))
                     {
                         transaction.Balance = balance;
+                    }
+
+                    // Parse reference number
+                    if (referenceIndex >= 0 && referenceIndex < fields.Length)
+                    {
+                        transaction.Reference = fields[referenceIndex].Trim('"');
                     }
 
                     // Filter out summary lines and invalid transactions
@@ -227,6 +325,46 @@ public class UniversalBankParser : IUniversalBankParser
         }
 
         return result;
+    }
+    
+    private DateTime ParseFlexibleDate(string dateStr)
+    {
+        if (string.IsNullOrWhiteSpace(dateStr))
+            return DateTime.Now;
+        
+        // Clean up the date string
+        dateStr = dateStr.Trim().Trim('"');
+        
+        // Try standard parsing first
+        if (DateTime.TryParse(dateStr, out var date))
+            return date;
+        
+        // Try various date formats commonly used by banks
+        string[] formats = new[]
+        {
+            "MM/dd/yyyy", "M/d/yyyy", "MM/dd/yy", "M/d/yy",
+            "dd/MM/yyyy", "d/M/yyyy", "dd/MM/yy", "d/M/yy",
+            "yyyy-MM-dd", "yyyy/MM/dd", "dd-MM-yyyy", "MM-dd-yyyy",
+            "MMM dd, yyyy", "MMMM dd, yyyy", "dd MMM yyyy", "dd MMMM yyyy",
+            "MM-dd-yy", "dd-MM-yy", "yyyyMMdd", "ddMMyyyy", "MMddyyyy",
+            "dd.MM.yyyy", "MM.dd.yyyy", "dd.MM.yy", "MM.dd.yy",
+            "dd-MMM-yyyy", "dd-MMM-yy", "MMM dd yyyy", "MMMM dd yyyy",
+            "yyyy.MM.dd", "yy/MM/dd", "dd/MMM/yyyy", "MMM/dd/yyyy"
+        };
+        
+        foreach (var format in formats)
+        {
+            if (DateTime.TryParseExact(dateStr, format, 
+                System.Globalization.CultureInfo.InvariantCulture, 
+                System.Globalization.DateTimeStyles.None, out date))
+            {
+                return date;
+            }
+        }
+        
+        // If all parsing fails, return current date
+        _logger.LogWarning("Unable to parse date: {DateStr}, using current date", dateStr);
+        return DateTime.Now;
     }
 
     private async Task<TransactionParsingResult> ParsePdfAsync(byte[] fileData)
@@ -649,6 +787,17 @@ public class UniversalBankParser : IUniversalBankParser
 
     private int FindColumnIndex(string[] headers, string[] possibleNames)
     {
+        // First pass: try exact match (case-insensitive)
+        for (int i = 0; i < headers.Length; i++)
+        {
+            var header = headers[i].ToLowerInvariant().Trim();
+            if (possibleNames.Any(name => header.Equals(name.ToLowerInvariant())))
+            {
+                return i;
+            }
+        }
+        
+        // Second pass: try contains match for compound names
         for (int i = 0; i < headers.Length; i++)
         {
             var header = headers[i].ToLowerInvariant().Trim();
