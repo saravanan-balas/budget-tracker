@@ -310,7 +310,7 @@ public class UniversalBankParser : IUniversalBankParser
                 }
             }
 
-            _logger.LogInformation("[CSV-STEP-5] Parsed {Count} valid transactions, categorization will be handled by batch service", transactions.Count);
+            _logger.LogInformation("[CSV-STEP-5] Parsed {Count} valid transactions", transactions.Count);
             
             // Skip AI categorization here - let OptimizedBatchTransactionService handle it with caching and rule-based logic
             // await ApplyAICategorization(transactions);

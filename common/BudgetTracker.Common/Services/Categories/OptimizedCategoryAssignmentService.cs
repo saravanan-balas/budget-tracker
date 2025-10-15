@@ -12,6 +12,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private readonly BudgetTrackerDbContext _context;
     private readonly IMemoryCache _memoryCache;
     private readonly ILogger<OptimizedCategoryAssignmentService> _logger;
+    private readonly IServiceProvider _serviceProvider;
 
     // Cache settings
     private readonly TimeSpan _memoryCacheExpiry = TimeSpan.FromHours(2);
@@ -28,11 +29,13 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     public OptimizedCategoryAssignmentService(
         BudgetTrackerDbContext context,
         IMemoryCache memoryCache,
-        ILogger<OptimizedCategoryAssignmentService> logger)
+        ILogger<OptimizedCategoryAssignmentService> logger,
+        IServiceProvider serviceProvider)
     {
         _context = context;
         _memoryCache = memoryCache;
         _logger = logger;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<Guid?> AssignCategoryAsync(string merchant, string? description, decimal amount, Guid userId)
@@ -383,9 +386,46 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
     private async Task<Guid?> TryDefaultAssignment(string merchant, string? description, decimal amount, Guid userId)
     {
-        // For now, assign to "Uncategorized" or most common category
-        // This could be enhanced with AI in the future
-        _logger.LogDebug("Attempting default assignment for {Merchant} to 'Uncategorized' category", merchant);
+        _logger.LogDebug("Attempting AI fallback assignment for {Merchant}", merchant);
+        
+        try
+        {
+            // Try AI categorization as fallback
+            var aiAnalyzer = _serviceProvider.GetService(typeof(AI.IAIBankAnalyzer)) as AI.IAIBankAnalyzer;
+            if (aiAnalyzer != null)
+            {
+                var prompt = $@"Categorize this financial transaction into one of these categories: 
+Food & Dining, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Travel, Education, 
+Personal Care, Home & Garden, Business, Investments, Income, Transfer, Uncategorized.
+
+Transaction: {merchant} - {description} - Amount: ${amount:F2}
+
+Return only the category name:";
+
+                var aiCategory = await aiAnalyzer.CategorizeTransactionAsync(prompt);
+                if (!string.IsNullOrEmpty(aiCategory))
+                {
+                    // Find category by name
+                    var category = await GetCategoryByNameAsync(aiCategory, userId);
+                    if (category.HasValue)
+                    {
+                        _logger.LogDebug("AI assignment successful for {Merchant}: {Category}", merchant, aiCategory);
+                        
+                        // Learn from this AI assignment for future use
+                        await LearnFromAssignmentAsync(merchant, description, amount, category.Value, userId);
+                        
+                        return category.Value;
+                    }
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "AI fallback failed for {Merchant}, falling back to Uncategorized", merchant);
+        }
+        
+        // Fallback to Uncategorized
+        _logger.LogDebug("Falling back to 'Uncategorized' for {Merchant}", merchant);
         var uncategorized = await GetCategoryByNameAsync("Uncategorized", userId);
         if (uncategorized.HasValue)
         {
@@ -400,12 +440,48 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
     private async Task<Dictionary<string, Guid?>> GetMerchantCategoriesAsync(List<string> merchants, Guid userId)
     {
-        var merchantParams = string.Join(",", merchants.Select((_, i) => $"${i + 1}"));
-        var parameters = new object[] { userId }.Concat(merchants.Cast<object>()).ToArray();
+        if (merchants.Count == 0) return new Dictionary<string, Guid?>();
         
-        // This would need to be implemented with Entity Framework properly
-        // For now, return empty dictionary
-        return new Dictionary<string, Guid?>();
+        try
+        {
+            _logger.LogDebug("Loading merchant categories for {Count} merchants", merchants.Count);
+            
+            // Query merchant-category mappings for the given merchants
+            var mappings = await _context.Database.SqlQuery<MerchantCategoryMapping>($@"
+                SELECT ""MerchantName"", ""CategoryId""
+                FROM ""UserMerchantCategoryMappings""
+                WHERE ""UserId"" = {userId} 
+                AND ""MerchantName"" = ANY({merchants.ToArray()})
+                ORDER BY ""MerchantName"", ""ConfidenceScore"" DESC")
+                .ToListAsync();
+            
+            var result = new Dictionary<string, Guid?>();
+            
+            // Group by merchant and take the highest confidence mapping for each
+            var groupedMappings = mappings
+                .GroupBy(m => m.MerchantName)
+                .ToDictionary(g => g.Key, g => g.First().CategoryId);
+            
+            // Add all merchants to result (null for those without mappings)
+            foreach (var merchant in merchants)
+            {
+                result[merchant] = groupedMappings.TryGetValue(merchant, out var categoryId) ? categoryId : null;
+            }
+            
+            _logger.LogDebug("Loaded {Count} merchant category mappings", groupedMappings.Count);
+            return result;
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error loading merchant categories for {Count} merchants", merchants.Count);
+            return merchants.ToDictionary(m => m, _ => (Guid?)null);
+        }
+    }
+    
+    private class MerchantCategoryMapping
+    {
+        public string MerchantName { get; set; } = string.Empty;
+        public Guid CategoryId { get; set; }
     }
 
     private async Task<Guid?> GetCategoryByNameAsync(string categoryName, Guid userId)

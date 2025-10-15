@@ -375,9 +375,9 @@
                   <div v-else @click="startEdit(transaction)" class="cursor-pointer hover:bg-gray-100 px-1 py-1 rounded">
                     <span :class="[
                       'inline-flex px-2 py-1 text-xs font-medium rounded-full',
-                      getCategoryColor(transaction.category?.name)
+                      getCategoryColor(transaction.categoryName)
                     ]">
-                      {{ transaction.category?.name || 'Uncategorized' }}
+                      {{ transaction.categoryName || 'Uncategorized' }}
                     </span>
                   </div>
                 </td>
@@ -516,7 +516,7 @@ const categorySummary = computed(() => {
   const summary: Record<string, { count: number; total: number }> = {}
   
   importedTransactions.value.forEach(txn => {
-    const category = txn.category?.name || 'Uncategorized'
+    const category = txn.categoryName || 'Uncategorized'
     if (!summary[category]) {
       summary[category] = { count: 0, total: 0 }
     }
