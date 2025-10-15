@@ -11,8 +11,6 @@ npm run dev
 
 
 Postgress commands
-psql -h localhost -p 5432 -U postgres -d budget_tracker
-list tables \dt
-list schemas  \dn
+docker exec budget_tracker_db psql -U postgres -d budget_tracker -c "SELECT COUNT(*) as merchant_mappings FROM public.\"UserMerchantCategoryMappings\";"
 
 select * from public."Transactions";

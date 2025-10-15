@@ -123,12 +123,18 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             {
                 Interlocked.Increment(ref _ruleMappings);
                 _logger.LogDebug("Rule-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                
+                // Learn from rule-based assignment
+                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
-            else if (merchantCategories.TryGetValue(merchant, out var merchantCat))
+            else if (merchantCategories.TryGetValue(merchant, out var merchantCat) && merchantCat.HasValue)
             {
                 categoryId = merchantCat;
                 Interlocked.Increment(ref _merchantMappings);
                 _logger.LogDebug("Merchant-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                
+                // Learn from merchant-based assignment (reinforce existing mapping)
+                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else
             {
@@ -138,6 +144,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 {
                     Interlocked.Increment(ref _aiFallbacks);
                     _logger.LogDebug("Default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                    
+                    // Learning already happens in TryDefaultAssignment for AI fallback
                 }
                 else
                 {
@@ -164,8 +172,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         try
         {
             // Store merchant-category mapping for future use
-            var existingMapping = await _context.Database.SqlQuery<int>($@"
-                SELECT COUNT(*) 
+            var existingMapping = await _context.Database.SqlQueryRaw<int>($@"
+                SELECT COUNT(*) as Value
                 FROM ""UserMerchantCategoryMappings"" 
                 WHERE ""UserId"" = {userId} 
                 AND ""MerchantName"" = {merchant} 
@@ -410,9 +418,6 @@ Return only the category name:";
                     if (category.HasValue)
                     {
                         _logger.LogDebug("AI assignment successful for {Merchant}: {Category}", merchant, aiCategory);
-                        
-                        // Learn from this AI assignment for future use
-                        await LearnFromAssignmentAsync(merchant, description, amount, category.Value, userId);
                         
                         return category.Value;
                     }
