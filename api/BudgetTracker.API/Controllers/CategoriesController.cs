@@ -117,6 +117,47 @@ public class CategoriesController : ControllerBase
         });
     }
 
+    [HttpPut("{id}")]
+    public async Task<IActionResult> UpdateCategory(Guid id, [FromBody] CreateCategoryDto dto)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        if (!Enum.TryParse<CategoryType>(dto.Type, out var categoryType))
+        {
+            return BadRequest(new { error = "Invalid category type" });
+        }
+
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId.Value);
+
+        if (category == null) return NotFound();
+
+        // Update category properties
+        category.Name = dto.Name;
+        category.Type = categoryType;
+        category.Icon = dto.Icon;
+        category.Color = dto.Color;
+        category.ParentCategoryId = dto.ParentCategoryId;
+        category.BudgetAmount = dto.BudgetAmount;
+        category.DisplayOrder = dto.DisplayOrder ?? category.DisplayOrder;
+        category.UpdatedAt = DateTime.UtcNow;
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new CategoryDto
+        {
+            Id = category.Id,
+            Name = category.Name,
+            Type = category.Type.ToString(),
+            Icon = category.Icon,
+            Color = category.Color,
+            ParentCategoryId = category.ParentCategoryId,
+            BudgetAmount = category.BudgetAmount,
+            IsSystem = category.IsSystem
+        });
+    }
+
     [HttpPost("seed-defaults")]
     public async Task<IActionResult> SeedDefaultCategories()
     {
@@ -168,6 +209,38 @@ public class CategoriesController : ControllerBase
         await _context.SaveChangesAsync();
 
         return Ok(new { message = $"Created {defaultCategories.Count} default categories" });
+    }
+
+    [HttpDelete("{id}")]
+    public async Task<IActionResult> DeleteCategory(Guid id)
+    {
+        var userId = GetUserId();
+        if (userId == null) return Unauthorized();
+
+        var category = await _context.Categories
+            .FirstOrDefaultAsync(c => c.Id == id && c.UserId == userId.Value);
+
+        if (category == null) return NotFound();
+
+        // Check if category is being used by any transactions
+        var hasTransactions = await _context.Transactions
+            .AnyAsync(t => t.CategoryId == id);
+
+        if (hasTransactions)
+        {
+            // Soft delete - just mark as inactive
+            category.IsActive = false;
+            category.UpdatedAt = DateTime.UtcNow;
+        }
+        else
+        {
+            // Hard delete if no transactions use it
+            _context.Categories.Remove(category);
+        }
+
+        await _context.SaveChangesAsync();
+
+        return Ok(new { message = "Category deleted successfully" });
     }
 
     private Guid? GetUserId()

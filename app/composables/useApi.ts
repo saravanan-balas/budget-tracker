@@ -142,8 +142,14 @@ export const useApi = () => {
   const createCategory = (category: CreateCategory): Promise<Category> =>
     apiCall('/categories', { method: 'POST', body: category })
 
+  const updateCategory = (id: string, category: CreateCategory): Promise<Category> =>
+    apiCall(`/categories/${id}`, { method: 'PUT', body: category })
+
   const seedDefaultCategories = (): Promise<{ message: string }> =>
     apiCall('/categories/seed-defaults', { method: 'POST' })
+
+  const deleteCategory = (id: string): Promise<{ message: string }> =>
+    apiCall(`/categories/${id}`, { method: 'DELETE' })
 
   // Import endpoints
   const analyzeImportFile = (formData: FormData): Promise<any> =>
@@ -192,6 +198,8 @@ export const useApi = () => {
     getCategories,
     getCategory,
     createCategory,
+    updateCategory,
+    deleteCategory,
     seedDefaultCategories,
     
     // Import

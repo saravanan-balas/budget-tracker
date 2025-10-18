@@ -24,6 +24,9 @@
               <NuxtLink to="/accounts" class="nav-link" :class="{ 'nav-link-active': $route.path === '/accounts' }">
                 Accounts
               </NuxtLink>
+              <NuxtLink to="/categories" class="nav-link" :class="{ 'nav-link-active': $route.path === '/categories' }">
+                Categories
+              </NuxtLink>
               <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
                 Import
               </NuxtLink>
