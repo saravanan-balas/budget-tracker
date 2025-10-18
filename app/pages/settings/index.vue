@@ -7,7 +7,7 @@
 
     <div class="grid grid-cols-1 gap-6 lg:grid-cols-2">
       <!-- Account Security -->
-      <div class="bg-white shadow rounded-lg">
+      <div v-if="!isSSOUser" class="bg-white shadow rounded-lg">
         <div class="px-4 py-5 sm:p-6">
           <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
             Account Security
@@ -21,10 +21,39 @@
               class="inline-flex items-center px-4 py-2 border border-gray-300 shadow-sm text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500"
             >
               <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1721 9z" />
               </svg>
               Change Password
             </NuxtLink>
+          </div>
+        </div>
+      </div>
+
+      <!-- SSO User Info -->
+      <div v-if="isSSOUser" class="bg-white shadow rounded-lg">
+        <div class="px-4 py-5 sm:p-6">
+          <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
+            Account Security
+          </h3>
+          <p class="text-sm text-gray-500 mb-4">
+            Your account is managed through Google Sign-In. Password changes are handled through your Google account settings.
+          </p>
+          <div class="bg-blue-50 border border-blue-200 rounded-md p-4">
+            <div class="flex">
+              <div class="flex-shrink-0">
+                <svg class="h-5 w-5 text-blue-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clip-rule="evenodd" />
+                </svg>
+              </div>
+              <div class="ml-3">
+                <h3 class="text-sm font-medium text-blue-800">
+                  Google Account
+                </h3>
+                <div class="mt-2 text-sm text-blue-700">
+                  <p>To change your password, please visit your Google Account settings at <a href="https://myaccount.google.com/security" target="_blank" class="underline hover:text-blue-800">myaccount.google.com/security</a></p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -105,5 +134,13 @@
 definePageMeta({
   layout: 'default',
   middleware: 'auth'
+})
+
+// Get auth store to check if user is SSO user
+const authStore = useAuthStore()
+
+// Computed property to check if user is authenticated via SSO (Google)
+const isSSOUser = computed(() => {
+  return authStore.user?.googleId != null && authStore.user?.googleId !== ''
 })
 </script>
