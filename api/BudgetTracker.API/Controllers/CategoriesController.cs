@@ -171,44 +171,83 @@ public class CategoriesController : ControllerBase
             return BadRequest(new { error = "User already has categories" });
         }
 
-        var defaultCategories = new List<Category>
-        {
-            // Income categories
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Salary", Type = CategoryType.Income, Icon = "💰", Color = "#10b981", DisplayOrder = 1 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Freelance", Type = CategoryType.Income, Icon = "💼", Color = "#10b981", DisplayOrder = 2 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Investments", Type = CategoryType.Income, Icon = "📈", Color = "#10b981", DisplayOrder = 3 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Other Income", Type = CategoryType.Income, Icon = "💵", Color = "#10b981", DisplayOrder = 4 },
-            
-            // Expense categories
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Food & Dining", Type = CategoryType.Expense, Icon = "🍔", Color = "#ef4444", DisplayOrder = 10 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Groceries", Type = CategoryType.Expense, Icon = "🛒", Color = "#f97316", DisplayOrder = 11 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Transportation", Type = CategoryType.Expense, Icon = "🚗", Color = "#eab308", DisplayOrder = 12 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Shopping", Type = CategoryType.Expense, Icon = "🛍️", Color = "#a855f7", DisplayOrder = 13 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Entertainment", Type = CategoryType.Expense, Icon = "🎬", Color = "#8b5cf6", DisplayOrder = 14 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Bills & Utilities", Type = CategoryType.Expense, Icon = "📱", Color = "#3b82f6", DisplayOrder = 15 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Healthcare", Type = CategoryType.Expense, Icon = "🏥", Color = "#06b6d4", DisplayOrder = 16 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Education", Type = CategoryType.Expense, Icon = "📚", Color = "#14b8a6", DisplayOrder = 17 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Travel", Type = CategoryType.Expense, Icon = "✈️", Color = "#ec4899", DisplayOrder = 18 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Insurance", Type = CategoryType.Expense, Icon = "🛡️", Color = "#6366f1", DisplayOrder = 19 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Rent/Mortgage", Type = CategoryType.Expense, Icon = "🏠", Color = "#f43f5e", DisplayOrder = 20 },
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Personal Care", Type = CategoryType.Expense, Icon = "💅", Color = "#fb923c", DisplayOrder = 21 },
-            
-            // Transfer category
-            new Category { Id = Guid.NewGuid(), UserId = userId.Value, Name = "Transfer", Type = CategoryType.Transfer, Icon = "↔️", Color = "#6b7280", DisplayOrder = 30 }
-        };
+        await SeedDefaultCategoriesForUser(userId.Value);
+        return Ok(new { message = $"Created {GetDefaultCategories().Count} default categories" });
+    }
 
-        foreach (var category in defaultCategories)
+    [HttpPost("seed-defaults/{userId}")]
+    public async Task<IActionResult> SeedDefaultCategoriesForUserEndpoint(Guid userId)
+    {
+        await SeedDefaultCategoriesForUser(userId);
+        return Ok(new { message = $"Created {GetDefaultCategories().Count} default categories" });
+    }
+
+    private async Task SeedDefaultCategoriesForUser(Guid userId)
+    {
+        var defaultCategories = GetDefaultCategories().Select(c => new Category
         {
-            category.IsSystem = false;
-            category.IsActive = true;
-            category.CreatedAt = DateTime.UtcNow;
-            category.UpdatedAt = DateTime.UtcNow;
-        }
+            Id = Guid.NewGuid(),
+            UserId = userId,
+            Name = c.Name,
+            Type = c.Type,
+            Icon = c.Icon,
+            Color = c.Color,
+            DisplayOrder = c.DisplayOrder,
+            IsSystem = false,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }).ToList();
 
         _context.Categories.AddRange(defaultCategories);
         await _context.SaveChangesAsync();
+    }
 
-        return Ok(new { message = $"Created {defaultCategories.Count} default categories" });
+    private List<(string Name, CategoryType Type, string Icon, string Color, int DisplayOrder)> GetDefaultCategories()
+    {
+        return new List<(string Name, CategoryType Type, string Icon, string Color, int DisplayOrder)>
+        {
+            // Income categories
+            ("Salary", CategoryType.Income, "💰", "#10b981", 1),
+            ("Freelance", CategoryType.Income, "💼", "#10b981", 2),
+            ("Investments", CategoryType.Income, "📈", "#10b981", 3),
+            ("Business", CategoryType.Income, "🏢", "#10b981", 4),
+            ("Other Income", CategoryType.Income, "💵", "#10b981", 5),
+            
+            // Essential Expenses
+            ("Rent/Mortgage", CategoryType.Expense, "🏠", "#f43f5e", 10),
+            ("Groceries", CategoryType.Expense, "🛒", "#f97316", 11),
+            ("Utilities", CategoryType.Expense, "⚡", "#3b82f6", 12),
+            ("Transportation", CategoryType.Expense, "🚗", "#eab308", 13),
+            ("Insurance", CategoryType.Expense, "🛡️", "#6366f1", 14),
+            
+            // Food & Dining
+            ("Restaurants", CategoryType.Expense, "🍔", "#ef4444", 20),
+            ("Coffee", CategoryType.Expense, "☕", "#8b4513", 21),
+            ("Fast Food", CategoryType.Expense, "🍟", "#ff6b35", 22),
+            
+            // Shopping & Entertainment
+            ("Shopping", CategoryType.Expense, "🛍️", "#a855f7", 30),
+            ("Entertainment", CategoryType.Expense, "🎬", "#8b5cf6", 31),
+            ("Subscriptions", CategoryType.Expense, "📱", "#06b6d4", 32),
+            
+            // Health & Personal
+            ("Healthcare", CategoryType.Expense, "🏥", "#06b6d4", 40),
+            ("Fitness", CategoryType.Expense, "💪", "#14b8a6", 41),
+            ("Personal Care", CategoryType.Expense, "💅", "#fb923c", 42),
+            
+            // Education & Travel
+            ("Education", CategoryType.Expense, "📚", "#14b8a6", 50),
+            ("Travel", CategoryType.Expense, "✈️", "#ec4899", 51),
+            
+            // Other
+            ("Gas", CategoryType.Expense, "⛽", "#f59e0b", 60),
+            ("ATM/Cash", CategoryType.Expense, "💵", "#6b7280", 61),
+            ("Other", CategoryType.Expense, "📝", "#9ca3af", 62),
+            
+            // Transfer category
+            ("Transfer", CategoryType.Transfer, "↔️", "#6b7280", 70)
+        };
     }
 
     [HttpDelete("{id}")]

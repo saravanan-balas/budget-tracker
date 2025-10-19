@@ -6,13 +6,24 @@
         <h1 class="text-2xl font-bold text-gray-900">Categories</h1>
         <p class="text-gray-600">Manage your income and expense categories</p>
       </div>
-      <button 
-        @click="openAddModal"
-        class="btn-primary"
-      >
-        <PlusIcon class="w-4 h-4 mr-2" />
-        Add Category
-      </button>
+      <div class="flex space-x-3">
+        <button 
+          v-if="categories.length === 0"
+          @click="seedDefaultCategories"
+          :disabled="loading"
+          class="btn-secondary"
+        >
+          <span v-if="loading" class="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2 inline-block"></span>
+          Load Default Categories
+        </button>
+        <button 
+          @click="openAddModal"
+          class="btn-primary"
+        >
+          <PlusIcon class="w-4 h-4 mr-2" />
+          Add Category
+        </button>
+      </div>
     </div>
 
     <!-- Loading State -->
@@ -171,6 +182,25 @@ const handleDelete = async (category: Category) => {
   } catch (error) {
     console.error('Error deleting category:', error)
     alert('Failed to delete category. Please try again.')
+  }
+}
+
+// Seed default categories
+const seedDefaultCategories = async () => {
+  try {
+    loading.value = true
+    await api.seedDefaultCategories()
+    loadCategories()
+  } catch (error: any) {
+    console.error('Error seeding default categories:', error)
+    if (error.message?.includes('already has categories')) {
+      // User already has categories, just reload
+      loadCategories()
+    } else {
+      alert('Failed to load default categories. Please try again.')
+    }
+  } finally {
+    loading.value = false
   }
 }
 

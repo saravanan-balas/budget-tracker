@@ -40,16 +40,12 @@
         
         <div>
           <label class="form-label">Category</label>
-          <select v-model="form.categoryId" class="form-input">
-            <option value="">Select category</option>
-            <option 
-              v-for="category in categories" 
-              :key="category.id" 
-              :value="category.id"
-            >
-              {{ category.name }}
-            </option>
-          </select>
+          <CategorySelector
+            v-model="form.categoryId"
+            :categories="categories"
+            placeholder="Select or search category..."
+            @create-category="handleCreateCategory"
+          />
         </div>
         
         <div>
@@ -160,6 +156,12 @@ const handleDelete = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Handle creating new category
+const handleCreateCategory = (categoryName: string) => {
+  // For now, we'll just show a message to create it from the categories page
+  alert(`Please create the category "${categoryName}" from the Categories page first.`)
 }
 
 const formatCurrency = (amount: number) => {

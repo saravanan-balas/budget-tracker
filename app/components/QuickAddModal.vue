@@ -48,16 +48,12 @@
         
         <div>
           <label class="form-label">Category</label>
-          <select v-model="form.categoryId" class="form-input">
-            <option value="">Select category</option>
-            <option 
-              v-for="category in categories" 
-              :key="category.id" 
-              :value="category.id"
-            >
-              {{ category.name }}
-            </option>
-          </select>
+          <CategorySelector
+            v-model="form.categoryId"
+            :categories="categories"
+            placeholder="Select or search category..."
+            @create-category="handleCreateCategory"
+          />
         </div>
         
         <div>
@@ -138,6 +134,13 @@ const handleSubmit = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// Handle creating new category
+const handleCreateCategory = (categoryName: string) => {
+  // For now, we'll just show a message to create it from the categories page
+  // In the future, we could open a quick create modal here
+  alert(`Please create the category "${categoryName}" from the Categories page first.`)
 }
 
 onMounted(() => {
