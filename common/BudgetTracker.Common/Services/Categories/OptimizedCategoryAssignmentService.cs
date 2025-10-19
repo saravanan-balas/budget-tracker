@@ -494,7 +494,7 @@ Return only the category name:";
         _logger.LogDebug("Looking for category '{CategoryName}' for user {UserId}", categoryName, userId);
         
         var category = await _context.Categories
-            .Where(c => c.Name == categoryName && (c.UserId == userId || c.IsSystem))
+            .Where(c => c.Name == categoryName && c.UserId == userId)
             .FirstOrDefaultAsync();
         
         if (category == null)
