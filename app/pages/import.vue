@@ -112,8 +112,8 @@
           <label class="block text-sm font-medium text-gray-700 mb-2">Select Account</label>
           <select v-model="selectedAccountId" class="w-full p-2 border border-gray-300 rounded-md">
             <option value="">Choose an account...</option>
-            <option v-for="account in accounts" :key="account.id" :value="account.id">
-              {{ account.name }} ({{ account.accountType }})
+            <option v-for="account in accountOptions" :key="account.id" :value="account.id">
+              {{ account.name }} ({{ account.type || 'N/A' }})
             </option>
           </select>
         </div>
@@ -452,7 +452,7 @@ interface ImportStatus {
 interface Account {
   id: string
   name: string
-  accountType: string
+  type: string
 }
 
 // State
@@ -533,6 +533,11 @@ const categorySummary = computed(() => {
 
 const totalAmount = computed(() => {
   return importedTransactions.value.reduce((sum, txn) => sum + Math.abs(txn.amount), 0)
+})
+
+// Computed for accounts display
+const accountOptions = computed(() => {
+  return accounts.value
 })
 
 // Methods
@@ -678,7 +683,6 @@ const loadImportedTransactions = async () => {
   try {
     const api = useApi()
     importedTransactions.value = await api.getTransactionsByImportId(importId.value)
-    console.log(`Loaded ${importedTransactions.value.length} transactions from import`)
   } catch (error) {
     console.error('Error loading imported transactions:', error)
   }
