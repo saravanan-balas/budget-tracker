@@ -60,30 +60,6 @@ services:
       - ./api/logs:/app/logs
       - uploads_data:/app/uploads
 
-  worker:
-    build:
-      context: .
-      dockerfile: worker/Dockerfile
-    container_name: budget_tracker_worker
-    environment:
-      DOTNET_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Database=budget_tracker;Username=postgres;Password=postgres
-      ConnectionStrings__Redis: redis:6379
-      OPENAI_API_KEY: ${OPENAI_API_KEY}
-      JWT_KEY: ${JWT_KEY:-ThisIsAVerySecureKeyForDevelopmentOnly123456789}
-      JWT_ISSUER: ${JWT_ISSUER:-BudgetTrackerAPI}
-      JWT_AUDIENCE: ${JWT_AUDIENCE:-BudgetTrackerClient}
-    depends_on:
-      postgres:
-        condition: service_healthy
-      redis:
-        condition: service_healthy
-    networks:
-      - budget_tracker_network
-    volumes:
-      - ./worker/logs:/app/logs
-      - uploads_data:/app/uploads
-
   frontend:
     build:
       context: .

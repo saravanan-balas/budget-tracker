@@ -12,15 +12,18 @@ namespace BudgetTracker.API.Controllers;
 public class ImportController : ControllerBase
 {
     private readonly ISimplifiedImportService _simplifiedImportService;
+    private readonly ISynchronousImportService _synchronousImportService;
     private readonly IBankTemplateService _templateService;
     private readonly ILogger<ImportController> _logger;
 
     public ImportController(
         ISimplifiedImportService simplifiedImportService,
+        ISynchronousImportService synchronousImportService,
         IBankTemplateService templateService,
         ILogger<ImportController> logger)
     {
         _simplifiedImportService = simplifiedImportService;
+        _synchronousImportService = synchronousImportService;
         _templateService = templateService;
         _logger = logger;
     }
@@ -73,9 +76,16 @@ public class ImportController : ControllerBase
                 BankTemplate = bankTemplate
             };
 
-            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
+            // Use synchronous processing for CSV files
+            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
+                var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
+                return result.IsSuccessful ? Ok(result) : BadRequest(result);
+            }
             
-            return result.IsSuccessful ? Ok(result) : BadRequest(result);
+            // For PDF/image files, return error since worker is removed
+            return BadRequest(new { error = "Only CSV files are currently supported. PDF and image processing will be added later." });
         }
         catch (Exception ex)
         {
@@ -129,7 +139,7 @@ public class ImportController : ControllerBase
         return await UploadUnified(file, accountId);
     }
 
-    // New Unified Import Endpoint - All processing moved to worker
+    // Unified Import Endpoint - CSV processed synchronously, others return error
     [HttpPost("upload-unified")]
     public async Task<IActionResult> UploadUnified([FromForm] IFormFile file, [FromForm] Guid accountId)
     {
@@ -153,9 +163,16 @@ public class ImportController : ControllerBase
                 FileData = stream.ToArray()
             };
 
-            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
+            // Use synchronous processing for CSV files
+            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
+            {
+                _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
+                var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
+                return result.IsSuccessful ? Ok(result) : BadRequest(result);
+            }
             
-            return result.IsSuccessful ? Ok(result) : BadRequest(result);
+            // For PDF/image files, return error since worker is removed
+            return BadRequest(new { error = "Only CSV files are currently supported. PDF and image processing will be added later." });
         }
         catch (ArgumentException ex)
         {
@@ -202,41 +219,8 @@ public class ImportController : ControllerBase
     [HttpPost("upload-image")]
     public async Task<IActionResult> UploadImage([FromForm] IFormFile image, [FromForm] Guid accountId)
     {
-        try
-        {
-            if (image == null || image.Length == 0)
-            {
-                return BadRequest(new { error = "Image file is required" });
-            }
-
-            var allowedTypes = new[] { "image/png", "image/jpeg", "image/jpg" };
-            if (!allowedTypes.Contains(image.ContentType.ToLowerInvariant()))
-            {
-                return BadRequest(new { error = "Only PNG and JPEG images are supported" });
-            }
-
-            var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
-
-            using var stream = new MemoryStream();
-            await image.CopyToAsync(stream);
-
-            var importDto = new FileImportDto
-            {
-                AccountId = accountId,
-                FileName = image.FileName,
-                FileType = Path.GetExtension(image.FileName),
-                FileData = stream.ToArray()
-            };
-
-            var result = await _simplifiedImportService.UploadFileAsync(userId, importDto);
-            
-            return result.IsSuccessful ? Ok(result) : BadRequest(result);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Error uploading image");
-            return StatusCode(500, new { error = "An error occurred while uploading the image" });
-        }
+        // Image processing is not supported without the worker service
+        return BadRequest(new { error = "Image processing is currently not supported. Only CSV files can be imported." });
     }
 
     [HttpGet("templates")]

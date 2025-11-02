@@ -86,6 +86,7 @@ try
     builder.Services.AddScoped<IAuthService, AuthService>();
     builder.Services.AddScoped<ITransactionService, TransactionService>();
     builder.Services.AddScoped<ISimplifiedImportService, SimplifiedImportService>();
+    builder.Services.AddScoped<ISynchronousImportService, SynchronousImportService>();
     builder.Services.AddScoped<IChatService, ChatService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
 
