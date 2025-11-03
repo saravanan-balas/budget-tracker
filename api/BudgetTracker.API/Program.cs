@@ -61,9 +61,41 @@ try
         });
     });
 
+    // Debug: Print relevant environment variables
+    Console.WriteLine("[DEBUG] Relevant Environment Variables:");
+    var relevantVars = new[] { "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME", "OPENAI_API_KEY", "JWT_KEY", "AZURE_STORAGE_CONNECTION_STRING", "REDIS_CONNECTION", "ConnectionStrings__DefaultConnection" };
+    foreach (var varName in relevantVars)
+    {
+        var value = Environment.GetEnvironmentVariable(varName);
+        var maskedValue = varName.Contains("PASSWORD") || varName.Contains("KEY") || varName.Contains("CONNECTION") 
+            ? (string.IsNullOrEmpty(value) ? "NOT SET" : "***MASKED***") 
+            : value ?? "NOT SET";
+        Console.WriteLine($"  {varName} = {maskedValue}");
+    }
+    
+    // Build connection string from environment variables if available
+    var host = Environment.GetEnvironmentVariable("DB_HOST");
+    var user = Environment.GetEnvironmentVariable("DB_USER");
+    var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+    var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+    
+    string connectionString;
+    if (!string.IsNullOrEmpty(host))
+    {
+        connectionString = $"Host={host};Database={dbName};Username={user};Password={password};SSL Mode=Require;";
+        Console.WriteLine($"[DEBUG] Using environment variables for connection");
+    }
+    else
+    {
+        connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "localhost connection not found";
+        Console.WriteLine($"[DEBUG] Using appsettings.json connection");
+    }
+    
+    Console.WriteLine($"[DEBUG] Connection String: {connectionString}");
+    
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
         {
-            options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection"), 
+            options.UseNpgsql(connectionString, 
                 b => {
                     b.MigrationsAssembly("BudgetTracker.API");
                     b.UseVector();
