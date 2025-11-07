@@ -105,6 +105,7 @@ const error = ref('')
 const loading = ref(false)
 
 const authStore = useAuthStore()
+const runtimeConfig = useRuntimeConfig()
 
 const handleLogin = async () => {
   error.value = ''
@@ -169,7 +170,7 @@ onMounted(() => {
   script.onload = () => {
     // Initialize and render the button
     window.google.accounts.id.initialize({
-      client_id: '715368478743-4vugo0hso9hmgouvepovj9jm56tkoutp.apps.googleusercontent.com',
+      client_id: runtimeConfig.public.googleClientId,
       callback: handleGoogleCallback,
       auto_select: false,
       cancel_on_tap_outside: true
