@@ -2,6 +2,10 @@
   command = "npm run generate"
   publish = ".output/public"
 
+[build.environment]
+  # Replace with your actual Azure API URL
+  NUXT_PUBLIC_API_BASE_URL = "https://budget-tracker-api-g4hra5hmebcpbufu.canadacentral-01.azurewebsites.net"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"
