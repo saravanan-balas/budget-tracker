@@ -16,7 +16,7 @@
           </div>
           <div class="text-left">
             <h3 class="text-xs font-medium">Import</h3>
-            <p class="text-xs text-gray-600">CSV/PDF</p>
+            <p class="text-xs text-gray-600">CSV</p>
           </div>
         </NuxtLink>
 

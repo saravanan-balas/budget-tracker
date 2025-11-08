@@ -38,6 +38,11 @@ public class ImportController : ControllerBase
                 return BadRequest(new { error = "File is required" });
             }
 
+            if (!IsCsvFile(file.FileName))
+            {
+                return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
+            }
+
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
             var fileData = stream.ToArray();
@@ -64,6 +69,11 @@ public class ImportController : ControllerBase
 
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
 
+            if (!IsCsvFile(file.FileName))
+            {
+                return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
+            }
+
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
 
@@ -76,16 +86,9 @@ public class ImportController : ControllerBase
                 BankTemplate = bankTemplate
             };
 
-            // Use synchronous processing for CSV files
-            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
-                var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
-                return result.IsSuccessful ? Ok(result) : BadRequest(result);
-            }
-            
-            // For PDF/image files, return error since worker is removed
-            return BadRequest(new { error = "Only CSV files are currently supported. PDF and image processing will be added later." });
+            _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
+            var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
+            return result.IsSuccessful ? Ok(result) : BadRequest(result);
         }
         catch (Exception ex)
         {
@@ -152,6 +155,11 @@ public class ImportController : ControllerBase
 
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
 
+            if (!IsCsvFile(file.FileName))
+            {
+                return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
+            }
+
             using var stream = new MemoryStream();
             await file.CopyToAsync(stream);
 
@@ -163,16 +171,9 @@ public class ImportController : ControllerBase
                 FileData = stream.ToArray()
             };
 
-            // Use synchronous processing for CSV files
-            if (Path.GetExtension(file.FileName).Equals(".csv", StringComparison.OrdinalIgnoreCase))
-            {
-                _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
-                var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
-                return result.IsSuccessful ? Ok(result) : BadRequest(result);
-            }
-            
-            // For PDF/image files, return error since worker is removed
-            return BadRequest(new { error = "Only CSV files are currently supported. PDF and image processing will be added later." });
+            _logger.LogInformation("Processing CSV file synchronously: {FileName}", file.FileName);
+            var result = await _synchronousImportService.ProcessCsvAsync(userId, importDto);
+            return result.IsSuccessful ? Ok(result) : BadRequest(result);
         }
         catch (ArgumentException ex)
         {
@@ -196,16 +197,20 @@ public class ImportController : ControllerBase
                 return BadRequest(new { error = "File is required" });
             }
 
-            // Simple analysis - all processing is now done in worker
+            if (!IsCsvFile(file.FileName))
+            {
+                return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
+            }
+
             return Ok(new
             {
                 fileFormat = Path.GetExtension(file.FileName).ToLowerInvariant(),
                 fileSize = file.Length,
-                canProcessSynchronously = false,
-                asyncReason = "All processing moved to worker for better performance",
+                canProcessSynchronously = true,
+                asyncReason = string.Empty,
                 estimatedSeconds = EstimateProcessingTime(file.Length, Path.GetExtension(file.FileName)),
                 hasKnownTemplate = false,
-                estimatedCost = 0.05m, // Default estimate
+                estimatedCost = EstimateCostByFileType(Path.GetExtension(file.FileName), (int)file.Length),
                 estimatedRowCount = EstimateRowCount(file.Length)
             });
         }
@@ -219,8 +224,8 @@ public class ImportController : ControllerBase
     [HttpPost("upload-image")]
     public async Task<IActionResult> UploadImage([FromForm] IFormFile image, [FromForm] Guid accountId)
     {
-        // Image processing is not supported without the worker service
-        return BadRequest(new { error = "Image processing is currently not supported. Only CSV files can be imported." });
+        // Image processing is not supported
+        return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
     }
 
     [HttpGet("templates")]
@@ -279,15 +284,25 @@ public class ImportController : ControllerBase
         }
     }
 
+    private static bool IsCsvFile(string fileName)
+    {
+        var extension = Path.GetExtension(fileName);
+        if (string.IsNullOrWhiteSpace(extension))
+        {
+            return false;
+        }
+
+        return extension.Equals(".csv", StringComparison.OrdinalIgnoreCase) ||
+               extension.Equals(".txt", StringComparison.OrdinalIgnoreCase);
+    }
+
     private int EstimateProcessingTime(long fileSize, string fileType)
     {
         // Estimate processing time based on file size and type
         var baseTime = fileType.ToLowerInvariant() switch
         {
-            ".csv" => 30, // 30 seconds for CSV
-            ".pdf" => 120, // 2 minutes for PDF
-            ".png" or ".jpg" or ".jpeg" => 90, // 1.5 minutes for images
-            _ => 60 // 1 minute default
+            ".csv" or ".txt" => 30,
+            _ => 30
         };
 
         // Add time based on file size (1 second per 10KB)
@@ -307,10 +322,8 @@ public class ImportController : ControllerBase
         // Simple cost estimation based on file type and size
         var baseCost = fileType.ToLowerInvariant() switch
         {
-            ".csv" => 0.001m, // Low cost for CSV
-            ".pdf" => 0.01m,  // Medium cost for PDF
-            ".png" or ".jpg" or ".jpeg" => 0.02m, // Higher cost for images
-            _ => 0.005m // Default
+            ".csv" or ".txt" => 0.001m,
+            _ => 0.001m
         };
 
         // Add cost based on file size
