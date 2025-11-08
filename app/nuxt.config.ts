@@ -19,11 +19,14 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'Budget Tracker',
+      title: 'AI Budget Tracker',
       meta: [
         { name: 'description', content: 'AI-powered personal finance management' }
       ]
     }
   },
-  ssr: false // SPA mode for easier API integration
+  ssr: false, // SPA mode for easier API integration
+  nitro: {
+    preset: 'static'
+  }
 })
