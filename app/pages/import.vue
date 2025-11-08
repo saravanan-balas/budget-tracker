@@ -4,7 +4,7 @@
       <!-- Header -->
       <div class="mb-8">
         <h1 class="text-3xl font-bold text-gray-900">Import Transactions</h1>
-        <p class="mt-2 text-gray-600">Upload bank statements from any bank globally. We support CSV files, PDFs, and screenshots.</p>
+        <p class="mt-2 text-gray-600">Upload bank statements from any bank globally using CSV files.</p>
       </div>
 
       <!-- Import Steps -->
@@ -49,34 +49,6 @@
               </svg>
               <h3 class="font-medium">CSV File</h3>
               <p class="text-sm text-gray-500">Comma-separated values from your bank</p>
-            </div>
-          </div>
-          
-          <div @click="selectFileType('pdf')" 
-               :class="[
-                 'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                 selectedFileType === 'pdf' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-               ]">
-            <div class="text-center">
-              <svg class="w-12 h-12 mx-auto mb-2 text-red-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm6 2a1 1 0 011 1v6a1 1 0 11-2 0V7a1 1 0 011-1z"/>
-              </svg>
-              <h3 class="font-medium">PDF Statement</h3>
-              <p class="text-sm text-gray-500">Monthly statement from your bank</p>
-            </div>
-          </div>
-          
-          <div @click="selectFileType('image')" 
-               :class="[
-                 'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                 selectedFileType === 'image' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-               ]">
-            <div class="text-center">
-              <svg class="w-12 h-12 mx-auto mb-2 text-purple-500" fill="currentColor" viewBox="0 0 20 20">
-                <path fill-rule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clip-rule="evenodd"/>
-              </svg>
-              <h3 class="font-medium">Screenshot/Image</h3>
-              <p class="text-sm text-gray-500">Photo of statement or mobile app</p>
             </div>
           </div>
         </div>
@@ -459,7 +431,7 @@ interface Account {
 const currentStep = ref(0)
 const steps = ['Upload File', 'Review Analysis', 'Import Progress']
 
-const selectedFileType = ref('')
+const selectedFileType = ref('csv')
 const selectedFile = ref<File | null>(null)
 const selectedAccountId = ref('')
 const accounts = ref<Account[]>([])
@@ -487,15 +459,11 @@ const categories = ref<any[]>([])
 
 // Constants
 const fileAcceptTypes: Record<string, string> = {
-  csv: '.csv,.txt',
-  pdf: '.pdf',
-  image: '.png,.jpg,.jpeg'
+  csv: '.csv,.txt'
 }
 
 const fileTypeDescriptions: Record<string, string> = {
-  csv: 'CSV files up to 10MB. Supports comma, semicolon, and tab delimited formats.',
-  pdf: 'PDF bank statements up to 10MB. OCR will be used to extract text.',
-  image: 'PNG or JPEG images up to 10MB. Screenshots from mobile apps supported.'
+  csv: 'CSV files up to 10MB. Supports comma, semicolon, and tab delimited formats.'
 }
 
 // Computed
@@ -542,6 +510,7 @@ const accountOptions = computed(() => {
 
 // Methods
 const selectFileType = (type: string) => {
+  if (type !== 'csv') return
   selectedFileType.value = type
   selectedFile.value = null
 }

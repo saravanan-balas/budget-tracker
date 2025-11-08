@@ -38,7 +38,7 @@
           </svg>
         </div>
         <h3 class="text-xl font-semibold mb-2">Smart Import</h3>
-        <p class="text-gray-600">Upload CSV/PDF bank statements. AI automatically categorizes and deduplicates transactions.</p>
+        <p class="text-gray-600">Upload CSV bank statements. AI automatically categorizes and deduplicates transactions.</p>
       </div>
       
       <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 text-center">
@@ -75,7 +75,7 @@
         <div class="relative">
           <div class="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4 text-xl font-bold">2</div>
           <h3 class="font-semibold mb-2">Import Statements</h3>
-          <p class="text-gray-600 text-sm">Upload bank CSV/PDF files from any bank</p>
+          <p class="text-gray-600 text-sm">Upload bank CSV files from any bank</p>
         </div>
         
         <div class="relative">

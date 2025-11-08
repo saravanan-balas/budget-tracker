@@ -1,7 +1,9 @@
 # Import System Optimization - Cost Reduction Implementation
 
 ## Overview
-This document outlines the comprehensive optimization of the budget tracker's import system to reduce AI costs through intelligent caching and unified processing.
+This document outlines the comprehensive optimization of the budget tracker's import system to reduce AI costs through intelligent caching and unified processing.  
+
+> **Note:** Production currently supports CSV imports only. References to PDF/image processing describe future capabilities that are temporarily disabled.
 
 ## Key Changes Made
 

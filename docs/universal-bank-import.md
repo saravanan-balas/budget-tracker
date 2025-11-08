@@ -1,7 +1,9 @@
 # Universal Bank Statement Import with AI Intelligence
 
 ## Overview
-This document outlines the implementation plan for supporting transaction imports from any bank globally using AI intelligence while optimizing costs. The system will support CSV files, PDF statements, and screenshot/image uploads.
+This document outlines the implementation plan for supporting transaction imports from any bank globally using AI intelligence while optimizing costs. The long-term vision includes CSV files, PDF statements, and screenshot/image uploads.
+
+> **Current Status:** Only CSV imports are enabled in production. PDF and image processing remains disabled until the supporting services return.
 
 ## Current State Analysis
 The existing implementation has:

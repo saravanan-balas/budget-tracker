@@ -28,7 +28,7 @@ budget-tracker/
 ## Features
 
 ### MVP Features
-- CSV/PDF statement import with intelligent parsing
+- CSV statement import with intelligent parsing
 - Automatic transaction categorization using ML
 - Duplicate detection and transfer matching
 - Conversational financial analytics
