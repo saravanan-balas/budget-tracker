@@ -17,8 +17,7 @@ using BudgetTracker.Worker;
 var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
 if (string.IsNullOrEmpty(apiKey))
 {
-    Console.WriteLine("ERROR: OPENAI_API_KEY environment variable not found!");
-    Environment.Exit(1);
+    Console.WriteLine("WARNING: OPENAI_API_KEY environment variable not found. AI-assisted features will fall back to local heuristics.");
 }
 else
 {

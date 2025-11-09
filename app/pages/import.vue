@@ -556,6 +556,8 @@ const startImport = async () => {
   if (!selectedFile.value || !selectedAccountId.value) return
   
   isImporting.value = true
+  importedTransactions.value = []
+  showImportedTransactions.value = false
   
   try {
     const formData = new FormData()
@@ -564,24 +566,47 @@ const startImport = async () => {
     
     const api = useApi()
     const response = await api.smartImport(formData)
+
+    if (response.importId) {
+      importId.value = response.importId
+    }
     
     if (response.jobId) {
       // Async processing
       jobId.value = response.jobId
-      importId.value = response.importId
       currentStep.value = 2
       startStatusPolling()
     } else {
       // Sync processing completed
-      importStatus.value = {
-        importId: response.importId,
-        status: 'Completed',
-        totalRows: response.transactions?.length || 0,
-        processedRows: response.transactions?.length || 0,
-        importedTransactions: response.transactions?.length || 0,
-        duplicateTransactions: 0,
-        failedRows: 0,
-        isProcessedSynchronously: true
+      if (importId.value) {
+        try {
+          importStatus.value = await api.getImportStatus(importId.value)
+          await loadImportedTransactions()
+          showImportedTransactions.value = true
+        } catch (error) {
+          console.error('Error loading import status after sync import:', error)
+          importStatus.value = {
+            importId: importId.value,
+            status: 'Completed',
+            totalRows: response.transactions?.length || 0,
+            processedRows: response.transactions?.length || 0,
+            importedTransactions: response.transactions?.length || 0,
+            duplicateTransactions: 0,
+            failedRows: 0,
+            isProcessedSynchronously: true
+          }
+        }
+      } else {
+        importStatus.value = {
+          importId: '',
+          status: 'Completed',
+          totalRows: response.transactions?.length || 0,
+          processedRows: response.transactions?.length || 0,
+          importedTransactions: response.transactions?.length || 0,
+          duplicateTransactions: 0,
+          failedRows: 0,
+          isProcessedSynchronously: true
+        }
       }
       currentStep.value = 2
     }

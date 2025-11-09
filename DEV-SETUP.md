@@ -2,6 +2,35 @@
 
 ## Quick Start
 
+### Local Development (no Docker runtime for app services)
+
+The API and frontend can now run directly on your machine while Postgres/Redis stay in containers.
+
+1. Install dependencies
+   ```bash
+   npm install
+   npm run install:frontend
+   dotnet restore
+   ```
+2. Start databases (Postgres + Redis) in the background
+   ```bash
+   npm run dev:deps
+   ```
+3. Launch the API and frontend together
+   ```bash
+   npm run dev
+   ```
+   - API: http://localhost:5157 (Swagger at http://localhost:5157/swagger)
+   - Frontend: http://localhost:3000
+4. (Optional) Run the background worker after exporting `OPENAI_API_KEY`
+   ```bash
+   npm run dev:worker
+   ```
+5. When finished, stop the app processes with `Ctrl+C`, then stop Postgres/Redis
+   ```bash
+   npm run dev:deps:down
+   ```
+
 ### Start All Services with Docker
 ```bash
 npm run docker:dev
