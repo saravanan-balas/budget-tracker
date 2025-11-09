@@ -13,7 +13,6 @@ using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Common.Services.Categories;
 using BudgetTracker.Common.Services.Transactions;
-using BudgetTracker.Common.Services.Messaging;
 using BudgetTracker.API.Middleware;
 using FluentValidation;
 using FluentValidation.AspNetCore;
@@ -63,7 +62,7 @@ try
 
     // Debug: Print relevant environment variables
     Console.WriteLine("[DEBUG] Relevant Environment Variables:");
-    var relevantVars = new[] { "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME", "OPENAI_API_KEY", "JWT_KEY", "AZURE_STORAGE_CONNECTION_STRING", "REDIS_CONNECTION", "ConnectionStrings__DefaultConnection" };
+    var relevantVars = new[] { "DB_HOST", "DB_USER", "DB_PASSWORD", "DB_NAME", "OPENAI_API_KEY", "JWT_KEY", "AZURE_STORAGE_CONNECTION_STRING", "ConnectionStrings__DefaultConnection" };
     foreach (var varName in relevantVars)
     {
         var value = Environment.GetEnvironmentVariable(varName);
@@ -136,21 +135,6 @@ try
     builder.Services.AddScoped<IMerchantService, OptimizedMerchantService>();
     builder.Services.AddScoped<ICategoryAssignmentService, OptimizedCategoryAssignmentService>();
     builder.Services.AddScoped<IBatchTransactionService, OptimizedBatchTransactionService>();
-
-    // Redis Message Queue Service
-    var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
-    if (!string.IsNullOrEmpty(redisConnectionString))
-    {
-    builder.Services.AddSingleton<IMessageQueueService>(provider =>
-    {
-        var logger = provider.GetRequiredService<ILogger<SimpleRedisMessageQueueService>>();
-        return new SimpleRedisMessageQueueService(redisConnectionString, logger);
-    });
-    }
-    else
-    {
-        Log.Warning("Redis connection string not found in configuration - message queue service will not be available");
-    }
 
     builder.Services.AddAuthentication(options =>
     {

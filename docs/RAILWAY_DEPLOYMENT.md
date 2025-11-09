@@ -6,7 +6,7 @@ This guide covers deploying the Budget Tracker to Railway with CSV-only support 
 
 - **Worker Service Removed**: CSV processing is now handled synchronously in the API
 - **PDF/Image Processing**: Temporarily disabled (will be added back later)
-- **Redis Removed**: No longer needed without worker service
+- **External Cache Removed**: No Redis dependency—the API relies on in-memory caching
 - **Result**: Lower hosting costs (~$30-35/month instead of $60+)
 
 ## Railway Setup
@@ -117,7 +117,6 @@ If you need to revert to the full architecture with worker service:
 1. Uncomment worker service in docker-compose.yml
 2. Deploy worker service to Railway
 3. Update ImportController to use async processing
-4. Add Redis service back
 
 ## Next Steps
 

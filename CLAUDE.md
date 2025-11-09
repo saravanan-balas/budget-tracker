@@ -69,7 +69,7 @@ dotnet test
 
 ### Key Technologies
 - **Database**: PostgreSQL with pgvector extension for semantic search
-- **Cache**: Redis for session management and caching
+- **Caching**: In-memory caching via ASP.NET MemoryCache
 - **Storage**: Azure Blob Storage for file uploads
 - **AI/ML**: OpenAI GPT-4 integration, embeddings for merchant normalization
 - **Auth**: JWT-based authentication with BCrypt password hashing

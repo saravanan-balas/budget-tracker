@@ -1,4 +1,4 @@
-Docker - to run postgres, redis and API
+Docker - to run postgres and API
 
 docker-compose build
 docker-compose up

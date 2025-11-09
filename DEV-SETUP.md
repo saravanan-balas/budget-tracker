@@ -6,7 +6,7 @@
 ```bash
 npm run docker:dev
 ```
-This will start all services (API, Frontend, Database, Redis, Worker) in Docker containers.
+This will start all services (API, Frontend, Database, Worker) in Docker containers.
 
 ### Alternative Docker Commands
 ```bash
@@ -35,7 +35,6 @@ Make sure you have:
 - **API**: http://localhost:5000
 - **API Swagger**: http://localhost:5000/swagger
 - **Database**: localhost:5432
-- **Redis**: localhost:6379
 
 ## Available Scripts
 
@@ -98,7 +97,6 @@ If you get port conflicts, make sure no other services are using:
 - Port 3000 (Frontend)
 - Port 5000 (API)
 - Port 5432 (PostgreSQL)
-- Port 6379 (Redis)
 
 ### Container Issues
 ```bash
@@ -126,7 +124,7 @@ docker-compose logs -f api
 
 The application is configured for Docker local development:
 - Frontend connects to API via Docker internal network (`http://api:5000`)
-- Database and Redis are accessible via Docker network
+- Database is accessible via Docker network
 - All services run in isolated containers
 
 ## Hot Reloading

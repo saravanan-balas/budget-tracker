@@ -14,7 +14,6 @@ Set environment variables in your `.env` file (for docker-compose) or container 
 ### Optional (with defaults)
 - `JWT_ISSUER` (default: BudgetTrackerAPI)
 - `JWT_AUDIENCE` (default: BudgetTrackerClient)
-- `ConnectionStrings__Redis` (default: localhost:6379)
 
 ## 🐳 Container Deployment Examples
 

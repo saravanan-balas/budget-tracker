@@ -9,7 +9,6 @@ using BudgetTracker.Common.Services.Templates;
 using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Common.Services.Categories;
 using BudgetTracker.Common.Services.Transactions;
-using BudgetTracker.Common.Services.Messaging;
 using BudgetTracker.Worker.Workers;
 using BudgetTracker.Worker;
 
@@ -93,27 +92,10 @@ try
     builder.Services.AddScoped<ICategoryAssignmentService, OptimizedCategoryAssignmentService>();
     builder.Services.AddScoped<IBatchTransactionService, OptimizedBatchTransactionService>();
 
-    // Redis Message Queue Service
-    var redisConnectionString = builder.Configuration.GetConnectionString("Redis");
-    if (string.IsNullOrEmpty(redisConnectionString))
-    {
-        Log.Fatal("Redis connection string not found in configuration");
-        Environment.Exit(1);
-    }
-    
-    builder.Services.AddSingleton<IMessageQueueService>(provider =>
-    {
-        var logger = provider.GetRequiredService<ILogger<SimpleRedisMessageQueueService>>();
-        return new SimpleRedisMessageQueueService(redisConnectionString, logger);
-    });
-
-    // Temporarily use legacy polling workers while debugging Redis
+    // Worker services (polling-based processing)
     builder.Services.AddHostedService<ImportProcessorWorker>();
     builder.Services.AddHostedService<RecurringTransactionWorker>();
     
-    // Redis worker (commented out until Redis issues are fixed)
-    // builder.Services.AddHostedService<MessageQueueProcessorWorker>();
-
     var host = builder.Build();
 
     using (var scope = host.Services.CreateScope())

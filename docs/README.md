@@ -20,7 +20,7 @@ budget-tracker/
 - **Backend**: .NET 8, C#, Entity Framework Core
 - **Frontend**: Nuxt 3, Vue 3, TypeScript
 - **Database**: PostgreSQL with pgvector extension
-- **Cache**: Redis
+- **Caching**: In-memory (ASP.NET MemoryCache)
 - **Storage**: Azure Blob Storage
 - **AI/ML**: OpenAI GPT-4, embeddings for semantic search
 - **Infrastructure**: Docker, Azure

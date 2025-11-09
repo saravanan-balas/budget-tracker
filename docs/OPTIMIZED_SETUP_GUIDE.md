@@ -41,7 +41,7 @@ OPENAI_API_KEY=sk-your-key-here
 ### Step 3: Build and Start
 ```bash
 dotnet build
-docker-compose up -d postgres redis
+docker-compose up -d postgres
 cd api/BudgetTracker.API && dotnet run &
 cd worker/BudgetTracker.Worker && dotnet run &
 ```
