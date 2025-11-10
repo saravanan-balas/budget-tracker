@@ -10,6 +10,7 @@ export default defineNuxtConfig({
   ],
   runtimeConfig: {
     // Public keys (exposed to client-side)
+    // These are embedded at build time, so NUXT_PUBLIC_* env vars must be available during 'nuxt generate'
     public: {
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5157',
       googleClientId:

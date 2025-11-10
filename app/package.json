@@ -6,6 +6,7 @@
     "build": "nuxt build",
     "dev": "nuxt dev",
     "generate": "nuxt generate",
+    "generate:prod": "NUXT_PUBLIC_API_BASE_URL=https://budget-tracker-api-g4hra5hmebcpbufu.canadacentral-01.azurewebsites.net nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare"
   },

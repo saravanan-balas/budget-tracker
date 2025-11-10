@@ -1,12 +1,16 @@
 [build]
+  base = "app"
+  # Use regular generate - Netlify will inject NUXT_PUBLIC_API_BASE_URL from [build.environment] below
   command = "npm run generate"
-  publish = ".output/public"
+  publish = "app/.output/public"
 
 [build.environment]
   # Replace with your actual Azure API URL
+  # Note: Also set this in Netlify UI under Site settings > Environment variables
   NUXT_PUBLIC_API_BASE_URL = "https://budget-tracker-api-g4hra5hmebcpbufu.canadacentral-01.azurewebsites.net"
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
+
