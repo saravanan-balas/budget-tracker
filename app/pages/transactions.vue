@@ -112,10 +112,19 @@
         <div class="mt-4 flex justify-between items-center">
           <div class="flex items-center gap-4">
             <div class="text-sm text-gray-600">
-              Showing {{ filteredTransactions.length }} of {{ transactions.length }} transactions
+              Showing {{ transactions.length }} of {{ totalTransactions }} transactions (Page {{ currentPage }} of {{ totalPages }})
             </div>
             <div v-if="uncategorizedCount > 0" class="text-sm text-amber-600 font-medium">
               ({{ uncategorizedCount }} uncategorized)
+            </div>
+            <div class="flex items-center gap-2">
+              <label class="text-sm text-gray-600">Per page:</label>
+              <select v-model.number="pageSize" @change="currentPage = 1" class="text-sm border-gray-300 rounded py-1 px-2">
+                <option :value="20">20</option>
+                <option :value="50">50</option>
+                <option :value="100">100</option>
+                <option :value="200">200</option>
+              </select>
             </div>
           </div>
           <button @click="resetFilters" class="text-sm text-blue-600 hover:text-blue-800">
@@ -229,11 +238,11 @@
           <div>
             <p class="text-sm text-gray-700">
               Showing
-              <span class="font-medium">{{ (currentPage - 1) * pageSize + 1 }}</span>
+              <span class="font-medium">{{ Math.max(1, (currentPage - 1) * pageSize + 1) }}</span>
               to
-              <span class="font-medium">{{ Math.min(currentPage * pageSize, filteredTransactions.length) }}</span>
+              <span class="font-medium">{{ Math.min(currentPage * pageSize, totalTransactions) }}</span>
               of
-              <span class="font-medium">{{ filteredTransactions.length }}</span>
+              <span class="font-medium">{{ totalTransactions }}</span>
               results
             </p>
           </div>
@@ -336,7 +345,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch, nextTick } from 'vue'
 import { Chart, registerables } from 'chart.js'
-import type { Transaction, Account, Category, TransactionFilter } from '~/types'
+import type { Transaction, Account, Category, TransactionFilter, PaginatedResponse } from '~/types'
 import QuickAddModal from '~/components/QuickAddModal.vue'
 import EditTransactionModal from '~/components/EditTransactionModal.vue'
 
@@ -351,6 +360,7 @@ const showAddModal = ref(false)
 const showEditModal = ref(false)
 const showDeleteModal = ref(false)
 const selectedTransaction = ref<Transaction | null>(null)
+const totalTransactions = ref(0)
 
 // Filters
 const filters = ref({
@@ -369,7 +379,7 @@ const sortOrder = ref<'asc' | 'desc'>('desc')
 
 // Pagination
 const currentPage = ref(1)
-const pageSize = ref(20)
+const pageSize = ref(50)
 
 // Chart refs
 const categoryChart = ref<HTMLCanvasElement | null>(null)
@@ -380,31 +390,16 @@ let trendChartInstance: Chart | null = null
 // API
 const api = useApi()
 
-// Computed properties
+// Computed properties for client-side display
 const filteredTransactions = computed(() => {
   let result = [...transactions.value]
 
-  // Apply filters
-  if (filters.value.accountId) {
-    result = result.filter(t => t.accountId === filters.value.accountId)
+  // Apply client-side filters for uncategorized
+  if (filters.value.categoryId === 'uncategorized') {
+    result = result.filter(t => !t.categoryId || !t.categoryName)
   }
   
-  if (filters.value.categoryId) {
-    if (filters.value.categoryId === 'uncategorized') {
-      result = result.filter(t => !t.categoryId || !t.categoryName)
-    } else {
-      result = result.filter(t => t.categoryId === filters.value.categoryId)
-    }
-  }
-  
-  if (filters.value.searchTerm) {
-    const search = filters.value.searchTerm.toLowerCase()
-    result = result.filter(t => 
-      t.merchant.toLowerCase().includes(search) ||
-      t.description?.toLowerCase().includes(search)
-    )
-  }
-  
+  // Apply transaction type filter (client-side)
   if (filters.value.transactionType) {
     if (filters.value.transactionType === 'income') {
       result = result.filter(t => t.amount > 0)
@@ -413,18 +408,6 @@ const filteredTransactions = computed(() => {
     } else if (filters.value.transactionType === 'transfer') {
       result = result.filter(t => t.isTransfer)
     }
-  }
-
-  // Apply date filter
-  if (filters.value.startDate) {
-    result = result.filter(t => new Date(t.transactionDate) >= new Date(filters.value.startDate))
-  }
-  if (filters.value.endDate) {
-    // Add 1 day and subtract 1ms to include the entire end date
-    const endOfDay = new Date(filters.value.endDate)
-    endOfDay.setDate(endOfDay.getDate() + 1)
-    endOfDay.setMilliseconds(endOfDay.getMilliseconds() - 1)
-    result = result.filter(t => new Date(t.transactionDate) <= endOfDay)
   }
 
   // Sort
@@ -443,13 +426,12 @@ const filteredTransactions = computed(() => {
 })
 
 const paginatedTransactions = computed(() => {
-  const start = (currentPage.value - 1) * pageSize.value
-  const end = start + pageSize.value
-  return filteredTransactions.value.slice(start, end)
+  // Since we're using server-side pagination, just return filtered transactions
+  return filteredTransactions.value
 })
 
 const totalPages = computed(() => {
-  return Math.ceil(filteredTransactions.value.length / pageSize.value)
+  return Math.max(1, Math.ceil(totalTransactions.value / pageSize.value))
 })
 
 const displayedPages = computed(() => {
@@ -474,9 +456,13 @@ const uncategorizedCount = computed(() => {
 })
 
 // Methods
-const loadTransactions = async () => {
+const loadTransactions = async (resetPage = false) => {
   loading.value = true
   try {
+    if (resetPage) {
+      currentPage.value = 1
+    }
+    
     const filter: TransactionFilter = {}
     
     // Set date filters based on selected range
@@ -504,7 +490,36 @@ const loadTransactions = async () => {
       filter.endDate = filters.value.endDate
     }
     
-    transactions.value = await api.getTransactions(filter)
+    // Add filters from UI
+    if (filters.value.accountId) {
+      filter.accountId = filters.value.accountId
+    }
+    
+    if (filters.value.categoryId && filters.value.categoryId !== 'uncategorized') {
+      filter.categoryId = filters.value.categoryId
+    }
+    
+    if (filters.value.searchTerm) {
+      filter.searchTerm = filters.value.searchTerm
+    }
+    
+    // Add pagination
+    filter.page = currentPage.value
+    filter.pageSize = pageSize.value
+    
+    // Fetch paginated data from API
+    const paginatedResponse = await api.getTransactions(filter)
+    
+    // Update state with paginated response
+    transactions.value = paginatedResponse.items
+    totalTransactions.value = paginatedResponse.totalCount
+    
+    // Update pagination if page is out of bounds
+    if (paginatedResponse.totalPages > 0 && currentPage.value > paginatedResponse.totalPages) {
+      currentPage.value = paginatedResponse.totalPages
+      await loadTransactions(false)
+      return
+    }
     
     // Update date filters for display
     if (filter.startDate) filters.value.startDate = filter.startDate
@@ -534,7 +549,7 @@ const loadCategories = async () => {
 
 const handleDateRangeChange = () => {
   if (filters.value.dateRange !== 'custom') {
-    loadTransactions()
+    loadTransactions(true)
   }
 }
 
@@ -558,7 +573,7 @@ const resetFilters = () => {
     transactionType: ''
   }
   currentPage.value = 1
-  loadTransactions()
+  loadTransactions(true)
 }
 
 const formatDate = (date: string) => {
@@ -835,10 +850,37 @@ const updateCharts = () => {
   })
 }
 
-// Watch for filter changes
-watch(filteredTransactions, () => {
-  currentPage.value = 1
+// Watch for transactions changes to update charts
+watch(transactions, () => {
   updateCharts()
+})
+
+// Watch for page changes
+watch(currentPage, () => {
+  loadTransactions()
+})
+
+// Watch for filter changes that require reloading
+watch([() => filters.value.accountId, () => filters.value.categoryId, () => filters.value.searchTerm], () => {
+  loadTransactions(true)
+})
+
+// Watch for transaction type changes (client-side filter)
+watch(() => filters.value.transactionType, () => {
+  // Transaction type is handled client-side, just update display
+  updateCharts()
+})
+
+// Watch for custom date changes
+watch([() => filters.value.startDate, () => filters.value.endDate], () => {
+  if (filters.value.dateRange === 'custom' && filters.value.startDate && filters.value.endDate) {
+    loadTransactions(true)
+  }
+})
+
+// Watch for pageSize changes
+watch(pageSize, () => {
+  loadTransactions(true)
 })
 
 // Initialize

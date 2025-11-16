@@ -4,7 +4,7 @@ namespace BudgetTracker.API.Services;
 
 public interface ITransactionService
 {
-    Task<IEnumerable<TransactionDto>> GetTransactionsAsync(Guid userId, TransactionFilterDto filter);
+    Task<PaginatedResponseDto<TransactionDto>> GetTransactionsAsync(Guid userId, TransactionFilterDto filter);
     Task<TransactionDto?> GetTransactionByIdAsync(Guid userId, Guid transactionId);
     Task<TransactionDto> CreateTransactionAsync(Guid userId, CreateTransactionDto createDto);
     Task<TransactionDto?> UpdateTransactionAsync(Guid userId, Guid transactionId, UpdateTransactionDto updateDto);

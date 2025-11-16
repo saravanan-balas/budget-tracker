@@ -13,7 +13,8 @@ import type {
   CreateAccount,
   Category, 
   CreateCategory,
-  TransactionFilter 
+  TransactionFilter,
+  PaginatedResponse 
 } from '~/types'
 
 interface ApiOptions {
@@ -88,7 +89,7 @@ export const useApi = () => {
     apiCall('/auth/change-password', { method: 'POST', body: changePasswordData })
 
   // Transaction endpoints
-  const getTransactions = (filter?: TransactionFilter): Promise<Transaction[]> => {
+  const getTransactions = (filter?: TransactionFilter): Promise<PaginatedResponse<Transaction>> => {
     const queryParams = new URLSearchParams()
     if (filter) {
       Object.entries(filter).forEach(([key, value]) => {

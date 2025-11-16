@@ -22,7 +22,7 @@ public class TransactionService : ITransactionService
         _logger = logger;
     }
 
-    public async Task<IEnumerable<TransactionDto>> GetTransactionsAsync(Guid userId, TransactionFilterDto filter)
+    public async Task<PaginatedResponseDto<TransactionDto>> GetTransactionsAsync(Guid userId, TransactionFilterDto filter)
     {
         _logger.LogInformation("=== GetTransactionsAsync START ===");
         _logger.LogInformation("Request - UserId: {UserId}", userId);
@@ -129,13 +129,22 @@ public class TransactionService : ITransactionService
                 sample.Id, sample.TransactionDate, sample.Amount, sample.OriginalMerchant, sample.UserId);
         }
 
-        var result = _mapper.Map<IEnumerable<TransactionDto>>(transactions);
-        var resultList = result.ToList();
+        var result = _mapper.Map<List<TransactionDto>>(transactions);
         
-        _logger.LogInformation("Mapping completed - Returning {Count} TransactionDto objects", resultList.Count);
+        var paginatedResponse = new PaginatedResponseDto<TransactionDto>
+        {
+            Items = result,
+            TotalCount = filteredCount,
+            Page = filter.Page,
+            PageSize = filter.PageSize
+        };
+        
+        _logger.LogInformation("Mapping completed - Returning {Count} TransactionDto objects", result.Count);
+        _logger.LogInformation("Pagination - Total: {Total}, Page: {Page}, PageSize: {PageSize}, TotalPages: {TotalPages}", 
+            paginatedResponse.TotalCount, paginatedResponse.Page, paginatedResponse.PageSize, paginatedResponse.TotalPages);
         _logger.LogInformation("=== GetTransactionsAsync END ===");
 
-        return resultList;
+        return paginatedResponse;
     }
 
     public async Task<TransactionDto?> GetTransactionByIdAsync(Guid userId, Guid transactionId)

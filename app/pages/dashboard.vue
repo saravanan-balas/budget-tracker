@@ -287,21 +287,22 @@ const loadDashboardData = async () => {
     const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     
     // Load recent transactions (last 5)
-    const recentTransactionsData = await api.getTransactions({
+    const recentTransactionsResponse = await api.getTransactions({
       pageSize: 5,
       page: 1
     })
-    recentTransactions.value = recentTransactionsData
+    recentTransactions.value = recentTransactionsResponse.items
     
     // Load monthly transactions for stats
-    const monthlyTransactionsData = await api.getTransactions({
+    const monthlyTransactionsResponse = await api.getTransactions({
       startDate: startOfMonth.toISOString(),
       endDate: endOfMonth.toISOString(),
       pageSize: 1000
     })
-    monthlyTransactions.value = monthlyTransactionsData
+    monthlyTransactions.value = monthlyTransactionsResponse.items
     
     // Calculate stats
+    const monthlyTransactionsData = monthlyTransactionsResponse.items
     const expenses = monthlyTransactionsData.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const income = monthlyTransactionsData.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
     const uncategorized = monthlyTransactionsData.filter(t => !t.categoryId || !t.categoryName).length
@@ -318,7 +319,7 @@ const loadDashboardData = async () => {
       netSavings: income - expenses,
       transactionCount: monthlyTransactionsData.length,
       uncategorizedCount: uncategorized,
-      recentTransactions: recentTransactionsData.length
+      recentTransactions: recentTransactionsResponse.items.length
     })
     
   } catch (error) {

@@ -31,13 +31,13 @@ public class TransactionsController : ControllerBase
             var userId = Guid.Parse(User.FindFirst("UserId")?.Value ?? throw new InvalidOperationException());
             _logger.LogInformation("Extracted UserId from token: {UserId}", userId);
 
-            var transactions = await _transactionService.GetTransactionsAsync(userId, filter);
-            var transactionsList = transactions.ToList();
+            var paginatedResponse = await _transactionService.GetTransactionsAsync(userId, filter);
             
-            _logger.LogInformation("Service returned {Count} transactions", transactionsList.Count);
+            _logger.LogInformation("Service returned {Count} transactions out of {Total}", 
+                paginatedResponse.Items.Count, paginatedResponse.TotalCount);
             _logger.LogInformation("=== TransactionsController.GetTransactions END ===");
             
-            return Ok(transactionsList);
+            return Ok(paginatedResponse);
         }
         catch (Exception ex)
         {

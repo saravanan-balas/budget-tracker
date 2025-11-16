@@ -148,6 +148,16 @@ export interface ApiResponse<T> {
   message?: string;
 }
 
+export interface PaginatedResponse<T> {
+  items: T[];
+  totalCount: number;
+  page: number;
+  pageSize: number;
+  totalPages: number;
+  hasPrevious: boolean;
+  hasNext: boolean;
+}
+
 export interface DashboardStats {
   monthlyExpenses: number;
   monthlyIncome: number;
