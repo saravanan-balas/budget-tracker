@@ -573,8 +573,11 @@ const startImport = async () => {
       startStatusPolling()
     } else {
       // Sync processing completed
+      // Ensure we track the importId so we can load transactions by import later
+      importId.value = response.importId || ''
+
       importStatus.value = {
-        importId: response.importId,
+        importId: response.importId || '',
         status: 'Completed',
         totalRows: response.transactions?.length || 0,
         processedRows: response.transactions?.length || 0,
@@ -584,6 +587,13 @@ const startImport = async () => {
         isProcessedSynchronously: true
       }
       currentStep.value = 2
+
+      // For synchronous imports, immediately load the imported transactions
+      // so the "Review & Edit Imported Transactions" panel shows real data
+      if (importId.value) {
+        await loadImportedTransactions()
+        showImportedTransactions.value = true
+      }
     }
   } catch (error) {
     console.error('Error starting import:', error)
@@ -652,6 +662,19 @@ const loadImportedTransactions = async () => {
   try {
     const api = useApi()
     importedTransactions.value = await api.getTransactionsByImportId(importId.value)
+
+    // Keep the status counters in sync with the actual imported transactions
+    if (importStatus.value) {
+      const count = importedTransactions.value.length
+      importStatus.value.importedTransactions = count
+      // If backend didn’t populate these correctly, align them as well
+      if (!importStatus.value.totalRows) {
+        importStatus.value.totalRows = count
+      }
+      if (!importStatus.value.processedRows) {
+        importStatus.value.processedRows = count
+      }
+    }
   } catch (error) {
     console.error('Error loading imported transactions:', error)
   }
