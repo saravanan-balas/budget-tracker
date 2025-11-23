@@ -23,5 +23,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\common\BudgetTracker.Common\BudgetTracker.Common.csproj" />
+    <ProjectReference Include="..\..\observability\BudgetTracker.Observability\BudgetTracker.Observability.csproj" />
   </ItemGroup>
 </Project>

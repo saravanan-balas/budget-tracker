@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BudgetTracker.Common.Models;
+using BudgetTracker.Observability.Models;
 using Pgvector.EntityFrameworkCore;
 
 namespace BudgetTracker.Common.Data;
@@ -25,6 +26,7 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; } = null!;
+    public DbSet<ApplicationLog> ApplicationLogs { get; set; } = null!;
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -274,6 +276,18 @@ public class BudgetTrackerDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(e => e.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<ApplicationLog>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.Timestamp);
+            entity.HasIndex(e => e.Level);
+            entity.HasIndex(e => e.Source);
+            entity.HasIndex(e => new { e.Level, e.Timestamp });
+            entity.Property(e => e.Level).IsRequired().HasMaxLength(50);
+            entity.Property(e => e.Message).IsRequired();
+            entity.Property(e => e.Source).HasMaxLength(255);
         });
     }
 }

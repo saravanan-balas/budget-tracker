@@ -180,10 +180,27 @@ export const useAuthStore = defineStore('auth', {
           this.token = tokenCookie.value
           this.user = userCookie.value
           this.isAuthenticated = true
+          // Refresh user data from server to get latest admin status
+          this.refreshUser()
         } catch (error) {
           console.error('Error parsing user data:', error)
           this.clearAuth()
         }
+      }
+    },
+
+    async refreshUser() {
+      if (!this.isAuthenticated || !this.token) {
+        return
+      }
+
+      try {
+        const api = useApi()
+        const user = await api.getCurrentUser()
+        this.updateUser(user)
+      } catch (error) {
+        console.error('Error refreshing user data:', error)
+        // Don't clear auth on error, just log it
       }
     }
   }

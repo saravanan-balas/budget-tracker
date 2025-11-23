@@ -6,6 +6,7 @@ import type {
   ForgotPasswordRequest,
   ResetPasswordRequest,
   ChangePasswordRequest,
+  User,
   Transaction, 
   CreateTransaction, 
   UpdateTransaction,
@@ -87,6 +88,9 @@ export const useApi = () => {
 
   const changePassword = (changePasswordData: ChangePasswordRequest): Promise<{ message: string }> =>
     apiCall('/auth/change-password', { method: 'POST', body: changePasswordData })
+
+  const getCurrentUser = (): Promise<User> =>
+    apiCall('/auth/me')
 
   // Transaction endpoints
   const getTransactions = (filter?: TransactionFilter): Promise<PaginatedResponse<Transaction>> => {
@@ -179,6 +183,7 @@ export const useApi = () => {
     forgotPassword,
     resetPassword,
     changePassword,
+    getCurrentUser,
     
     // Transactions
     getTransactions,

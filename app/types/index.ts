@@ -5,6 +5,7 @@ export interface User {
   lastName: string;
   googleId?: string;
   subscriptionTier: string;
+  isAdmin?: boolean;
 }
 
 export interface LoginRequest {

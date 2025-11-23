@@ -17,6 +17,7 @@ public class User
     public SubscriptionTier SubscriptionTier { get; set; } = SubscriptionTier.Free;
     public DateTime? SubscriptionExpiresAt { get; set; }
     public bool IsActive { get; set; } = true;
+    public bool IsAdmin { get; set; } = false;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     

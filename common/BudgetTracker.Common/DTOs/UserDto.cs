@@ -15,6 +15,7 @@ public class UserDto
     public string TimeZone { get; set; } = string.Empty;
     public string SubscriptionTier { get; set; } = string.Empty;
     public DateTime? SubscriptionExpiresAt { get; set; }
+    public bool IsAdmin { get; set; }
 }
 
 public class CreateUserDto

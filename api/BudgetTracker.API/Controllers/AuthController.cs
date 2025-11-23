@@ -171,6 +171,33 @@ public class AuthController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while changing your password" });
         }
     }
+
+    [Authorize]
+    [HttpGet("me")]
+    public async Task<IActionResult> GetCurrentUser()
+    {
+        try
+        {
+            var userId = User.FindFirst("UserId")?.Value;
+            if (string.IsNullOrEmpty(userId))
+            {
+                return Unauthorized(new { error = "Invalid user" });
+            }
+
+            var user = await _authService.GetCurrentUserAsync(Guid.Parse(userId));
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+
+            return Ok(user);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error getting current user");
+            return StatusCode(500, new { error = "An error occurred while getting user information" });
+        }
+    }
 }
 
 public class RefreshTokenDto

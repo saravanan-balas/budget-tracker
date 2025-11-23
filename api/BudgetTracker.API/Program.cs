@@ -14,14 +14,44 @@ using BudgetTracker.Common.Services.Merchants;
 using BudgetTracker.Common.Services.Categories;
 using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.API.Middleware;
+using BudgetTracker.Observability.Models;
+using BudgetTracker.Observability.Interfaces;
+using BudgetTracker.Observability.Services;
+using BudgetTracker.Observability.Extensions;
 using FluentValidation;
 using FluentValidation.AspNetCore;
+
+// Build configuration first to read observability options
+var tempBuilder = WebApplication.CreateBuilder(args);
+var observabilityOptions = tempBuilder.Configuration.GetSection("Observability").Get<ObservabilityOptions>() ?? new ObservabilityOptions();
+
+// Build connection string for Serilog configuration
+var host = Environment.GetEnvironmentVariable("DB_HOST");
+var user = Environment.GetEnvironmentVariable("DB_USER");
+var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
+var dbName = Environment.GetEnvironmentVariable("DB_NAME");
+
+string connectionString;
+// Only use environment variables if ALL required variables are set
+if (!string.IsNullOrEmpty(host) && !string.IsNullOrEmpty(user) && !string.IsNullOrEmpty(password) && !string.IsNullOrEmpty(dbName))
+{
+    // Use Prefer for local Docker containers, Require for remote databases
+    var sslMode = (host == "postgres" || host == "localhost" || host?.StartsWith("127.0.0.1") == true) 
+        ? "Prefer" 
+        : "Require";
+    connectionString = $"Host={host};Database={dbName};Username={user};Password={password};SSL Mode={sslMode};";
+}
+else
+{
+    connectionString = tempBuilder.Configuration.GetConnectionString("DefaultConnection") ?? "localhost connection not found";
+}
 
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
     .WriteTo.Console()
     .WriteTo.File("logs/budget-tracker-.txt", rollingInterval: RollingInterval.Day)
+    .ConfigurePostgresSink(connectionString, observabilityOptions)
     .CreateLogger();
 
 try
@@ -29,6 +59,16 @@ try
     var builder = WebApplication.CreateBuilder(args);
 
     builder.Host.UseSerilog();
+    
+    // Configure ObservabilityOptions
+    builder.Services.Configure<ObservabilityOptions>(builder.Configuration.GetSection("Observability"));
+    
+    // Register ObservabilityService
+    builder.Services.AddScoped<IObservabilityService>(sp =>
+    {
+        var context = sp.GetRequiredService<BudgetTrackerDbContext>();
+        return new ObservabilityService(context);
+    });
 
     builder.Services.AddControllers();
     builder.Services.AddEndpointsApiExplorer();
@@ -72,24 +112,7 @@ try
         Console.WriteLine($"  {varName} = {maskedValue}");
     }
     
-    // Build connection string from environment variables if available
-    var host = Environment.GetEnvironmentVariable("DB_HOST");
-    var user = Environment.GetEnvironmentVariable("DB_USER");
-    var password = Environment.GetEnvironmentVariable("DB_PASSWORD");
-    var dbName = Environment.GetEnvironmentVariable("DB_NAME");
-    
-    string connectionString;
-    if (!string.IsNullOrEmpty(host))
-    {
-        connectionString = $"Host={host};Database={dbName};Username={user};Password={password};SSL Mode=Require;";
-        Console.WriteLine($"[DEBUG] Using environment variables for connection");
-    }
-    else
-    {
-        connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "localhost connection not found";
-        Console.WriteLine($"[DEBUG] Using appsettings.json connection");
-    }
-    
+    // Reuse connection string from above (already built for Serilog)
     Console.WriteLine($"[DEBUG] Connection String: {connectionString}");
     
     builder.Services.AddDbContext<BudgetTrackerDbContext>(options =>
@@ -184,9 +207,14 @@ try
 
     app.UseMiddleware<ErrorHandlingMiddleware>();
 
-    app.UseHttpsRedirection();
-
+    // CORS must be before HTTPS redirection to handle preflight requests
     app.UseCors("AllowAll");
+
+    // Disable HTTPS redirection in development to avoid issues with HTTP requests
+    if (!app.Environment.IsDevelopment())
+    {
+        app.UseHttpsRedirection();
+    }
 
     app.UseAuthentication();
     app.UseAuthorization();

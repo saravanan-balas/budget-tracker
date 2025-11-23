@@ -182,7 +182,8 @@ public class AuthService : IAuthService
             new Claim("UserId", user.Id.ToString()),
             new Claim(ClaimTypes.Email, user.Email),
             new Claim(ClaimTypes.Name, $"{user.FirstName} {user.LastName}"),
-            new Claim("SubscriptionTier", user.SubscriptionTier.ToString())
+            new Claim("SubscriptionTier", user.SubscriptionTier.ToString()),
+            new Claim("IsAdmin", user.IsAdmin.ToString())
         };
 
         var token = new JwtSecurityToken(
@@ -344,5 +345,18 @@ public class AuthService : IAuthService
         using var rng = System.Security.Cryptography.RandomNumberGenerator.Create();
         rng.GetBytes(randomNumber);
         return Convert.ToBase64String(randomNumber).Replace("+", "-").Replace("/", "_").Replace("=", "");
+    }
+
+    public async Task<UserDto?> GetCurrentUserAsync(Guid userId)
+    {
+        var user = await _context.Users
+            .FirstOrDefaultAsync(u => u.Id == userId);
+        
+        if (user == null)
+        {
+            return null;
+        }
+
+        return _mapper.Map<UserDto>(user);
     }
 }

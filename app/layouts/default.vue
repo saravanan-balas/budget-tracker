@@ -30,6 +30,14 @@
               <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
                 Import
               </NuxtLink>
+              <NuxtLink
+                v-if="authStore.user?.isAdmin"
+                to="/admin/logs"
+                class="nav-link"
+                :class="{ 'nav-link-active': $route.path === '/admin/logs' }"
+              >
+                Logs
+              </NuxtLink>
               
               <!-- User Dropdown -->
               <div class="relative" ref="dropdownRef">

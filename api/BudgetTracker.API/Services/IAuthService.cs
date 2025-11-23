@@ -12,4 +12,5 @@ public interface IAuthService
     Task<bool> ForgotPasswordAsync(ForgotPasswordDto forgotPasswordDto);
     Task<bool> ResetPasswordAsync(ResetPasswordDto resetPasswordDto);
     Task<bool> ChangePasswordAsync(Guid userId, ChangePasswordDto changePasswordDto);
+    Task<UserDto?> GetCurrentUserAsync(Guid userId);
 }

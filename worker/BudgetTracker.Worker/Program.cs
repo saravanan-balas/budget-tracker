@@ -11,6 +11,8 @@ using BudgetTracker.Common.Services.Categories;
 using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.Worker.Workers;
 using BudgetTracker.Worker;
+using BudgetTracker.Observability.Models;
+using BudgetTracker.Observability.Extensions;
 
 // Verify required environment variables are available
 var apiKey = Environment.GetEnvironmentVariable("OPENAI_API_KEY");
@@ -24,11 +26,17 @@ else
     Console.WriteLine($"OPENAI_API_KEY loaded successfully (length: {apiKey.Length})");
 }
 
+// Build configuration first to read observability options
+var tempBuilder = Host.CreateApplicationBuilder(args);
+var observabilityOptions = tempBuilder.Configuration.GetSection("Observability").Get<ObservabilityOptions>() ?? new ObservabilityOptions();
+var connectionString = tempBuilder.Configuration.GetConnectionString("DefaultConnection") ?? "localhost connection not found";
+
 Log.Logger = new LoggerConfiguration()
     .MinimumLevel.Information()
     .MinimumLevel.Override("Microsoft.EntityFrameworkCore.Database.Command", Serilog.Events.LogEventLevel.Warning)
     .WriteTo.Console()
     .WriteTo.File("logs/worker-.txt", rollingInterval: RollingInterval.Day)
+    .ConfigurePostgresSink(connectionString, observabilityOptions)
     .CreateLogger();
 
 try
