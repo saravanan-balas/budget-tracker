@@ -20,6 +20,10 @@ public class ObservabilityService : IObservabilityService
 
     public async Task<LogResponseDto> GetLogsAsync(LogFilterDto filter)
     {
+        // Ensure page and pageSize are valid
+        if (filter.Page < 1) filter.Page = 1;
+        if (filter.PageSize < 1) filter.PageSize = 50;
+        
         var query = _context.Set<ApplicationLog>().AsQueryable();
 
         if (!string.IsNullOrEmpty(filter.Level))
@@ -29,7 +33,11 @@ public class ObservabilityService : IObservabilityService
 
         if (!string.IsNullOrEmpty(filter.Source))
         {
-            query = query.Where(l => l.Source == filter.Source);
+            // Use case-insensitive comparison and handle null sources
+            // PostgreSQL is case-sensitive with quoted identifiers, so we need to use ToLower() for comparison
+            // Note: EF Core can translate ToLower() to SQL LOWER() function
+            var sourceFilter = filter.Source.Trim().ToLower();
+            query = query.Where(l => l.Source != null && l.Source.ToLower() == sourceFilter);
         }
 
         if (filter.StartDate.HasValue)

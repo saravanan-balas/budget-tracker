@@ -1,10 +1,10 @@
 using System;
-using System.Collections.Generic;
 using Serilog;
 using Serilog.Configuration;
 using Serilog.Events;
-using Serilog.Sinks.PostgreSQL;
+using Serilog.Sinks.PeriodicBatching;
 using BudgetTracker.Observability.Models;
+using BudgetTracker.Observability.Sinks;
 
 namespace BudgetTracker.Observability.Extensions;
 
@@ -17,27 +17,22 @@ public static class SerilogExtensions
     {
         if (!options.Enabled)
         {
+            Console.WriteLine("[Serilog] PostgreSQL sink is DISABLED (Observability.Enabled = false)");
             return loggerConfiguration;
         }
-
-        var columnWriters = new Dictionary<string, ColumnWriterBase>
-        {
-            { "id", new IdColumnWriter() },
-            { "timestamp", new TimestampColumnWriter() },
-            { "level", new LevelColumnWriter() },
-            { "message", new MessageColumnWriter() },
-            { "exception", new ExceptionColumnWriter() },
-            { "source", new SourceColumnWriter() },
-            { "user_id", new UserIdColumnWriter() },
-            { "properties", new PropertiesColumnWriter() }
-        };
+        
+        // Parse minimum log level from configuration
+        var minimumLevel = ParseLogLevel(options.MinimumLevel);
+        Console.WriteLine($"[Serilog] Configuring EF Core sink - Enabled: {options.Enabled}, SamplingRate: {options.SamplingRate}, MinimumLevel: {options.MinimumLevel} ({minimumLevel})");
+        Console.WriteLine($"[Serilog] Connection string: {(string.IsNullOrEmpty(connectionString) ? "NULL" : connectionString.Substring(0, Math.Min(50, connectionString.Length)) + "...")}");
+        Console.WriteLine("[Serilog] Using EF Core sink to ensure PascalCase column names match database schema (consistent with other tables)");
 
         // Apply sampling filter if needed
         if (options.SamplingRate < 1.0)
         {
             loggerConfiguration = loggerConfiguration.Filter.ByIncludingOnly(logEvent =>
             {
-                // Always log errors regardless of sampling rate
+                // Always log errors and fatal regardless of sampling rate
                 if (logEvent.Level >= LogEventLevel.Error)
                 {
                     return true;
@@ -46,99 +41,49 @@ public static class SerilogExtensions
                 // Apply sampling for other levels
                 return Random.Shared.NextDouble() < options.SamplingRate;
             });
+            Console.WriteLine($"[Serilog] Sampling enabled: {options.SamplingRate * 100}% of non-error logs will be written");
         }
 
-        loggerConfiguration.WriteTo.PostgreSQL(
-            connectionString,
-            "ApplicationLogs",
-            columnWriters,
-            needAutoCreateTable: true,
-            restrictedToMinimumLevel: LogEventLevel.Information,
-            batchSizeLimit: 50,
-            period: TimeSpan.FromSeconds(5),
-            useCopy: true);
+        try
+        {
+            // Use custom sink with raw SQL and quoted identifiers
+            // This ensures PascalCase column names are respected (consistent with other tables)
+            var efCoreSink = new EfCoreSink(connectionString, options);
+            loggerConfiguration.WriteTo.Sink(
+                new PeriodicBatchingSink(efCoreSink, new PeriodicBatchingSinkOptions
+                {
+                    BatchSizeLimit = 10,
+                    Period = TimeSpan.FromSeconds(2)
+                }),
+                restrictedToMinimumLevel: minimumLevel);
+            
+            Console.WriteLine($"[Serilog] Minimum log level for database: {options.MinimumLevel} (logs below this level will not be written to database)");
+            
+            Console.WriteLine("[Serilog] Custom PostgreSQL sink configured for table 'ApplicationLogs' (PascalCase to match schema)");
+            Console.WriteLine("[Serilog] Using quoted identifiers ensures consistent column naming with other tables");
+            Console.WriteLine("[Serilog] Batch settings: Size=10, Period=2s");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Serilog] ERROR configuring EF Core sink: {ex.Message}");
+            Console.WriteLine($"[Serilog] Stack trace: {ex.StackTrace}");
+            // Don't throw - allow application to continue with other sinks
+        }
 
         return loggerConfiguration;
     }
-}
 
-// Custom column writers for PostgreSQL sink
-public class IdColumnWriter : ColumnWriterBase
-{
-    public IdColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Uuid) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-        => Guid.NewGuid();
-}
-
-public class TimestampColumnWriter : ColumnWriterBase
-{
-    public TimestampColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Timestamp) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-        => logEvent.Timestamp.DateTime;
-}
-
-public class LevelColumnWriter : ColumnWriterBase
-{
-    public LevelColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Varchar, 50) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-        => logEvent.Level.ToString();
-}
-
-public class MessageColumnWriter : ColumnWriterBase
-{
-    public MessageColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Text) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-        => logEvent.RenderMessage(formatProvider);
-}
-
-public class ExceptionColumnWriter : ColumnWriterBase
-{
-    public ExceptionColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Text) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-        => logEvent.Exception?.ToString();
-}
-
-public class SourceColumnWriter : ColumnWriterBase
-{
-    public SourceColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Varchar, 255) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
+    private static LogEventLevel ParseLogLevel(string level)
     {
-        if (logEvent.Properties.TryGetValue("SourceContext", out var sourceContext))
+        return level?.ToUpperInvariant() switch
         {
-            return sourceContext.ToString().Trim('"');
-        }
-        return null;
-    }
-}
-
-public class UserIdColumnWriter : ColumnWriterBase
-{
-    public UserIdColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Uuid) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-    {
-        if (logEvent.Properties.TryGetValue("UserId", out var userId) && 
-            Guid.TryParse(userId.ToString().Trim('"'), out var guid))
-        {
-            return guid;
-        }
-        return null;
-    }
-}
-
-public class PropertiesColumnWriter : ColumnWriterBase
-{
-    public PropertiesColumnWriter() : base(NpgsqlTypes.NpgsqlDbType.Jsonb) { }
-    public override object GetValue(LogEvent logEvent, IFormatProvider? formatProvider = null)
-    {
-        var properties = new Dictionary<string, object>();
-        foreach (var prop in logEvent.Properties)
-        {
-            if (prop.Key != "SourceContext" && prop.Key != "UserId")
-            {
-                properties[prop.Key] = prop.Value.ToString().Trim('"');
-            }
-        }
-        return System.Text.Json.JsonSerializer.Serialize(properties);
+            "VERBOSE" or "DEBUG" => LogEventLevel.Verbose,
+            "INFORMATION" or "INFO" => LogEventLevel.Information,
+            "WARNING" or "WARN" => LogEventLevel.Warning,
+            "ERROR" => LogEventLevel.Error,
+            "FATAL" or "CRITICAL" => LogEventLevel.Fatal,
+            _ => LogEventLevel.Warning // Default to Warning if invalid
+        };
     }
 }
 

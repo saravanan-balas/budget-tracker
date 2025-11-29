@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
 using BudgetTracker.API.Attributes;
 using BudgetTracker.Observability.Interfaces;
 using BudgetTracker.Observability.DTOs;
 using BudgetTracker.Observability.Models;
+using BudgetTracker.Common.Data;
 
 namespace BudgetTracker.API.Controllers;
 
@@ -83,5 +85,6 @@ public class LogsController : ControllerBase
             return StatusCode(500, new { error = "An error occurred while retrieving sources" });
         }
     }
+
 }
 

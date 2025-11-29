@@ -229,6 +229,37 @@ To change ports:
 3. **API Testing**: Use Swagger UI at http://localhost:5157/swagger to test endpoints
 4. **Database Changes**: Always create migrations for schema changes using `dotnet ef migrations add`
 
+## Admin Access and Logs Tab
+
+### Enabling Admin Access
+
+To access the logs tab in the dashboard, you need to promote your user account to admin status:
+
+1. **Run the Admin Promoter utility:**
+   ```bash
+   cd utility/BudgetTracker.AdminPromoter
+   dotnet run your-email@example.com
+   ```
+
+2. **Important: Re-authenticate**
+   - After promoting your account, you **must logout and login again**
+   - This generates a new JWT token with the updated `IsAdmin` claim
+   - The logs tab will only appear after re-authentication
+
+3. **Verify access:**
+   - After logging back in, you should see a "Logs" tab in the navigation bar
+   - You can access the logs page at `/admin/logs`
+
+### Alternative: Direct Database Update
+
+If you prefer to update the database directly:
+
+```sql
+UPDATE "Users" SET "IsAdmin" = true WHERE "Email" = 'your-email@example.com';
+```
+
+**Remember:** You must logout and login again after updating the database for the changes to take effect.
+
 ## Next Steps
 
 - Set up your OpenAI API key for AI features

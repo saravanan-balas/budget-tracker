@@ -280,14 +280,21 @@ public class BudgetTrackerDbContext : DbContext
 
         modelBuilder.Entity<ApplicationLog>(entity =>
         {
+            entity.ToTable("ApplicationLogs");
             entity.HasKey(e => e.Id);
             entity.HasIndex(e => e.Timestamp);
             entity.HasIndex(e => e.Level);
             entity.HasIndex(e => e.Source);
             entity.HasIndex(e => new { e.Level, e.Timestamp });
-            entity.Property(e => e.Level).IsRequired().HasMaxLength(50);
-            entity.Property(e => e.Message).IsRequired();
-            entity.Property(e => e.Source).HasMaxLength(255);
+            // Explicitly map to PascalCase column names to match database schema (consistent with other tables)
+            entity.Property(e => e.Id).HasColumnName("Id");
+            entity.Property(e => e.Timestamp).HasColumnName("Timestamp");
+            entity.Property(e => e.Level).IsRequired().HasMaxLength(50).HasColumnName("Level");
+            entity.Property(e => e.Message).IsRequired().HasColumnName("Message");
+            entity.Property(e => e.Exception).HasColumnName("Exception");
+            entity.Property(e => e.Source).HasMaxLength(255).HasColumnName("Source");
+            entity.Property(e => e.UserId).HasColumnName("UserId");
+            entity.Property(e => e.Properties).HasColumnName("Properties");
         });
     }
 }

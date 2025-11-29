@@ -235,11 +235,26 @@ const loadLogs = async () => {
     if (filters.endDate) filter.endDate = new Date(filters.endDate).toISOString()
     if (filters.searchText) filter.searchText = filters.searchText
 
+    console.log('Loading logs with filter:', filter)
     const response = await logsApi.getLogs(filter)
-    logs.value = response.items
-    totalCount.value = response.totalCount
-  } catch (error) {
+    console.log('Logs response:', response)
+    console.log('Items count:', response.items?.length, 'Total count:', response.totalCount)
+    
+    logs.value = response.items || []
+    totalCount.value = response.totalCount || 0
+    
+    if (response.items && response.items.length === 0 && response.totalCount === 0) {
+      console.warn('No logs found - database query returned empty result')
+    }
+  } catch (error: any) {
     console.error('Error loading logs:', error)
+    console.error('Error details:', {
+      status: error.status,
+      statusText: error.statusText,
+      message: error.message,
+      data: error.data
+    })
+    error.value = `Failed to load logs: ${error.message || error.statusText || 'Unknown error'}`
   } finally {
     loading.value = false
   }

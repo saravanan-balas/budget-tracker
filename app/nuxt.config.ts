@@ -12,6 +12,8 @@ export default defineNuxtConfig({
     // Public keys (exposed to client-side)
     // These are embedded at build time, so NUXT_PUBLIC_* env vars must be available during 'nuxt generate'
     public: {
+      // API base URL - defaults to port 5157 (matches backend launchSettings.json)
+      // Override with NUXT_PUBLIC_API_BASE_URL environment variable if needed
       apiBaseUrl: process.env.NUXT_PUBLIC_API_BASE_URL || 'http://localhost:5157',
       googleClientId:
         process.env.NUXT_PUBLIC_GOOGLE_CLIENT_ID ||
@@ -29,5 +31,9 @@ export default defineNuxtConfig({
   ssr: false, // SPA mode for easier API integration
   nitro: {
     preset: 'static'
+  },
+  devServer: {
+    port: 3000, // Explicitly set frontend dev server to port 3000
+    host: 'localhost'
   }
 })

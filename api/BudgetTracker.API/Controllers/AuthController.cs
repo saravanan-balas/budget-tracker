@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Hosting;
 using BudgetTracker.Common.DTOs;
+using BudgetTracker.Common.Data;
 using BudgetTracker.API.Services;
 
 namespace BudgetTracker.API.Controllers;
@@ -106,6 +109,45 @@ public class AuthController : ControllerBase
 
         await _authService.LogoutAsync(Guid.Parse(userId));
         return Ok(new { message = "Logged out successfully" });
+    }
+
+    [HttpPost("make-admin")]
+    [Microsoft.AspNetCore.Authorization.AllowAnonymous]
+    public async Task<IActionResult> MakeAdmin([FromBody] MakeAdminDto makeAdminDto)
+    {
+        try
+        {
+            // SECURITY: This endpoint is only available in Development environment
+            // In Production, this should be removed or secured with proper authentication
+            var environment = HttpContext.RequestServices.GetRequiredService<IHostEnvironment>();
+            if (!environment.IsDevelopment())
+            {
+                _logger.LogWarning("MakeAdmin endpoint called in non-development environment");
+                return StatusCode(403, new { error = "This endpoint is only available in development environment" });
+            }
+            
+            var context = HttpContext.RequestServices.GetRequiredService<BudgetTracker.Common.Data.BudgetTrackerDbContext>();
+            var user = await context.Users
+                .FirstOrDefaultAsync(u => u.Email == makeAdminDto.Email);
+            
+            if (user == null)
+            {
+                return NotFound(new { error = "User not found" });
+            }
+            
+            user.IsAdmin = true;
+            user.UpdatedAt = DateTime.UtcNow;
+            await context.SaveChangesAsync();
+            
+            _logger.LogWarning("User {Email} (ID: {UserId}) was granted admin access via MakeAdmin endpoint", user.Email, user.Id);
+            
+            return Ok(new { message = $"User {user.Email} is now an admin. Please log out and log back in for the change to take effect." });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error making user admin");
+            return StatusCode(500, new { error = "An error occurred while granting admin access" });
+        }
     }
 
     [HttpPost("forgot-password")]

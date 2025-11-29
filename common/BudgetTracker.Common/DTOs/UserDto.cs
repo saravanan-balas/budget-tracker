@@ -114,3 +114,10 @@ public class ChangePasswordDto
     [Compare("NewPassword", ErrorMessage = "Passwords do not match")]
     public string ConfirmNewPassword { get; set; } = string.Empty;
 }
+
+public class MakeAdminDto
+{
+    [Required(ErrorMessage = "Email is required")]
+    [EmailAddress(ErrorMessage = "Please enter a valid email address")]
+    public string Email { get; set; } = string.Empty;
+}

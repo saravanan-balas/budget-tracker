@@ -78,7 +78,7 @@ dotnet ef database update
 
 5. Access the application
 - Frontend: http://localhost:3000
-- API: http://localhost:5000/swagger
+- API: http://localhost:5157/swagger
 - PostgreSQL: localhost:5432
 
 ## Development
@@ -145,6 +145,99 @@ dotnet ef database update
 - Encrypted storage for sensitive data
 - API rate limiting
 - Input validation and sanitization
+
+## Observability & Logging
+
+The application includes configurable logging to PostgreSQL for monitoring and debugging.
+
+### Configuration
+
+Configure logging in `appsettings.json`:
+
+```json
+{
+  "Observability": {
+    "Enabled": true,
+    "SamplingRate": 1.0,
+    "MinimumLevel": "Warning"
+  }
+}
+```
+
+**Options:**
+- `Enabled` (boolean): Enable/disable writing logs to PostgreSQL database
+- `SamplingRate` (double, 0.0-1.0): Percentage of logs to write
+  - `1.0` = log all events (100%)
+  - `0.5` = log 50% of events
+  - `0.1` = log 10% of events
+  - Note: Errors are always logged regardless of sampling rate
+- `MinimumLevel` (string): Minimum log level to write to database
+  - Options: `"Information"`, `"Warning"`, `"Error"`, `"Fatal"`
+  - Default: `"Warning"` (excludes Information level logs)
+
+### Example Configurations
+
+**Development (log everything):**
+```json
+{
+  "Observability": {
+    "Enabled": true,
+    "SamplingRate": 1.0,
+    "MinimumLevel": "Information"
+  }
+}
+```
+
+**Production (only warnings and errors):**
+```json
+{
+  "Observability": {
+    "Enabled": true,
+    "SamplingRate": 1.0,
+    "MinimumLevel": "Warning"
+  }
+}
+```
+
+**High-volume production (sampled, errors only):**
+```json
+{
+  "Observability": {
+    "Enabled": true,
+    "SamplingRate": 0.1,
+    "MinimumLevel": "Error"
+  }
+}
+```
+
+### Viewing Logs
+
+Logs are stored in the `ApplicationLogs` table and can be viewed via:
+- **Admin UI**: Navigate to `/admin/logs` (requires admin access)
+- **API**: `GET /api/logs` (requires admin authentication)
+
+### Granting Admin Access
+
+To grant a user admin access for viewing logs:
+
+**Option 1: API Endpoint (Development only)**
+```bash
+POST http://localhost:5157/api/auth/make-admin
+Content-Type: application/json
+
+{
+  "email": "user@example.com"
+}
+```
+
+**Option 2: Direct SQL**
+```sql
+UPDATE "Users" 
+SET "IsAdmin" = true, "UpdatedAt" = NOW() 
+WHERE "Email" = 'user@example.com';
+```
+
+**Important**: After granting admin access, the user must log out and log back in to receive a new JWT token with admin claims.
 
 ## Deployment
 

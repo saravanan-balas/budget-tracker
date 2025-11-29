@@ -21,6 +21,9 @@ using BudgetTracker.Observability.Extensions;
 using FluentValidation;
 using FluentValidation.AspNetCore;
 
+// Enable Serilog self-logging to see internal errors
+Serilog.Debugging.SelfLog.Enable(Console.Error);
+
 // Build configuration first to read observability options
 var tempBuilder = WebApplication.CreateBuilder(args);
 var observabilityOptions = tempBuilder.Configuration.GetSection("Observability").Get<ObservabilityOptions>() ?? new ObservabilityOptions();
