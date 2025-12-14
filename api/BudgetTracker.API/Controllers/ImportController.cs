@@ -202,6 +202,17 @@ public class ImportController : ControllerBase
                 return BadRequest(new { error = "Only CSV files are currently supported. Please upload a CSV export." });
             }
 
+            // Read file content to count actual rows
+            byte[] fileData;
+            using (var ms = new MemoryStream())
+            {
+                await file.CopyToAsync(ms);
+                fileData = ms.ToArray();
+            }
+
+            // Count actual rows (excluding header)
+            var estimatedRowCount = EstimateCsvRowCount(fileData);
+
             return Ok(new
             {
                 fileFormat = Path.GetExtension(file.FileName).ToLowerInvariant(),
@@ -211,7 +222,7 @@ public class ImportController : ControllerBase
                 estimatedSeconds = EstimateProcessingTime(file.Length, Path.GetExtension(file.FileName)),
                 hasKnownTemplate = false,
                 estimatedCost = EstimateCostByFileType(Path.GetExtension(file.FileName), (int)file.Length),
-                estimatedRowCount = EstimateRowCount(file.Length)
+                estimatedRowCount = estimatedRowCount
             });
         }
         catch (Exception ex)
@@ -313,8 +324,24 @@ public class ImportController : ControllerBase
 
     private int EstimateRowCount(long fileSize)
     {
-        // Rough estimate: 1KB per transaction row
+        // Rough estimate: 1KB per transaction row (fallback method)
         return Math.Max(1, (int)(fileSize / 1024));
+    }
+
+    private int EstimateCsvRowCount(byte[] fileData)
+    {
+        try
+        {
+            var text = System.Text.Encoding.UTF8.GetString(fileData);
+            var lines = text.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            // Subtract 1 for header row, ensure minimum of 0
+            return Math.Max(0, lines.Length - 1);
+        }
+        catch
+        {
+            // Fallback to size-based estimate
+            return Math.Max(1, (int)(fileData.Length / 1024));
+        }
     }
 
     private decimal EstimateCostByFileType(string fileType, int fileSizeBytes)

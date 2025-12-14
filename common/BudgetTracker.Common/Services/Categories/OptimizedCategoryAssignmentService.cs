@@ -171,29 +171,33 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     {
         try
         {
-            // Store merchant-category mapping for future use
-            var existingMapping = await _context.Database.SqlQueryRaw<int>($@"
-                SELECT COUNT(*) as Value
-                FROM ""UserMerchantCategoryMappings"" 
-                WHERE ""UserId"" = '{userId}' 
-                AND ""MerchantName"" = '{merchant.Replace("'", "''")}' 
-                AND ""CategoryId"" = '{categoryId}'")
-                .FirstOrDefaultAsync();
+            // Check if mapping already exists using LINQ
+            var existingMapping = await _context.UserMerchantCategoryMappings
+                .FirstOrDefaultAsync(m => m.UserId == userId && m.MerchantName == merchant);
 
-            if (existingMapping == 0)
+            if (existingMapping == null)
             {
                 // Create the mapping
-                var newId = Guid.NewGuid();
-                var now = DateTime.UtcNow;
-                await _context.Database.ExecuteSqlAsync($@"
-                    INSERT INTO ""UserMerchantCategoryMappings"" 
-                    (""Id"", ""UserId"", ""MerchantName"", ""CategoryId"", ""ConfidenceScore"", ""CreatedAt"", ""UpdatedAt"")
-                    VALUES ('{newId}', '{userId}', '{merchant.Replace("'", "''")}', '{categoryId}', 1.0, '{now:yyyy-MM-dd HH:mm:ss}', '{now:yyyy-MM-dd HH:mm:ss}')
-                    ON CONFLICT (""UserId"", ""MerchantName"") 
-                    DO UPDATE SET 
-                        ""CategoryId"" = '{categoryId}',
-                        ""ConfidenceScore"" = ""UserMerchantCategoryMappings"".""ConfidenceScore"" + 0.1,
-                        ""UpdatedAt"" = '{now:yyyy-MM-dd HH:mm:ss}'");
+                var newMapping = new UserMerchantCategoryMapping
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    MerchantName = merchant,
+                    CategoryId = categoryId,
+                    ConfidenceScore = 1.0m,
+                    CreatedAt = DateTime.UtcNow,
+                    UpdatedAt = DateTime.UtcNow
+                };
+                _context.UserMerchantCategoryMappings.Add(newMapping);
+                await _context.SaveChangesAsync();
+            }
+            else
+            {
+                // Update existing mapping
+                existingMapping.CategoryId = categoryId;
+                existingMapping.ConfidenceScore += 0.1m;
+                existingMapping.UpdatedAt = DateTime.UtcNow;
+                await _context.SaveChangesAsync();
             }
 
             // Invalidate cache for this merchant
@@ -377,14 +381,14 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return cachedMerchantCategory;
         }
 
-        // Look up learned merchant-category mappings
-        var mapping = await _context.Database.SqlQuery<Guid?>($@"
-            SELECT ""CategoryId""
-            FROM ""UserMerchantCategoryMappings""
-            WHERE ""UserId"" = '{userId}' AND ""MerchantName"" = '{merchant.Replace("'", "''")}'
-            ORDER BY ""ConfidenceScore"" DESC, ""UpdatedAt"" DESC
-            LIMIT 1")
+        // Look up learned merchant-category mappings using LINQ
+        var mappingEntity = await _context.UserMerchantCategoryMappings
+            .Where(m => m.UserId == userId && m.MerchantName == merchant)
+            .OrderByDescending(m => m.ConfidenceScore)
+            .ThenByDescending(m => m.UpdatedAt)
             .FirstOrDefaultAsync();
+        
+        var mapping = mappingEntity?.CategoryId;
 
         if (mapping.HasValue)
         {
@@ -453,14 +457,11 @@ Return only the category name:";
         {
             _logger.LogDebug("Loading merchant categories for {Count} merchants", merchants.Count);
             
-            // Query merchant-category mappings for the given merchants
-            var merchantList = string.Join("','", merchants.Select(m => m.Replace("'", "''")));
-            var mappings = await _context.Database.SqlQuery<MerchantCategoryMapping>($@"
-                SELECT ""MerchantName"", ""CategoryId""
-                FROM ""UserMerchantCategoryMappings""
-                WHERE ""UserId"" = '{userId}' 
-                AND ""MerchantName"" IN ('{merchantList}')
-                ORDER BY ""MerchantName"", ""ConfidenceScore"" DESC")
+            // Query merchant-category mappings for the given merchants using LINQ
+            var mappings = await _context.UserMerchantCategoryMappings
+                .Where(m => m.UserId == userId && merchants.Contains(m.MerchantName))
+                .OrderBy(m => m.MerchantName)
+                .ThenByDescending(m => m.ConfidenceScore)
                 .ToListAsync();
             
             var result = new Dictionary<string, Guid?>();
@@ -468,7 +469,7 @@ Return only the category name:";
             // Group by merchant and take the highest confidence mapping for each
             var groupedMappings = mappings
                 .GroupBy(m => m.MerchantName)
-                .ToDictionary(g => g.Key, g => g.First().CategoryId);
+                .ToDictionary(g => g.Key, g => (Guid?)g.First().CategoryId);
             
             // Add all merchants to result (null for those without mappings)
             foreach (var merchant in merchants)
@@ -484,12 +485,6 @@ Return only the category name:";
             _logger.LogError(ex, "Error loading merchant categories for {Count} merchants", merchants.Count);
             return merchants.ToDictionary(m => m, _ => (Guid?)null);
         }
-    }
-    
-    private class MerchantCategoryMapping
-    {
-        public string MerchantName { get; set; } = string.Empty;
-        public Guid CategoryId { get; set; }
     }
 
     private async Task<Guid?> GetCategoryByNameAsync(string categoryName, Guid userId)

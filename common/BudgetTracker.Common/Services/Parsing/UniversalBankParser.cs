@@ -226,22 +226,31 @@ public class UniversalBankParser : IUniversalBankParser
                             transaction.Amount = amount;
                             
                             // Check if there's a type column to determine sign
+                            // Only override sign if amount is zero or if type indicates a mismatch
                             if (typeIndex >= 0 && typeIndex < fields.Length)
                             {
                                 var typeStr = fields[typeIndex].ToLowerInvariant();
-                                if (typeStr.Contains("debit") || typeStr.Contains("withdrawal") || 
-                                    typeStr.Contains("expense") || typeStr.Contains("charge") ||
-                                    typeStr.Contains("payment") || typeStr.Contains("dr") ||
-                                    typeStr == "d")
+                                
+                                // Check if amount already has correct sign based on type
+                                bool isDebitType = typeStr.Contains("debit") || typeStr.Contains("withdrawal") || 
+                                                  typeStr.Contains("expense") || typeStr.Contains("charge") ||
+                                                  typeStr.Contains("payment") || typeStr.Contains("dr") ||
+                                                  typeStr == "d";
+                                bool isCreditType = typeStr.Contains("credit") || typeStr.Contains("deposit") ||
+                                                   typeStr.Contains("income") || typeStr.Contains("cr") ||
+                                                   typeStr.Contains("refund") || typeStr == "c";
+                                
+                                if (isDebitType && amount > 0)
                                 {
-                                    transaction.Amount = -Math.Abs(amount);
+                                    // Type says debit but amount is positive - make it negative
+                                    transaction.Amount = -amount;
                                 }
-                                else if (typeStr.Contains("credit") || typeStr.Contains("deposit") ||
-                                         typeStr.Contains("income") || typeStr.Contains("cr") ||
-                                         typeStr.Contains("refund") || typeStr == "c")
+                                else if (isCreditType && amount < 0)
                                 {
-                                    transaction.Amount = Math.Abs(amount);
+                                    // Type says credit but amount is negative - make it positive
+                                    transaction.Amount = -amount;
                                 }
+                                // If signs already match (negative debit or positive credit), keep as-is
                             }
                         }
                     }
