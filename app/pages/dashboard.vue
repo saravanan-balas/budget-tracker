@@ -167,10 +167,10 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Spending by Category</h2>
-            <select class="text-sm border rounded-md px-2 py-1">
-              <option>Last 30 days</option>
-              <option>Last 3 months</option>
-              <option>Last year</option>
+            <select v-model="categoryChartPeriod" @change="loadCategoryChartData" class="text-sm border rounded-md px-2 py-1">
+              <option value="30">Last 30 days</option>
+              <option value="90">Last 3 months</option>
+              <option value="365">Last year</option>
             </select>
           </div>
           <div class="h-64">
@@ -235,6 +235,7 @@ definePageMeta({
 
 // State
 const loading = ref(true)
+const categoryChartPeriod = ref('30')
 const stats = reactive({
   monthlyExpenses: 0,
   monthlyIncome: 0,
@@ -275,16 +276,29 @@ const categoryChartData = computed(() => {
     .slice(0, 8)
 })
 
+// Load category chart data based on selected period
+const loadCategoryChartData = async () => {
+  try {
+    const now = new Date()
+    const days = parseInt(categoryChartPeriod.value)
+    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
+    
+    const response = await api.getTransactions({
+      startDate: startDate.toISOString(),
+      endDate: now.toISOString(),
+      pageSize: 1000
+    })
+    monthlyTransactions.value = response.items
+  } catch (error) {
+    console.error('Error loading category chart data:', error)
+  }
+}
+
 // Load dashboard data
 const loadDashboardData = async () => {
   try {
     console.log('Loading real dashboard data...')
     loading.value = true
-    
-    // Get current month's date range
-    const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
     
     // Load recent transactions (last 5)
     const recentTransactionsResponse = await api.getTransactions({
@@ -293,13 +307,43 @@ const loadDashboardData = async () => {
     })
     recentTransactions.value = recentTransactionsResponse.items
     
-    // Load monthly transactions for stats
-    const monthlyTransactionsResponse = await api.getTransactions({
+    // Get current month's date range
+    const now = new Date()
+    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+    
+    // Try to load current month transactions
+    let monthlyTransactionsResponse = await api.getTransactions({
       startDate: startOfMonth.toISOString(),
       endDate: endOfMonth.toISOString(),
       pageSize: 1000
     })
+    
+    // If current month has no data, look for the most recent month with transactions
+    if (monthlyTransactionsResponse.items.length === 0 && recentTransactionsResponse.items.length > 0) {
+      console.log('No transactions in current month, loading most recent data...')
+      
+      // Get the most recent transaction date
+      const mostRecentTransaction = recentTransactionsResponse.items[0]
+      const recentDate = new Date(mostRecentTransaction.transactionDate)
+      
+      // Get that month's data
+      const recentStartOfMonth = new Date(recentDate.getFullYear(), recentDate.getMonth(), 1)
+      const recentEndOfMonth = new Date(recentDate.getFullYear(), recentDate.getMonth() + 1, 0)
+      
+      monthlyTransactionsResponse = await api.getTransactions({
+        startDate: recentStartOfMonth.toISOString(),
+        endDate: recentEndOfMonth.toISOString(),
+        pageSize: 1000
+      })
+      
+      console.log(`Loaded data from ${recentStartOfMonth.toLocaleDateString()} to ${recentEndOfMonth.toLocaleDateString()}`)
+    }
+    
     monthlyTransactions.value = monthlyTransactionsResponse.items
+    
+    // Load category chart data (will use the selected period)
+    await loadCategoryChartData()
     
     // Calculate stats
     const monthlyTransactionsData = monthlyTransactionsResponse.items
