@@ -146,6 +146,10 @@ try
     builder.Services.AddScoped<ISynchronousImportService, SynchronousImportService>();
     builder.Services.AddScoped<IChatService, ChatService>();
     builder.Services.AddScoped<IEmailService, EmailService>();
+    
+    // Monthly Insights (Ask AI)
+    builder.Services.AddHttpClient<IOpenAiInsightsClient, OpenAiInsightsClient>();
+    builder.Services.AddScoped<IMonthlyInsightsService, MonthlyInsightsService>();
 
     // Universal Bank Import Services
     builder.Services.AddScoped<IFormatDetectionService, FormatDetectionService>();
