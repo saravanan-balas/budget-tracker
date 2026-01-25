@@ -165,3 +165,51 @@ export interface DashboardStats {
   netSavings: number;
   transactionCount: number;
 }
+
+export interface MonthlyInsightsRequest {
+  month: number; // 1-12
+  year: number;
+  accountIds?: string[];
+  sampleSize?: number;
+}
+
+export interface MonthlyInsightsChartData {
+  label: string;
+  value: number;
+  color?: string;
+  metadata?: Record<string, any>;
+}
+
+export interface MonthlyInsightsTopMerchant {
+  merchant: string;
+  amount: number;
+  count: number;
+}
+
+export interface MonthlyInsightsSampleTransaction {
+  transactionDateUtc: string;
+  merchant: string;
+  amount: number;
+  category: string;
+}
+
+export interface MonthlyInsightsAi {
+  usedAi: boolean;
+  summary: string;
+  highlights: string[];
+  suggestions: string[];
+  watchouts: string[];
+}
+
+export interface MonthlyInsightsResponse {
+  periodStartUtc: string;
+  periodEndUtc: string;
+  totalIncome: number;
+  totalExpenses: number;
+  net: number;
+  transactionCount: number;
+  spendingByCategory: MonthlyInsightsChartData[];
+  topMerchants: MonthlyInsightsTopMerchant[];
+  sampleTransactions: MonthlyInsightsSampleTransaction[];
+  ai: MonthlyInsightsAi;
+}

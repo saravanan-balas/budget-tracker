@@ -97,7 +97,7 @@ dotnet watch run
 
 ### Frontend Development
 ```bash
-cd ui
+cd app
 npm install
 npm run dev
 ```

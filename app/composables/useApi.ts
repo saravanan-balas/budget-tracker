@@ -15,7 +15,9 @@ import type {
   Category, 
   CreateCategory,
   TransactionFilter,
-  PaginatedResponse 
+  PaginatedResponse,
+  MonthlyInsightsRequest,
+  MonthlyInsightsResponse
 } from '~/types'
 
 interface ApiOptions {
@@ -174,6 +176,10 @@ export const useApi = () => {
   const getImportStatus = (importId: string): Promise<any> =>
     apiCall(`/import/status/${importId}`)
 
+  // Insights endpoints
+  const getMonthlyInsights = (request: MonthlyInsightsRequest): Promise<MonthlyInsightsResponse> =>
+    apiCall('/insights/monthly', { method: 'POST', body: request })
+
   return {
     // Auth
     login,
@@ -211,6 +217,9 @@ export const useApi = () => {
     // Import
     analyzeImportFile,
     smartImport,
-    getImportStatus
+    getImportStatus,
+
+    // Insights
+    getMonthlyInsights
   }
 }

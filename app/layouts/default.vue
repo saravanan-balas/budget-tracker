@@ -30,6 +30,9 @@
               <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
                 Import
               </NuxtLink>
+              <NuxtLink to="/chat" class="nav-link" :class="{ 'nav-link-active': $route.path === '/chat' }">
+                Ask AI
+              </NuxtLink>
               <NuxtLink
                 v-if="authStore.user?.isAdmin"
                 to="/admin/logs"
