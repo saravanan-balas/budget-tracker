@@ -58,7 +58,7 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between">
             <div>
-              <p class="text-sm font-medium text-gray-500">This Month</p>
+              <p class="text-sm font-medium text-gray-500">Expenses</p>
               <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(stats.monthlyExpenses) }}</p>
             </div>
             <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">

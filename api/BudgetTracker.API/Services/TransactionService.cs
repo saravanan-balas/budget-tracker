@@ -53,6 +53,13 @@ public class TransactionService : ITransactionService
             query = query.Where(t => t.CategoryId == filter.CategoryId.Value);
         }
 
+        // Handle uncategorized filter
+        if (!string.IsNullOrEmpty(filter.CategoryIdString) && filter.CategoryIdString == "uncategorized")
+        {
+            _logger.LogInformation("Applying Uncategorized filter");
+            query = query.Where(t => t.CategoryId == null);
+        }
+
         if (filter.StartDate.HasValue)
         {
             var startDateUtc = filter.StartDate.Value.Kind == DateTimeKind.Utc 

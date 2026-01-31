@@ -111,7 +111,7 @@ import type { Category } from '~/types'
 
 definePageMeta({
   layout: 'default',
-  middleware: 'auth'
+  middleware: 'admin'
 })
 
 // State

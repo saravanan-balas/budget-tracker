@@ -45,9 +45,11 @@
               >
               <label class="ml-2 text-sm text-gray-700">Remember me</label>
             </div>
-            <NuxtLink to="/auth/forgot-password" class="text-sm text-blue-600 hover:underline">
-              Forgot password?
-            </NuxtLink>
+            <div class="flex items-center space-x-1">
+              <NuxtLink to="/auth/forgot-password" class="text-sm text-blue-600 hover:underline">
+                Forgot password?
+              </NuxtLink>
+            </div>
           </div>
 
           <button 

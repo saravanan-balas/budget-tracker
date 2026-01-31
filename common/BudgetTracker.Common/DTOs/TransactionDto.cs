@@ -62,6 +62,7 @@ public class TransactionFilterDto
 {
     public Guid? AccountId { get; set; }
     public Guid? CategoryId { get; set; }
+    public string? CategoryIdString { get; set; }
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
     public decimal? MinAmount { get; set; }

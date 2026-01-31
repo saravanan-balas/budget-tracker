@@ -141,8 +141,7 @@
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 table-fixed transactions-table" style="min-width: 800px;">
             <thead class="bg-gray-50">
-            <tr>
-              <th @click="sortBy('transactionDate')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" style="width: 10%;">
+            <tr>              <th @click="sortBy('transactionDate')" class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100" style="width: 10%;">
                 <div class="flex items-center">
                   Date
                   <svg v-if="sortField === 'transactionDate'" class="ml-1 w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -394,11 +393,6 @@ const api = useApi()
 const filteredTransactions = computed(() => {
   let result = [...transactions.value]
 
-  // Apply client-side filters for uncategorized
-  if (filters.value.categoryId === 'uncategorized') {
-    result = result.filter(t => !t.categoryId || !t.categoryName)
-  }
-  
   // Apply transaction type filter (client-side)
   if (filters.value.transactionType) {
     if (filters.value.transactionType === 'income') {
@@ -495,7 +489,9 @@ const loadTransactions = async (resetPage = false) => {
       filter.accountId = filters.value.accountId
     }
     
-    if (filters.value.categoryId && filters.value.categoryId !== 'uncategorized') {
+    if (filters.value.categoryId === 'uncategorized') {
+      filter.categoryIdString = 'uncategorized'
+    } else if (filters.value.categoryId) {
       filter.categoryId = filters.value.categoryId
     }
     

@@ -24,7 +24,12 @@
               <NuxtLink to="/accounts" class="nav-link" :class="{ 'nav-link-active': $route.path === '/accounts' }">
                 Accounts
               </NuxtLink>
-              <NuxtLink to="/categories" class="nav-link" :class="{ 'nav-link-active': $route.path === '/categories' }">
+              <NuxtLink
+                v-if="authStore.user?.isAdmin"
+                to="/categories"
+                class="nav-link"
+                :class="{ 'nav-link-active': $route.path === '/categories' }"
+              >
                 Categories
               </NuxtLink>
               <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
@@ -86,7 +91,7 @@
     <footer class="bg-white border-t mt-12">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <div class="text-center text-gray-500 text-sm">
-          &copy; 2025 Budget Tracker. Made with ❤️ for better financial health.
+          &copy; 2025-2026 Budget Tracker. All rights reserved.
         </div>
       </div>
     </footer>
