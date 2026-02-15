@@ -54,7 +54,7 @@ public static class HfTransactionLookupLoader
 
         string? hfCategory = null;
 
-        // Try exact matches: merchant, description, or combined
+        // 1. Try exact matches: merchant, description, or combined
         if (!string.IsNullOrEmpty(merchantLower) && lookup.TryGetValue(merchantLower, out var mCat))
             hfCategory = mCat;
         else if (!string.IsNullOrEmpty(descriptionLower) && lookup.TryGetValue(descriptionLower, out var dCat))
@@ -64,6 +64,33 @@ public static class HfTransactionLookupLoader
             var combined = $"{merchantLower} {descriptionLower}".Trim();
             if (lookup.TryGetValue(combined, out var cCat))
                 hfCategory = cCat;
+        }
+
+        // 2. Try partial/substring match (HF has full descriptions e.g. "simplisafe home security")
+        if (hfCategory == null && (!string.IsNullOrEmpty(merchantLower) || !string.IsNullOrEmpty(descriptionLower)))
+        {
+            var searchText = $"{merchantLower} {descriptionLower}".Trim();
+            (string Key, string Category)? best = null;
+            foreach (var (key, cat) in lookup)
+            {
+                if (string.IsNullOrEmpty(key) || key.Length < 4) continue;
+                // Dataset key contains merchant, or merchant/search contains key (min 4 chars to reduce false positives)
+                var match = (!string.IsNullOrEmpty(merchantLower) && merchantLower.Length >= 4 && key.Contains(merchantLower, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrEmpty(merchantLower) && key.Length >= 4 && merchantLower.Contains(key, StringComparison.OrdinalIgnoreCase))
+                    || (key.Length >= 4 && searchText.Contains(key, StringComparison.OrdinalIgnoreCase))
+                    || (searchText.Length >= 4 && key.Contains(searchText, StringComparison.OrdinalIgnoreCase));
+                if (!match) continue;
+                // Prefer when merchant is at start of key, then shorter keys
+                var atStart = !string.IsNullOrEmpty(merchantLower) && key.StartsWith(merchantLower, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                var bestAtStart = best.HasValue && !string.IsNullOrEmpty(merchantLower) && best.Value.Key.StartsWith(merchantLower, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
+                var isBetter = best == null
+                    || atStart < bestAtStart
+                    || (atStart == bestAtStart && key.Length < best.Value.Key.Length);
+                if (isBetter)
+                    best = (key, cat);
+            }
+            if (best.HasValue)
+                hfCategory = best.Value.Category;
         }
 
         var appCategory = hfCategory != null ? MapHfToAppCategory(hfCategory) : null;

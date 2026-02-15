@@ -122,6 +122,10 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var merchantCategories = await GetMerchantCategoriesAsync(merchants, userId);
 
         // 3. Process uncached transactions
+        var batchMcc = 0;
+        var batchHf = 0;
+        var batchMerchant = 0;
+        var batchAi = 0;
         foreach (var (lookupKey, merchant, description, amount) in uncachedTransactions)
         {
             Guid? categoryId = null;
@@ -132,7 +136,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             if (categoryId.HasValue)
             {
                 Interlocked.Increment(ref _ruleMappings);
-                _logger.LogDebug("Rule-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                batchMcc++;
+                _logger.LogDebug("Rule-based (MCC) assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 
                 // Learn from rule-based assignment
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
@@ -140,13 +145,15 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             else if ((categoryId = await TryHfDatasetAssignment(merchant, description, userId)).HasValue)
             {
                 Interlocked.Increment(ref _hfLookupMappings);
-                _logger.LogDebug("HF dataset assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                batchHf++;
+                _logger.LogDebug("Hugging Face dataset assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if (merchantCategories.TryGetValue(merchant, out var merchantCat) && merchantCat.HasValue)
             {
                 categoryId = merchantCat;
                 Interlocked.Increment(ref _merchantMappings);
+                batchMerchant++;
                 _logger.LogDebug("Merchant-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 
                 // Learn from merchant-based assignment (reinforce existing mapping)
@@ -159,6 +166,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 if (categoryId.HasValue)
                 {
                     Interlocked.Increment(ref _aiFallbacks);
+                    batchAi++;
                     _logger.LogDebug("Default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                     
                     // Learning already happens in TryDefaultAssignment for AI fallback
@@ -179,6 +187,10 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 _memoryCache.Set(cacheKey, categoryId.Value, _memoryCacheExpiry);
             }
         }
+
+        _logger.LogInformation(
+            "Categorization batch complete: {MccCount} from MCC keywords, {HfCount} from Hugging Face dataset, {MerchantCount} from learned mappings, {AiCount} from AI/fallback (processed {Total} uncached)",
+            batchMcc, batchHf, batchMerchant, batchAi, uncachedTransactions.Count);
 
         return results;
     }
@@ -248,7 +260,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             if (category.HasValue)
             {
                 _memoryCache.Set(ruleKey, category.Value, _memoryCacheExpiry);
-                _logger.LogInformation("Assigned {Merchant} to {Category} (keyword match)", merchant, matchedCategory);
+                _logger.LogInformation("Assigned {Merchant} to {Category} (MCC keywords)", merchant, matchedCategory);
                 return category.Value;
             }
         }
@@ -265,7 +277,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var categoryId = await ResolveCategoryAsync(matchedCategory, userId);
         if (categoryId.HasValue)
         {
-            _logger.LogInformation("Assigned {Merchant} to {Category} (HF dataset match)", merchant, matchedCategory);
+            _logger.LogInformation("Assigned {Merchant} to {Category} (Hugging Face dataset)", merchant, matchedCategory);
             return categoryId.Value;
         }
         return null;
