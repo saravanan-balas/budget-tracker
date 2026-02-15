@@ -23,6 +23,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     // Performance counters
     private long _cacheHits = 0;
     private long _ruleMappings = 0;
+    private long _hfLookupMappings = 0;
     private long _merchantMappings = 0;
     private long _aiFallbacks = 0;
 
@@ -58,7 +59,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return ruleCategory.Value;
         }
 
-        // 3. Try merchant-based assignment (learn from previous assignments)
+        // 3. Try HF transaction dataset lookup
+        var hfCategory = await TryHfDatasetAssignment(merchant, description, userId);
+        if (hfCategory.HasValue)
+        {
+            Interlocked.Increment(ref _hfLookupMappings);
+            _memoryCache.Set(cacheKey, hfCategory.Value, _memoryCacheExpiry);
+            return hfCategory.Value;
+        }
+
+        // 4. Try merchant-based assignment (learn from previous assignments)
         var merchantCategory = await TryMerchantBasedAssignment(merchant, userId);
         if (merchantCategory.HasValue)
         {
@@ -67,7 +77,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return merchantCategory.Value;
         }
 
-        // 4. Default/AI fallback (placeholder for now)
+        // 5. Default/AI fallback (placeholder for now)
         var defaultCategory = await TryDefaultAssignment(merchant, description, amount, userId);
         if (defaultCategory.HasValue)
         {
@@ -125,6 +135,12 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 _logger.LogDebug("Rule-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 
                 // Learn from rule-based assignment
+                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
+            }
+            else if ((categoryId = await TryHfDatasetAssignment(merchant, description, userId)).HasValue)
+            {
+                Interlocked.Increment(ref _hfLookupMappings);
+                _logger.LogDebug("HF dataset assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if (merchantCategories.TryGetValue(merchant, out var merchantCat) && merchantCat.HasValue)
@@ -240,6 +256,21 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         return null;
     }
 
+    private async Task<Guid?> TryHfDatasetAssignment(string merchant, string? description, Guid userId)
+    {
+        var matchedCategory = HfTransactionLookupLoader.TryGetCategory(merchant, description);
+        if (matchedCategory == null)
+            return null;
+
+        var categoryId = await ResolveCategoryAsync(matchedCategory, userId);
+        if (categoryId.HasValue)
+        {
+            _logger.LogInformation("Assigned {Merchant} to {Category} (HF dataset match)", merchant, matchedCategory);
+            return categoryId.Value;
+        }
+        return null;
+    }
+
     /// <summary>
     /// Resolves a matched category name to a Guid, trying fallback names when the primary doesn't exist.
     /// </summary>
@@ -257,6 +288,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private static readonly Dictionary<string, string[]> CategoryFallbacks = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Dining Out"] = new[] { "Dining Out", "Restaurants", "Food & Dining" },
+        ["Food & Dining"] = new[] { "Food & Dining", "Dining Out", "Groceries", "Restaurants" },
         ["Hotel"] = new[] { "Hotel", "Travel" },
         ["Travel"] = new[] { "Travel", "Hotel" },
         ["Pet Care"] = new[] { "Pet Care", "Pets", "Personal Care" },
@@ -267,6 +299,11 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         ["Groceries"] = new[] { "Groceries" },
         ["Healthcare"] = new[] { "Healthcare" },
         ["Utilities"] = new[] { "Utilities", "Bills & Utilities" },
+        ["Entertainment"] = new[] { "Entertainment" },
+        ["Charity"] = new[] { "Charity", "Donations" },
+        ["Financial Services"] = new[] { "Financial Services", "Bank Fees", "Transfer" },
+        ["Government"] = new[] { "Government", "Taxes", "Fees" },
+        ["Income"] = new[] { "Income", "Salary" },
     };
 
     private async Task<Guid?> TryMerchantBasedAssignment(string merchant, Guid userId)
@@ -443,8 +480,9 @@ Return only the category name:";
             ["rule_mappings"] = _ruleMappings,
             ["merchant_mappings"] = _merchantMappings,
             ["ai_fallbacks"] = _aiFallbacks,
-            ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / (_cacheHits + _ruleMappings + _merchantMappings + _aiFallbacks) : 0,
-            ["total_assignments"] = _cacheHits + _ruleMappings + _merchantMappings + _aiFallbacks
+            ["hf_lookup_mappings"] = _hfLookupMappings,
+            ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / (_cacheHits + _ruleMappings + _hfLookupMappings + _merchantMappings + _aiFallbacks) : 0,
+            ["total_assignments"] = _cacheHits + _ruleMappings + _hfLookupMappings + _merchantMappings + _aiFallbacks
         };
     }
 }
