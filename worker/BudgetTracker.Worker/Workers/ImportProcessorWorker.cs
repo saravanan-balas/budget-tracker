@@ -326,11 +326,10 @@ public class ImportProcessorWorker : BackgroundService
         if (string.IsNullOrWhiteSpace(description))
             return "Unknown";
 
-        // Simple merchant extraction - take first meaningful part before common patterns
         var desc = description.Trim();
         
         // Remove common prefixes
-        var prefixesToRemove = new[] { "POS ", "DEBIT ", "CREDIT ", "ACH ", "CHECK ", "ATM " };
+        var prefixesToRemove = new[] { "POS ", "DEBIT ", "CREDIT ", "ACH ", "CHECK ", "ATM ", "PAYPAL " };
         foreach (var prefix in prefixesToRemove)
         {
             if (desc.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -340,8 +339,23 @@ public class ImportProcessorWorker : BackgroundService
             }
         }
         
-        // Take first part (usually merchant name)
-        var parts = desc.Split(new[] { ' ', '#', '*', '-' }, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 0 ? parts[0] : "Unknown";
+        var parts = desc.Split(new[] { ' ', '#', '*' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "Unknown";
+
+        var merchantTokens = new List<string>();
+        var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "REF", "PAYMENT", "AUTH", "PENDING", "ONLINE", "CARD" };
+        const int maxTokens = 4;
+
+        foreach (var part in parts)
+        {
+            if (merchantTokens.Count >= maxTokens) break;
+            var p = part.Trim('-');
+            if (string.IsNullOrEmpty(p)) continue;
+            if (p.All(char.IsDigit) && p.Length >= 4) break;
+            if (stopWords.Contains(p)) break;
+            merchantTokens.Add(p);
+        }
+
+        return merchantTokens.Count > 0 ? string.Join(" ", merchantTokens) : parts[0];
     }
 }

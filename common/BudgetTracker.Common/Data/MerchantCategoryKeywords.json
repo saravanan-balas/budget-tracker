@@ -1,0 +1,2767 @@
+{
+  "Pet Care": [
+    "veterinary",
+    "veterinary services"
+  ],
+  "Agricultural Cooperative": [
+    "agricultural",
+    "agricultural co operatives"
+  ],
+  "Landscaping Services": [
+    "horticultural",
+    "horticultural services landscaping services",
+    "landscaping"
+  ],
+  "Rent/Mortgage": [
+    "general contractors residential commercial"
+  ],
+  "Utilities": [
+    "air",
+    "conditioning",
+    "electric",
+    "electric gas sanitary water utilities",
+    "equipment",
+    "gas",
+    "heating",
+    "plumbing",
+    "plumbing heating equipment supplies",
+    "sanitary",
+    "supplies",
+    "utilities",
+    "water"
+  ],
+  "Electrical Contractors": [
+    "electrical",
+    "electrical contractors"
+  ],
+  "Masonry": [
+    "insulation",
+    "masonry",
+    "plastering",
+    "settings",
+    "stonework",
+    "tile"
+  ],
+  "Carpentry Contractors": [
+    "carpentry",
+    "carpentry contractors"
+  ],
+  "Roofing/Siding": [
+    "metal",
+    "roofing",
+    "sheet",
+    "siding"
+  ],
+  "Concrete Work Contractors": [
+    "concrete",
+    "contractors concrete work"
+  ],
+  "Special Trade Contractors": [
+    "contractors special trade not elsewhere classified",
+    "special",
+    "trade"
+  ],
+  "Miscellaneous Publishing and Printing": [
+    "miscellaneous publishing printing",
+    "printing",
+    "publishing"
+  ],
+  "Typesetting": [
+    "making",
+    "plate",
+    "typesetting",
+    "typesetting plate making & related services"
+  ],
+  "Specialty Cleaning": [
+    "cleaning",
+    "polishing",
+    "preparations",
+    "sanitation",
+    "specialty",
+    "specialty cleaning polishing sanitation preparations"
+  ],
+  "Transportation": [
+    "a 1 rent a car",
+    "action",
+    "action auto rental",
+    "aeorflot",
+    "aer",
+    "aer lingus",
+    "aereos",
+    "aero",
+    "aero coach avaiation",
+    "aero peru",
+    "aero virgin islands",
+    "aerolineas",
+    "aerolineas argentinas",
+    "aerolineas nicaraguensis",
+    "aeromexico",
+    "aeros",
+    "affiliated",
+    "affiliated auto rental",
+    "afghan",
+    "african",
+    "afrigue",
+    "agency",
+    "agency rent a car",
+    "air",
+    "air afrigue",
+    "air algerie",
+    "air british colubia",
+    "air canada",
+    "air china",
+    "air djibouti",
+    "air france",
+    "air india",
+    "air jamaica",
+    "air lanka",
+    "air malta",
+    "air mauritius",
+    "air new zealand",
+    "air panama",
+    "air seychelles",
+    "air zaire",
+    "air zimbabwe",
+    "airinter",
+    "airline",
+    "airlines",
+    "airlines air carriers not listed elsewhere",
+    "airways",
+    "airways rent a car",
+    "ajax",
+    "ajax rent a car",
+    "alamo",
+    "alamo rent a car",
+    "alaska",
+    "alaska airlines",
+    "algerie",
+    "alitalia",
+    "all",
+    "all nippon airways",
+    "allstae",
+    "allstae rent a car",
+    "alm",
+    "aloha",
+    "aloha airlines",
+    "alpha",
+    "alpha rent a car",
+    "altra",
+    "altra auto rental",
+    "america",
+    "america west",
+    "american",
+    "american airlines",
+    "american intl rent a car",
+    "american trans air",
+    "ansa",
+    "ansa intl rent a car",
+    "ansett",
+    "ansett airlines",
+    "arabian",
+    "argentinas",
+    "ariana",
+    "ariana afghan",
+    "atlantic",
+    "austrainlian",
+    "austrainlian airlines",
+    "australia",
+    "austrian",
+    "austrian air service",
+    "austrian airlines",
+    "auto",
+    "auto host cost car rentals",
+    "autohansa",
+    "autohansa rent a car",
+    "automate",
+    "automate rent a car",
+    "avaiation",
+    "avcar",
+    "avcar rent a car",
+    "avensa",
+    "aviaco",
+    "aviaco spain",
+    "avianca",
+    "aviateca",
+    "aviateca guatemala",
+    "avis",
+    "avis rent a car",
+    "avon",
+    "avon rent a car",
+    "bahamasair",
+    "bahrain",
+    "balkan",
+    "balkan bulgarian airlines",
+    "bar",
+    "bar harbor airlines",
+    "below",
+    "bemidji",
+    "bemidji airlines",
+    "bolivia",
+    "braathens",
+    "braathens s.a.f.e. norway",
+    "brazij",
+    "brazil",
+    "british",
+    "british airways",
+    "british midland",
+    "brokway",
+    "brokway air",
+    "brooks",
+    "brooks rent a car",
+    "budget",
+    "budget rent a car",
+    "bulgarian",
+    "bwia",
+    "canada",
+    "canadian",
+    "canadian airlines international",
+    "capitol",
+    "capitol air",
+    "car",
+    "car rental",
+    "car rental companies not listed below",
+    "carey",
+    "carey rent a car",
+    "carriers",
+    "cars",
+    "cathay",
+    "cathay pacific",
+    "cayman",
+    "cayman airways",
+    "chile",
+    "china",
+    "china airlines",
+    "cite",
+    "cite rent a car",
+    "coach",
+    "colubia",
+    "comair",
+    "command",
+    "command airways",
+    "compania",
+    "compania faucett",
+    "companies",
+    "continental",
+    "cook",
+    "copa",
+    "cost",
+    "costa",
+    "country",
+    "croatia",
+    "croatia airlines",
+    "crown",
+    "crown air",
+    "cruzeiro",
+    "cruzeiro do sul brazij",
+    "csa",
+    "cumberland",
+    "cumberland airlines",
+    "cyprus",
+    "cyprus airways",
+    "dan",
+    "dan air services",
+    "delta",
+    "djibouti",
+    "dollar",
+    "dollar rent a car",
+    "dominicana",
+    "duckling",
+    "dutch",
+    "eastwest",
+    "eastwest airlines australia",
+    "eccuatoranos",
+    "econo",
+    "econo car rent a car",
+    "ecuatoriana",
+    "ecuatorianos",
+    "egyptair",
+    "el al",
+    "enterprise",
+    "enterprise rent a car",
+    "ethiopian",
+    "ethiopian airlines",
+    "europ",
+    "europ car",
+    "europe",
+    "europe by car",
+    "eva",
+    "eva airlines",
+    "express",
+    "faucett",
+    "finnair",
+    "flyveselskap",
+    "france",
+    "freedom",
+    "freedom air",
+    "fuyana",
+    "fuyana airways",
+    "garuda",
+    "garuda indonesia",
+    "general rent a car",
+    "godfrey",
+    "godfrey natl rent a car",
+    "golden",
+    "golden pacific air",
+    "group",
+    "guatemala",
+    "gulf",
+    "gulf air bahrain",
+    "harbor",
+    "havasu",
+    "havasu airlines",
+    "hawaiian",
+    "hawaiian air",
+    "helicopter",
+    "hertz",
+    "hertz rent a car",
+    "holiday",
+    "holiday rent a wreck",
+    "honduras",
+    "host",
+    "iberia",
+    "icelandair",
+    "india",
+    "indian",
+    "indian airlines",
+    "indonesia",
+    "insurance",
+    "insurance rent a car",
+    "interair",
+    "interent",
+    "interent rent a car",
+    "international",
+    "intl",
+    "iran",
+    "iran air",
+    "island",
+    "island airlines",
+    "islands",
+    "jamaica",
+    "japan",
+    "japan airlines",
+    "juan",
+    "jugoslav",
+    "jugoslav air",
+    "kemwell",
+    "kemwell group rent a car",
+    "kenya",
+    "kenya airlines",
+    "klm",
+    "klm royal dutch airlines",
+    "korean",
+    "korean airlines",
+    "kuwait",
+    "kuwait airlines",
+    "lab",
+    "lab bolivia",
+    "lacsa",
+    "lacsa costa rica",
+    "ladeco",
+    "ladeco chile",
+    "lanchile",
+    "lanka",
+    "lap",
+    "lap paraguay",
+    "lav",
+    "lav venezuela",
+    "liat",
+    "lingus",
+    "listed",
+    "lot",
+    "lot poland",
+    "lufthansa",
+    "luxair",
+    "major",
+    "major rent a car",
+    "malaysian",
+    "malaysian airline system",
+    "malev",
+    "malta",
+    "maroc",
+    "mauritius",
+    "mesa",
+    "mesa air",
+    "metro",
+    "metro airlines",
+    "metroflight",
+    "metroflight airlines",
+    "mexicana",
+    "midland",
+    "midwest",
+    "midwest express airlines inc.",
+    "militares",
+    "milleville",
+    "milleville rent a car",
+    "nationair",
+    "national",
+    "national car rental",
+    "natl",
+    "new",
+    "new york helicopter",
+    "nicaraguensis",
+    "nigeria",
+    "nigeria airways",
+    "nippon",
+    "nordair",
+    "norontair",
+    "northwest",
+    "norway",
+    "nount",
+    "nount cook",
+    "olympic",
+    "olympic airways",
+    "pacific",
+    "pakistan",
+    "pakistan international",
+    "pan",
+    "pan american",
+    "panama",
+    "paraguay",
+    "payless",
+    "payless car rental",
+    "pba",
+    "peru",
+    "philippine",
+    "philippine airlines",
+    "poland",
+    "portugal",
+    "princeville",
+    "qantas",
+    "quebecaire",
+    "reno",
+    "reno air inc.",
+    "rent",
+    "rent a wreck",
+    "rental",
+    "rentals",
+    "replacement",
+    "replacement rent a car",
+    "reserve",
+    "reserve rent a car",
+    "rica",
+    "route",
+    "royal",
+    "royal air maroc",
+    "s.a.f.e.",
+    "sabena",
+    "saeta",
+    "saeta sociaedad ecuatorianos de transportes aereos",
+    "san",
+    "san juan airlines",
+    "sas",
+    "sasha",
+    "sasha servicio aero de honduras",
+    "saudia",
+    "saudia arabian airlines",
+    "scenic",
+    "scenic airlines",
+    "servicio",
+    "seychelles",
+    "showcase",
+    "showcase rental cars",
+    "simmons",
+    "simmons airlines",
+    "singapore",
+    "singapore airlines",
+    "singleton",
+    "snappy",
+    "snappy car rental",
+    "sociaedad",
+    "south",
+    "south african airways",
+    "southwest",
+    "spain",
+    "sudan",
+    "sudan airways",
+    "sul",
+    "sun",
+    "sun country airlines",
+    "sun world international",
+    "sunbelt",
+    "sunbelt airlines",
+    "surinam",
+    "surinam airways",
+    "swissair",
+    "system",
+    "taca",
+    "taca international",
+    "talair",
+    "tan",
+    "tap",
+    "tap portugal",
+    "tent",
+    "thai",
+    "thai airways",
+    "thrifty",
+    "thrifty rent a car",
+    "thy",
+    "thy turkey",
+    "tilden",
+    "tilden tent a car",
+    "trans",
+    "trans world airlines",
+    "transaero",
+    "transportes",
+    "transportes aeros militares eccuatoranos",
+    "tropical",
+    "tropical rent a car",
+    "trump",
+    "trump airline",
+    "tunis",
+    "tunis air",
+    "turkey",
+    "ugly",
+    "ugly duckling rent a car",
+    "united",
+    "united airlines",
+    "us air",
+    "usa",
+    "usa rent a car",
+    "uta",
+    "uta interair",
+    "valley",
+    "valley airlines",
+    "value",
+    "value rent a car",
+    "varig",
+    "varig brazil",
+    "vasp",
+    "vasp brazil",
+    "venezuela",
+    "via",
+    "via route rent a car",
+    "viasa",
+    "virgin",
+    "virgin atlantic",
+    "west",
+    "western",
+    "widero’s",
+    "widero’s flyveselskap",
+    "windward",
+    "windward island",
+    "wings",
+    "wings airways",
+    "world",
+    "wreck",
+    "york",
+    "zaire",
+    "zambia",
+    "zambia airways",
+    "zealand",
+    "zimbabwe"
+  ],
+  "Travel": [
+    "adams",
+    "adams mark hotels",
+    "allstar",
+    "allstar inns",
+    "amelia",
+    "amelia island planation",
+    "america",
+    "americana",
+    "americana hotels",
+    "amfac",
+    "amfac hotels",
+    "ana",
+    "ana hotel",
+    "arabella",
+    "arabella hotels",
+    "arcard",
+    "arcard hotels",
+    "arctia",
+    "arctia hotels",
+    "ascuaga’s",
+    "astir",
+    "astir hotels",
+    "auberge",
+    "auberge des governeurs",
+    "ausralia",
+    "australia",
+    "bally’s",
+    "bally’s hotel casino",
+    "belle",
+    "best",
+    "best western hotels",
+    "beverly",
+    "beverly hills hotel",
+    "biltmore",
+    "biltmore hotel suites",
+    "boca",
+    "boca raton resort",
+    "bristol",
+    "broadmoor",
+    "broadmoor hotel",
+    "broadway",
+    "budget",
+    "budget host inns",
+    "budgetel",
+    "budgetel hotels",
+    "campaniel",
+    "campaniel hotels",
+    "carefree",
+    "carefree resorts",
+    "carlton",
+    "carlton hotels",
+    "casino",
+    "casinos",
+    "cedok",
+    "chain",
+    "chalets",
+    "charlotte",
+    "ciga",
+    "ciga hotels",
+    "city",
+    "city lodge hotels",
+    "clarion",
+    "clarion hotels",
+    "climat",
+    "climat de france hotels",
+    "club",
+    "club med",
+    "clubcorp",
+    "clubcorp club resorts",
+    "coast",
+    "coast hotels",
+    "colorado",
+    "colorado belle edgewater resort",
+    "comfort",
+    "comfort inns",
+    "compri",
+    "compri hotels",
+    "concorde",
+    "concorde hotels",
+    "conrad",
+    "consort",
+    "consort hotels",
+    "continental",
+    "courtyard",
+    "courtyard by marriott",
+    "cp hotels",
+    "crest",
+    "crest hotels see forte hotels",
+    "crowne",
+    "crowne plaza hotels",
+    "cumulus",
+    "cumulus hotels",
+    "cunard",
+    "cunard hotels",
+    "dan",
+    "dan hotels",
+    "danubius",
+    "danubius hotel",
+    "days",
+    "days inn daystop",
+    "daystop",
+    "de vere hotels",
+    "delta",
+    "delta hotel",
+    "des",
+    "dillion",
+    "dillion inns",
+    "doral",
+    "doral hotels",
+    "dorint",
+    "dorint hotels",
+    "doubletree",
+    "doubletree hotels",
+    "downtowner",
+    "downtowner passport hotel",
+    "drury",
+    "drury inns",
+    "dunfey",
+    "dunfey hotels",
+    "econo",
+    "econo lodges",
+    "economy",
+    "economy inns of america",
+    "edgewater",
+    "eliot",
+    "eliot hotel",
+    "embassy",
+    "embassy hotels",
+    "embassy suites",
+    "end",
+    "exel",
+    "exel inns",
+    "express",
+    "fairmont",
+    "fairmont hotels",
+    "farfield",
+    "farfield hotels",
+    "farifield",
+    "farifield inn",
+    "flag",
+    "flag inn",
+    "flag inns ausralia",
+    "formally",
+    "forte",
+    "forte hotels",
+    "forum",
+    "forum hotels",
+    "four",
+    "four seasons hotel australia",
+    "four seasons hotels",
+    "france",
+    "friendship",
+    "friendship inns",
+    "golden",
+    "golden chain hotel",
+    "golden tulip hotels",
+    "governeurs",
+    "grand",
+    "greenbriah",
+    "greenbriah resorts",
+    "guest",
+    "guest quarters formally pickett suite hotels",
+    "hampton",
+    "hampton inns",
+    "harley",
+    "harley hotels",
+    "harrah’s",
+    "harrah’s hotels casinos",
+    "harvey",
+    "harvey bristol hotels",
+    "helmsley",
+    "helmsley hotels",
+    "hills",
+    "hilton",
+    "hilton conrad",
+    "hilton hotels",
+    "hilton international",
+    "ho jo inn howard johnson",
+    "holiday",
+    "holiday inns holiday inn express",
+    "homestead",
+    "homewood",
+    "homewood suites",
+    "hospitality",
+    "hospitality international",
+    "host",
+    "hotel",
+    "hotel ibis",
+    "hotel mercure",
+    "hotel okura",
+    "hoteles",
+    "hoteles el presidents",
+    "hoteles melia",
+    "hotels",
+    "hotels motels inns resorts",
+    "hotle",
+    "hotle universale",
+    "houses",
+    "howard",
+    "hungar",
+    "hungar hotels",
+    "husa",
+    "husa hotels",
+    "hyatt",
+    "hyatt hotel",
+    "iberotel",
+    "iberotel hotels",
+    "ibis",
+    "ibusz",
+    "ibusz hotels",
+    "imperial",
+    "imperial london hotel",
+    "iner",
+    "iner nor hotels",
+    "inn",
+    "inns",
+    "inter",
+    "inter continental hotels",
+    "interhotel",
+    "interhotel cedok",
+    "international",
+    "island",
+    "john",
+    "john ascuaga’s nugget",
+    "johnson",
+    "jolly",
+    "jolly hotels",
+    "journey’s",
+    "journey’s end motls",
+    "karos",
+    "karos hotels",
+    "knights",
+    "knights inns",
+    "la quinta motor inns",
+    "ladbroke",
+    "ladbroke hotels",
+    "limited",
+    "lion",
+    "lodge",
+    "lodges",
+    "loews",
+    "loews hotels",
+    "london",
+    "mandarin",
+    "mandarin oriental hotel",
+    "maritim",
+    "maritim hotels",
+    "mark",
+    "marriott",
+    "marriott hotels",
+    "med",
+    "melia",
+    "mercure",
+    "meridien",
+    "meridien hotels",
+    "merlin",
+    "merlin hotels",
+    "metropole",
+    "metropole hotels",
+    "mgm",
+    "mgm grand hotel",
+    "midway",
+    "midway motor lodge",
+    "millenium",
+    "millenium broadway hotel",
+    "miyako",
+    "miyako hotels",
+    "moat",
+    "motel",
+    "motel 6",
+    "motels",
+    "motls",
+    "motor",
+    "mount",
+    "mount charlotte thistle",
+    "movenpick",
+    "movenpick hotels",
+    "noah’s",
+    "noah’s hotels",
+    "nor",
+    "novotel",
+    "novotel hotels",
+    "nugget",
+    "oberoi",
+    "oberoi hotels",
+    "okura",
+    "omni",
+    "omni hotels",
+    "opryland",
+    "opryland hotel",
+    "oriental",
+    "otani",
+    "otani hotels",
+    "pacific",
+    "pannonia",
+    "pannonia hotels",
+    "park",
+    "park inns international",
+    "passport",
+    "peabody",
+    "peabody hotels",
+    "pennsula",
+    "pennsula hotel",
+    "penta",
+    "penta hotels",
+    "pickett",
+    "planation",
+    "plaza",
+    "presidents",
+    "prince",
+    "prince hotels",
+    "princess",
+    "princess hotels international",
+    "protea",
+    "protea hotels",
+    "pullman",
+    "pullman international hotels",
+    "quality",
+    "quality inns quality suites",
+    "quality pacific hotel",
+    "quarters",
+    "queens",
+    "queens moat houses",
+    "quinta",
+    "radisson",
+    "radisson hotels",
+    "ramada",
+    "ramada inns ramada limited",
+    "rank",
+    "rank hotels",
+    "rantasipi",
+    "rantasipi hotels",
+    "raton",
+    "red",
+    "red lion hotels red lion inns",
+    "red rook inns",
+    "regal",
+    "regal 8 inns",
+    "regent",
+    "regent international hotels",
+    "regis",
+    "registry",
+    "registry hotels",
+    "relax",
+    "relax inns",
+    "renaissance",
+    "renaissance hotels stouffer hotels",
+    "residence",
+    "residence inns",
+    "reso",
+    "reso hotels",
+    "resort",
+    "resorts",
+    "rica",
+    "rica hotels",
+    "rio",
+    "rio suites",
+    "ritz",
+    "ritz carlton hotels",
+    "riviera",
+    "riviera hotel casino",
+    "rodeway",
+    "rodeway inns",
+    "rook",
+    "route",
+    "royal",
+    "royal hotels",
+    "royce",
+    "royce hotels",
+    "sandman",
+    "sandman hotels",
+    "sandman inns",
+    "sara",
+    "sara hotels",
+    "sarova",
+    "sarova hotels",
+    "sas",
+    "sas hotels",
+    "scandic",
+    "scandic hotels",
+    "seaines",
+    "seaines planation",
+    "seas",
+    "seasons",
+    "shangri",
+    "shangri la international",
+    "sheraton",
+    "sheraton hotels",
+    "shilo",
+    "shilo inns",
+    "shoney’s",
+    "shoney’s inns",
+    "sofitel",
+    "sofitel hotels",
+    "sokos",
+    "sokos hotels",
+    "sol",
+    "sol hotels",
+    "sonesta",
+    "sonesta hotels",
+    "south",
+    "south seas resorts",
+    "southern",
+    "southern pacific hotels",
+    "southern sun hotels",
+    "st.",
+    "st. regis hotel",
+    "stakis",
+    "stakis hotels",
+    "steigenberger",
+    "steigenberger hotels",
+    "stouffer",
+    "suisse",
+    "suisse chalets",
+    "suite",
+    "suites",
+    "sun",
+    "sun route hotels",
+    "super8",
+    "super8 motels",
+    "swallow",
+    "swallow hotels",
+    "swissotel",
+    "taj",
+    "taj hotels international",
+    "telford",
+    "telford international",
+    "thistle",
+    "tokyo",
+    "tokyo hotel",
+    "townplace",
+    "townplace suites",
+    "travelodge",
+    "tropicana",
+    "tropicana resort casino",
+    "tulip",
+    "universale",
+    "vagabond",
+    "vagabond hotels",
+    "venture",
+    "venture inns",
+    "vere",
+    "welcomgroup",
+    "welcomgroup hotels",
+    "welesley",
+    "welesley inns",
+    "western",
+    "westin",
+    "westin hotels",
+    "woodside",
+    "woodside hotels resorts",
+    "wyndham",
+    "wyndham hotel resorts"
+  ],
+  "Other": [
+    "* masters economy inns",
+    "antique",
+    "antique shops sales repairs restoration services",
+    "applications",
+    "automated",
+    "automated referral service visa only",
+    "blueprinting",
+    "blueprinting photocopying services",
+    "book",
+    "books",
+    "casinos",
+    "catalog",
+    "clubs",
+    "credential",
+    "digital",
+    "digital goods: applications excludes games",
+    "digital goods: games",
+    "digital goods: large digital goods merchant",
+    "digital goods: media books movies music",
+    "dog",
+    "economy",
+    "emergency",
+    "excludes",
+    "eyeglasses",
+    "first",
+    "gambling",
+    "games",
+    "gcas",
+    "gcas emergency services visa only",
+    "goods",
+    "goods:",
+    "government",
+    "government licensed horse dog racing",
+    "government licensed on line casinos on line gambling",
+    "government owned lotteries",
+    "home2suites",
+    "horse",
+    "houses",
+    "including",
+    "inns",
+    "insurance",
+    "large",
+    "licensed",
+    "line",
+    "longer",
+    "lotteries",
+    "mail",
+    "masters",
+    "media",
+    "merchant",
+    "movies",
+    "music",
+    "only",
+    "optical",
+    "opticians",
+    "order",
+    "original",
+    "owned",
+    "permitted",
+    "photocopying",
+    "premiums",
+    "presentment",
+    "presentments",
+    "racing",
+    "record",
+    "referral",
+    "repairs",
+    "restoration",
+    "shops",
+    "stores",
+    "u.s.",
+    "valid",
+    "validfor",
+    "visa",
+    "visa credential service visa only",
+    "visaphone"
+  ],
+  "Railroads": [
+    "railroads"
+  ],
+  "Commuter Transport": [
+    "commuter",
+    "feries",
+    "local",
+    "passenger",
+    "railroads",
+    "suburban",
+    "transportation",
+    "transportation.",
+    "water"
+  ],
+  "Passenger Railways": [
+    "passenger",
+    "passenger railways",
+    "railways"
+  ],
+  "Ambulance Services": [
+    "ambulance",
+    "ambulance services"
+  ],
+  "Taxicabs/Limousines": [
+    "limousines",
+    "taxicabs",
+    "taxicabs limousines"
+  ],
+  "Bus Lines": [
+    "bus",
+    "bus lines including charters tour buses",
+    "buses",
+    "charters",
+    "including",
+    "lines",
+    "tour"
+  ],
+  "Motor Freight Carriers and Trucking - Local and Long Distance": [
+    "carriers",
+    "companies",
+    "delivery",
+    "distance",
+    "freight",
+    "local",
+    "long",
+    "motor",
+    "moving",
+    "storage",
+    "trucking"
+  ],
+  "Courier Services": [
+    "air",
+    "courier",
+    "courier services air ground freight forwarders",
+    "forwarders",
+    "freight",
+    "ground"
+  ],
+  "Public Warehousing and Storage - Farm Products": [
+    "public",
+    "public warehousing storage",
+    "storage",
+    "warehousing"
+  ],
+  "Cruise Lines": [
+    "cruise",
+    "cruise steamship lines",
+    "lines",
+    "steamship"
+  ],
+  "Boat Rentals and Leases": [
+    "boat",
+    "boat rentals leases",
+    "leases",
+    "rentals"
+  ],
+  "Marinas": [
+    "marinas",
+    "marinas marine service supplies",
+    "marine",
+    "supplies"
+  ],
+  "Airports": [
+    "airport",
+    "airports",
+    "airports airport terminals flying fields",
+    "fields",
+    "flying",
+    "terminals"
+  ],
+  "Travel Agencies": [
+    "agencies",
+    "operations",
+    "tour",
+    "travel",
+    "travel agencies tour operations"
+  ],
+  "TUI Travel - Germany": [
+    "germany",
+    "only",
+    "operators",
+    "package",
+    "package tour operators use in germany only",
+    "tour",
+    "use"
+  ],
+  "Tolls/Bridge Fees": [
+    "bridge",
+    "fees",
+    "toll",
+    "toll bridge fees"
+  ],
+  "Transportation Services (Not Elsewhere Classified)": [
+    "transportation",
+    "transportation services not elsewhere classified"
+  ],
+  "Telecommunication Equipment and Telephone Sales": [
+    "equipment",
+    "including",
+    "telecommunications",
+    "telecommunications equipment including telephone sales",
+    "telephone"
+  ],
+  "Telecommunication Services": [
+    "fax",
+    "fax services telecommunication services",
+    "telecommunication"
+  ],
+  "Computer Network Services": [
+    "computer",
+    "computer network services",
+    "network"
+  ],
+  "Telegraph Services": [
+    "telegraph",
+    "telegraph services"
+  ],
+  "Wires": [
+    "money",
+    "money orders wire transfer",
+    "orders",
+    "transfer",
+    "wire"
+  ],
+  "Cable": [
+    "cable",
+    "cable other pay television previously cable services",
+    "pay",
+    "previously",
+    "television"
+  ],
+  "Motor Vehicle Supplies and New Parts": [
+    "motor",
+    "motor vehicle supplies new parts",
+    "new",
+    "parts",
+    "supplies",
+    "vehicle"
+  ],
+  "Office and Commercial Furniture": [
+    "furniture",
+    "office",
+    "office commercial furniture"
+  ],
+  "Construction Materials (Not Elsewhere Classified)": [
+    "construction",
+    "construction materials not elsewhere classified",
+    "materials"
+  ],
+  "Photographic": [
+    "equipment",
+    "microfilm",
+    "office",
+    "office photographic photocopy microfilm equipment",
+    "photocopy",
+    "photographic"
+  ],
+  "Computers": [
+    "computer",
+    "computers",
+    "computers computer peripheral equipment software",
+    "equipment",
+    "peripheral",
+    "software"
+  ],
+  "Commercial Equipment (Not Elsewhere Classified)": [
+    "commercial equipment not elsewhere classified",
+    "equipment"
+  ],
+  "Medical": [
+    "dental",
+    "equipment",
+    "hospital",
+    "medical",
+    "medical dental ophthalmic hospital equipment supplies",
+    "ophthalmic",
+    "supplies"
+  ],
+  "Metal Service Centers": [
+    "centers",
+    "metal",
+    "metal service centers offices",
+    "offices"
+  ],
+  "Electrical Parts and Equipment": [
+    "electrical",
+    "electrical parts equipment",
+    "equipment",
+    "parts"
+  ],
+  "Hardware": [
+    "equipment",
+    "hardware",
+    "hardware equipment supplies",
+    "supplies"
+  ],
+  "Industrial Supplies (Not Elsewhere Classified)": [
+    "industrial",
+    "industrial supplies not elsewhere classified",
+    "supplies"
+  ],
+  "Precious Stones and Metals": [
+    "jewelry",
+    "metals",
+    "precious",
+    "precious stones metals watches jewelry",
+    "stones",
+    "watches"
+  ],
+  "Durable Goods (Not Elsewhere Classified)": [
+    "durable",
+    "durable goods not elsewhere classified",
+    "goods"
+  ],
+  "Stationary": [
+    "office",
+    "paper",
+    "printing",
+    "stationery",
+    "stationery office supplies printing writing paper",
+    "supplies",
+    "writing"
+  ],
+  "Drugs": [
+    "drug",
+    "druggist’s",
+    "drugs",
+    "drugs drug proprietors druggist’s sundries",
+    "proprietors",
+    "sundries"
+  ],
+  "Piece Goods": [
+    "dry",
+    "goods",
+    "notions",
+    "piece",
+    "piece goods notions other dry goods"
+  ],
+  "Uniforms": [
+    "children’s",
+    "clothing",
+    "men’s",
+    "uniforms",
+    "women’s"
+  ],
+  "Commercial Footwear": [
+    "commercial footwear",
+    "footwear"
+  ],
+  "Chemicals and Allied Products (Not Elsewhere Classified)": [
+    "allied",
+    "chemicals",
+    "chemicals allied products not elsewhere classified",
+    "products"
+  ],
+  "Petroleum and Petroleum Products": [
+    "petroleum",
+    "petroleum petroleum products",
+    "products"
+  ],
+  "Books": [
+    "books",
+    "books periodicals newspapers",
+    "newspapers",
+    "periodicals"
+  ],
+  "Florists Supplies": [
+    "florists’",
+    "florists’ supplies nursery stock flowers",
+    "flowers",
+    "nursery",
+    "stock",
+    "supplies"
+  ],
+  "Paints": [
+    "paints",
+    "paints varnishes supplies",
+    "supplies",
+    "varnishes"
+  ],
+  "Nondurable Goods (Not Elsewhere Classified)": [
+    "durable",
+    "goods",
+    "non",
+    "non durable goods not elsewhere classified"
+  ],
+  "Home Supply Warehouse Stores": [
+    "home",
+    "home supply warehouse stores",
+    "stores",
+    "supply",
+    "warehouse"
+  ],
+  "Lumber": [
+    "building",
+    "lumber",
+    "lumber building materials stores",
+    "materials",
+    "stores"
+  ],
+  "Glass": [
+    "glass",
+    "glass paint wallpaper stores",
+    "paint",
+    "stores",
+    "wallpaper"
+  ],
+  "Hardware Stores": [
+    "hardware",
+    "hardware stores",
+    "stores"
+  ],
+  "Nurseries": [
+    "garden",
+    "lawn",
+    "nurseries",
+    "nurseries lawn garden supply store",
+    "store",
+    "supply"
+  ],
+  "Mobile Home Dealers": [
+    "dealers",
+    "home",
+    "mobile",
+    "mobile home dealers"
+  ],
+  "Wholesale Clubs": [
+    "clubs",
+    "wholesale",
+    "wholesale clubs"
+  ],
+  "Duty Free Stores": [
+    "duty",
+    "duty free store",
+    "free",
+    "store"
+  ],
+  "Discount Stores": [
+    "discount",
+    "discount stores",
+    "stores"
+  ],
+  "Department Stores": [
+    "department",
+    "department stores",
+    "stores"
+  ],
+  "Variety Stores": [
+    "stores",
+    "variety",
+    "variety stores"
+  ],
+  "Miscellaneous General Merchandise": [
+    "merchandise",
+    "misc.",
+    "misc. general merchandise"
+  ],
+  "Groceries": [
+    "grocery",
+    "grocery stores supermarkets",
+    "stores",
+    "supermarkets"
+  ],
+  "Freezer and Locker Meat Provisioners": [
+    "freezer",
+    "locker",
+    "meat",
+    "meat provisioners freezer locker",
+    "provisioners"
+  ],
+  "Candy": [
+    "candy",
+    "candy nut confectionery stores",
+    "confectionery",
+    "nut",
+    "stores"
+  ],
+  "Dairy Products Stores": [
+    "dairy",
+    "dairy products stores",
+    "products",
+    "stores"
+  ],
+  "Bakeries": [
+    "bakeries"
+  ],
+  "Miscellaneous Food Stores - Convenience Stores and Specialty Markets": [
+    "convenience",
+    "food",
+    "markets",
+    "misc.",
+    "misc. food stores convenience stores specialty markets",
+    "specialty",
+    "stores"
+  ],
+  "Car and Truck Dealers (New & Used) Sales": [
+    "car",
+    "dealers",
+    "leasing",
+    "new",
+    "parts",
+    "repairs",
+    "truck",
+    "used"
+  ],
+  "Car and Truck Dealers (Used Only) Sales": [
+    "automobile",
+    "automobile truck dealers used only",
+    "dealers",
+    "only",
+    "truck",
+    "used"
+  ],
+  "Auto and Home Supply Stores": [
+    "automobile",
+    "automobile supply stores",
+    "stores",
+    "supply"
+  ],
+  "Automotive Tire Stores": [
+    "automotive",
+    "automotive tire stores",
+    "stores",
+    "tire"
+  ],
+  "Automotive Parts and Accessories Stores": [
+    "accessories",
+    "automotive",
+    "automotive parts accessories stores",
+    "parts",
+    "stores"
+  ],
+  "Gas": [
+    "ancillary",
+    "service stations without ancillary services",
+    "stations",
+    "without"
+  ],
+  "Automated Fuel Dispensers": [
+    "automated",
+    "automated fuel dispensers",
+    "dispensers",
+    "fuel"
+  ],
+  "Boat Dealers": [
+    "boat",
+    "boat dealers",
+    "dealers"
+  ],
+  "Motorcycle Shops": [
+    "camp",
+    "dealers",
+    "recreational",
+    "recreational utility trailers camp dealers",
+    "trailers",
+    "utility"
+  ],
+  "Motorcycle Shops and Dealers": [
+    "dealers",
+    "motorcycle",
+    "motorcycle dealers"
+  ],
+  "Motor Homes Dealers": [
+    "dealers",
+    "home",
+    "motor",
+    "motor home dealers"
+  ],
+  "Snowmobile Dealers": [
+    "dealers",
+    "snowmobile",
+    "snowmobile dealers"
+  ],
+  "Miscellaneous Auto Dealers": [
+    "auto",
+    "dealers",
+    "miscellaneous auto dealers"
+  ],
+  "Men’s and Boy’s Clothing and Accessories Stores": [
+    "accessories",
+    "boy’s",
+    "clothing",
+    "men’s",
+    "men’s boy’s clothing accessories stores",
+    "stores"
+  ],
+  "Women’s Ready-To-Wear Stores": [
+    "ready",
+    "stores",
+    "wear",
+    "women’s",
+    "women’s ready to wear stores"
+  ],
+  "Women’s Accessory and Specialty Shops": [
+    "accessory",
+    "shops",
+    "specialty",
+    "women’s",
+    "women’s accessory specialty shops"
+  ],
+  "Children’s and Infant’s Wear Stores": [
+    "children’s",
+    "children’s infant’s wear stores",
+    "infant’s",
+    "stores",
+    "wear"
+  ],
+  "Family Clothing Stores": [
+    "clothing",
+    "family",
+    "family clothing stores",
+    "stores"
+  ],
+  "Sports and Riding Apparel Stores": [
+    "apparel",
+    "riding",
+    "sports",
+    "sports apparel riding apparel stores",
+    "stores"
+  ],
+  "Shoe Stores": [
+    "shoe",
+    "shoe stores",
+    "stores"
+  ],
+  "Furriers and Fur Shops": [
+    "fur",
+    "furriers",
+    "furriers fur shops",
+    "shops"
+  ],
+  "Men’s": [
+    "clothing",
+    "men’s",
+    "men’s women’s clothing stores",
+    "stores",
+    "women’s"
+  ],
+  "Tailors": [
+    "alterations",
+    "mending",
+    "seamstress",
+    "tailors",
+    "tailors seamstress mending alterations"
+  ],
+  "Wig and Toupee Stores": [
+    "stores",
+    "toupee",
+    "wig",
+    "wig toupee stores"
+  ],
+  "Miscellaneous Apparel and Accessory Shops": [
+    "accessory",
+    "apparel",
+    "miscellaneous apparel accessory shops",
+    "shops"
+  ],
+  "Furniture": [
+    "equipment",
+    "exceptappliances",
+    "furnishings",
+    "furniture",
+    "home",
+    "stores"
+  ],
+  "Floor Covering Stores": [
+    "covering",
+    "floor",
+    "floor covering stores",
+    "stores"
+  ],
+  "Drapery": [
+    "covering",
+    "drapery",
+    "drapery window covering upholstery stores",
+    "stores",
+    "upholstery",
+    "window"
+  ],
+  "Fireplace": [
+    "accessories",
+    "fireplace",
+    "fireplace fireplace screens accessories stores",
+    "screens",
+    "stores"
+  ],
+  "Miscellaneous Home Furnishing Specialty Stores": [
+    "furnishing",
+    "home",
+    "miscellaneous home furnishing specialty stores",
+    "specialty",
+    "stores"
+  ],
+  "Household Appliance Stores": [
+    "appliance",
+    "household",
+    "household appliance stores",
+    "stores"
+  ],
+  "Electronics Stores": [
+    "electronic",
+    "electronic sales"
+  ],
+  "Music Stores-Musical Instruments": [
+    "instruments",
+    "music",
+    "music stores musical instruments piano sheet music",
+    "musical",
+    "piano",
+    "sheet",
+    "stores"
+  ],
+  "Computer Software Stores": [
+    "computer",
+    "computer software stores",
+    "software",
+    "stores"
+  ],
+  "Record Stores": [
+    "record",
+    "record shops",
+    "shops"
+  ],
+  "Caterers": [
+    "caterers"
+  ],
+  "Dining Out": [
+    "eating",
+    "eating places restaurants",
+    "fast",
+    "fast food restaurants",
+    "food",
+    "places",
+    "restaurants"
+  ],
+  "Drinking Places": [
+    "alcoholic",
+    "bars",
+    "beverages",
+    "cocktail",
+    "discotheques",
+    "drinking",
+    "lounges",
+    "nightclubs",
+    "places",
+    "taverns"
+  ],
+  "Healthcare": [
+    "drug",
+    "drug stores pharmacies",
+    "pharmacies",
+    "stores"
+  ],
+  "Package Stores-Beer": [
+    "beer",
+    "liquor",
+    "package",
+    "package stores beer wine liquor",
+    "stores",
+    "wine"
+  ],
+  "Used Merchandise and Secondhand Stores": [
+    "merchandise",
+    "secondhand",
+    "stores",
+    "used",
+    "used merchandise secondhand stores"
+  ],
+  "Antique Shops": [
+    "antique",
+    "antique shops",
+    "shops"
+  ],
+  "Pawn Shops": [
+    "pawn",
+    "pawn shops salvage yards",
+    "salvage",
+    "shops",
+    "yards"
+  ],
+  "Wrecking and Salvage Yards": [
+    "salvage",
+    "wrecking",
+    "wrecking salvage yards",
+    "yards"
+  ],
+  "Antique Reproductions": [
+    "antique",
+    "antique reproductions",
+    "reproductions"
+  ],
+  "Bicycle Shops": [
+    "bicycle",
+    "bicycle shops sales service",
+    "shops"
+  ],
+  "Sporting Goods Stores": [
+    "goods",
+    "sporting",
+    "sporting goods stores",
+    "stores"
+  ],
+  "Book Stores": [
+    "book",
+    "book stores",
+    "stores"
+  ],
+  "Stationery Stores": [
+    "office",
+    "school",
+    "stationery",
+    "stationery stores office school supply stores",
+    "stores",
+    "supply"
+  ],
+  "Jewelry Stores": [
+    "clock",
+    "jewelry",
+    "silverware",
+    "stores",
+    "watch",
+    "watch clock jewelry silverware stores"
+  ],
+  "Hobby": [
+    "game",
+    "hobby",
+    "hobby toy game shops",
+    "shops",
+    "toy"
+  ],
+  "Camera and Photographic Supply Stores": [
+    "camera",
+    "camera photographic supply stores",
+    "photographic",
+    "stores",
+    "supply"
+  ],
+  "Gift": [
+    "card",
+    "card shops gift novelty souvenir shops",
+    "gift",
+    "novelty",
+    "shops",
+    "souvenir"
+  ],
+  "Luggage and Leather Goods Stores": [
+    "goods",
+    "leather",
+    "leather goods stores",
+    "stores"
+  ],
+  "Sewing": [
+    "fabric",
+    "goods",
+    "needle",
+    "price",
+    "sewing",
+    "sewing needle fabric price goods stores",
+    "stores"
+  ],
+  "Glassware": [
+    "crystal",
+    "glassware",
+    "glassware crystal stores",
+    "stores"
+  ],
+  "Direct Marketing - Insurance Services": [
+    "direct",
+    "direct marketing insurance service",
+    "insurance",
+    "marketing"
+  ],
+  "Direct Marketing - Travel": [
+    "arrangements",
+    "direct",
+    "direct marketing travel related arrangements services",
+    "marketing",
+    "travel"
+  ],
+  "Door-To-Door Sales": [
+    "door",
+    "door to door sales"
+  ],
+  "Direct Marketing - Catalog Merchant": [
+    "catalog",
+    "direct",
+    "direct marketing catalog merchant",
+    "marketing",
+    "merchant"
+  ],
+  "Direct Marketing - Combination Catalog and Retail Merchant": [
+    "catalog",
+    "direct",
+    "direct marketing catalog catalog retail merchant",
+    "marketing",
+    "merchant",
+    "retail"
+  ],
+  "Direct Marketing - Outbound Tele": [
+    "direct",
+    "direct marketing outbound telemarketing merchant",
+    "marketing",
+    "merchant",
+    "outbound",
+    "telemarketing"
+  ],
+  "Direct Marketing - Inbound Tele": [
+    "direct",
+    "direct marketing inbound teleservices merchant",
+    "inbound",
+    "marketing",
+    "merchant",
+    "teleservices"
+  ],
+  "Direct Marketing - Subscription": [
+    "continuity",
+    "direct",
+    "direct marketing continuity subscription merchant",
+    "marketing",
+    "merchant",
+    "subscription"
+  ],
+  "Direct Marketing - Other": [
+    "direct",
+    "direct marketing not elsewhere classified",
+    "marketing"
+  ],
+  "Artist’s Supply and Craft Shops": [
+    "artist’s",
+    "artist’s supply craft shops",
+    "craft",
+    "shops",
+    "supply"
+  ],
+  "Art Dealers and Galleries": [
+    "art",
+    "art dealers galleries",
+    "dealers",
+    "galleries"
+  ],
+  "Stamp and Coin Stores": [
+    "coin",
+    "numismatic",
+    "philatelic",
+    "stamp",
+    "stamp coin stores philatelic numismatic supplies",
+    "stores",
+    "supplies"
+  ],
+  "Religious Goods Stores": [
+    "goods",
+    "religious",
+    "religious goods stores",
+    "stores"
+  ],
+  "Hearing Aids Sales and Supplies": [
+    "aids",
+    "hearing",
+    "hearing aids sales service supply stores",
+    "stores",
+    "supply"
+  ],
+  "Orthopedic Goods - Prosthetic Devices": [
+    "devices",
+    "goods",
+    "orthopedic",
+    "orthopedic goods prosthetic devices",
+    "prosthetic"
+  ],
+  "Cosmetic Stores": [
+    "cosmetic",
+    "cosmetic stores",
+    "stores"
+  ],
+  "Typewriter Stores": [
+    "rental",
+    "stores",
+    "typewriter",
+    "typewriter stores sales rental service"
+  ],
+  "Fuel Dealers (Non Automotive)": [
+    "coal",
+    "fuel",
+    "fuel fuel oil wood coal liquefied petroleum",
+    "liquefied",
+    "oil",
+    "petroleum",
+    "wood"
+  ],
+  "Florists": [
+    "florists"
+  ],
+  "Cigar Stores and Stands": [
+    "cigar",
+    "cigar stores stands",
+    "stands",
+    "stores"
+  ],
+  "News Dealers and Newsstands": [
+    "dealers",
+    "news",
+    "news dealers newsstands",
+    "newsstands"
+  ],
+  "Pet Shops": [
+    "foods",
+    "pet",
+    "pet shops pet foods supplies stores",
+    "shops",
+    "stores",
+    "supplies"
+  ],
+  "Swimming Pools Sales": [
+    "pools",
+    "supplies",
+    "swimming",
+    "swimming pools sales service supplies"
+  ],
+  "Electric Razor Stores": [
+    "electric",
+    "electric razor stores sales service",
+    "razor",
+    "stores"
+  ],
+  "Tent and Awning Shops": [
+    "awning",
+    "shops",
+    "tent",
+    "tent awning shops"
+  ],
+  "Miscellaneous Specialty Retail": [
+    "miscellaneous specialty retail stores",
+    "retail",
+    "specialty",
+    "stores"
+  ],
+  "Manual Cash Disburse": [
+    "cash",
+    "disbursements",
+    "financial",
+    "financial institutions manual cash disbursements",
+    "institutions",
+    "manual"
+  ],
+  "Automated Cash Disburse": [
+    "cash",
+    "disbursements",
+    "financial",
+    "financial institutions manual cash disbursements",
+    "institutions",
+    "manual"
+  ],
+  "Financial Institutions": [
+    "financial",
+    "financial institutions merchandise services",
+    "institutions",
+    "merchandise"
+  ],
+  "Non-FI": [
+    "cheques",
+    "currency",
+    "financial",
+    "foreign",
+    "institutions",
+    "money",
+    "non",
+    "orders",
+    "transfer",
+    "travelers",
+    "wire"
+  ],
+  "Security Brokers/Dealers": [
+    "brokers",
+    "dealers",
+    "security",
+    "security brokers dealers"
+  ],
+  "Insurance Underwriting": [
+    "insurance",
+    "insurance sales underwriting premiums",
+    "premiums",
+    "underwriting"
+  ],
+  "Insurance - Default": [
+    "forfirst",
+    "insurance",
+    "longer",
+    "presentment",
+    "valid"
+  ],
+  "Real Estate Agents and Managers - Rentals": [
+    "agents",
+    "estate",
+    "managers",
+    "real",
+    "real estate agents managers rentals",
+    "rentals"
+  ],
+  "Hotels": [
+    "central",
+    "hotels",
+    "lodging",
+    "motels",
+    "reservation",
+    "resorts"
+  ],
+  "Timeshares": [
+    "timeshares"
+  ],
+  "Sporting/Recreation Camps": [
+    "camps",
+    "recreational",
+    "sporting",
+    "sporting recreational camps"
+  ],
+  "Trailer Parks": [
+    "camp",
+    "grounds",
+    "parks",
+    "trailer",
+    "trailer parks camp grounds"
+  ],
+  "Laundry": [
+    "cleaning",
+    "garment",
+    "laundry",
+    "laundry cleaning garment services"
+  ],
+  "Laundries": [
+    "family",
+    "laundry",
+    "laundry family commercial"
+  ],
+  "Dry Cleaners": [
+    "cleaners",
+    "dry",
+    "dry cleaners"
+  ],
+  "Carpet/Upholstery Cleaning": [
+    "carpet",
+    "carpet upholstery cleaning",
+    "cleaning",
+    "upholstery"
+  ],
+  "Photographic Studios": [
+    "photographic",
+    "photographic studios",
+    "studios"
+  ],
+  "Barber and Beauty Shops": [
+    "barber",
+    "barber beauty shops",
+    "beauty",
+    "shops"
+  ],
+  "Shoe Repair/Hat Cleaning": [
+    "cleaning",
+    "hat",
+    "parlors",
+    "repair",
+    "shine",
+    "shoe",
+    "shop",
+    "shops"
+  ],
+  "Funeral Services": [
+    "crematories",
+    "funeral",
+    "funeral service crematories"
+  ],
+  "Dating/Escort Services": [
+    "dating",
+    "dating escort services",
+    "escort"
+  ],
+  "Tax Preparation Services": [
+    "preparation",
+    "tax",
+    "tax preparation service"
+  ],
+  "Counseling Services": [
+    "counseling",
+    "counseling service debt marriage personal",
+    "debt",
+    "marriage",
+    "personal"
+  ],
+  "Buying/Shopping Services": [
+    "buying",
+    "buying shopping services clubs",
+    "clubs",
+    "shopping"
+  ],
+  "Clothing Rental": [
+    "clothing",
+    "clothing rental costumes formal wear uniforms",
+    "costumes",
+    "formal",
+    "rental",
+    "uniforms",
+    "wear"
+  ],
+  "Massage Parlors": [
+    "massage",
+    "massage parlors",
+    "parlors"
+  ],
+  "Health and Beauty Spas": [
+    "beauty",
+    "health",
+    "health beauty shops",
+    "shops"
+  ],
+  "Miscellaneous General Services": [
+    "classifies",
+    "miscellaneous personal services not elsewhere classifies",
+    "personal"
+  ],
+  "Advertising Services": [
+    "advertising",
+    "advertising services"
+  ],
+  "Credit Reporting Agencies": [
+    "agencies",
+    "consumer",
+    "consumer credit reporting agencies",
+    "credit",
+    "reporting"
+  ],
+  "Commercial Photography": [
+    "art",
+    "commercial photography art graphics",
+    "graphics",
+    "photography"
+  ],
+  "Quick Copy": [
+    "blueprinting",
+    "copy",
+    "quick",
+    "quick copy reproduction blueprinting services",
+    "reproduction"
+  ],
+  "Secretarial Support Services": [
+    "secretarial",
+    "stenographic",
+    "stenographic secretarial support services",
+    "support"
+  ],
+  "Exterminating Services": [
+    "disinfecting",
+    "exterminating",
+    "exterminating disinfecting services"
+  ],
+  "Cleaning and Maintenance": [
+    "cleaning",
+    "cleaning maintenance janitorial services",
+    "janitorial",
+    "maintenance"
+  ],
+  "Employment/Temp Agencies": [
+    "agencies",
+    "employment",
+    "employment agencies temporary help services",
+    "help",
+    "temporary"
+  ],
+  "Computer Programming": [
+    "computer",
+    "data",
+    "design",
+    "integrated",
+    "processing",
+    "programming",
+    "systems"
+  ],
+  "Information Retrieval Services": [
+    "information",
+    "information retrieval services",
+    "retrieval"
+  ],
+  "Computer Repair": [
+    "computer",
+    "maintenance",
+    "repair"
+  ],
+  "Consulting": [
+    "consulting",
+    "management",
+    "management consulting public relations services",
+    "public",
+    "relations"
+  ],
+  "Detective Agencies": [
+    "armored",
+    "carsand",
+    "dogs",
+    "guard",
+    "including",
+    "protective",
+    "security"
+  ],
+  "Equipment Rental": [
+    "appliance",
+    "equipment",
+    "furniture",
+    "leasing",
+    "rental",
+    "tool"
+  ],
+  "Photo Developing": [
+    "developing",
+    "laboratories",
+    "photo",
+    "photofinishing",
+    "photofinishing laboratories photo developing"
+  ],
+  "Miscellaneous Business Services": [
+    "business",
+    "business services not elsewhere classified"
+  ],
+  "Truck Stop": [
+    "stop",
+    "truck",
+    "truck stop"
+  ],
+  "Truck/Utility Trailer Rentals": [
+    "rentals",
+    "trailer",
+    "truck",
+    "truck utility trailer rentals",
+    "utility"
+  ],
+  "Recreational Vehicle Rentals": [
+    "home",
+    "motor",
+    "motor home recreational vehicle rentals",
+    "recreational",
+    "rentals",
+    "vehicle"
+  ],
+  "Parking Lots": [
+    "automobile",
+    "automobile parking lots garages",
+    "garages",
+    "lots",
+    "parking"
+  ],
+  "Auto Body Repair Shops": [
+    "automotive",
+    "automotive body repair shops",
+    "body",
+    "repair",
+    "shops"
+  ],
+  "Tire Retreading and Repair": [
+    "repair",
+    "shops",
+    "tire",
+    "tire re treading repair shops",
+    "treading"
+  ],
+  "Auto Paint Shops": [
+    "automotive",
+    "paint",
+    "paint shops automotive",
+    "shops"
+  ],
+  "Auto Service Shops": [
+    "automotive",
+    "automotive service shops",
+    "shops"
+  ],
+  "Car Washes": [
+    "car",
+    "car washes",
+    "washes"
+  ],
+  "Towing Services": [
+    "towing",
+    "towing services"
+  ],
+  "Electronics Repair Shops": [
+    "radio",
+    "radio repair shops",
+    "repair",
+    "shops"
+  ],
+  "A/C": [
+    "air",
+    "air conditioning refrigeration repair shops",
+    "conditioning",
+    "refrigeration",
+    "repair",
+    "shops"
+  ],
+  "Small Appliance Repair": [
+    "appliance",
+    "electrical",
+    "electrical small appliance repair shops",
+    "repair",
+    "shops",
+    "small"
+  ],
+  "Watch/Jewelry Repair": [
+    "clock",
+    "jewelry",
+    "repair",
+    "watch",
+    "watch clock jewelry repair"
+  ],
+  "Furniture Repair": [
+    "furniture",
+    "furniture furniture repair furniture refinishing",
+    "refinishing",
+    "repair"
+  ],
+  "Welding Repair": [
+    "repair",
+    "welding",
+    "welding repair"
+  ],
+  "Miscellaneous Repair Shops": [
+    "repair",
+    "repair shops related services miscellaneous",
+    "shops"
+  ],
+  "Picture/Video Production": [
+    "distribution",
+    "motion",
+    "motion pictures video tape production distribution",
+    "pictures",
+    "production",
+    "tape",
+    "video"
+  ],
+  "Motion Picture Theaters": [
+    "motion",
+    "motion picture theaters",
+    "picture",
+    "theaters"
+  ],
+  "Video Tape Rental Stores": [
+    "rental",
+    "stores",
+    "tape",
+    "video",
+    "video tape rental stores"
+  ],
+  "Dance Hall": [
+    "dance",
+    "dance halls studios schools",
+    "halls",
+    "schools",
+    "studios"
+  ],
+  "Theatrical Ticket Agencies": [
+    "agencies",
+    "except",
+    "motion",
+    "pictures",
+    "producers",
+    "theatrical",
+    "theatrical producers except motion pictures ticket agencies",
+    "ticket"
+  ],
+  "Bands": [
+    "bands",
+    "entertainers",
+    "orchestras"
+  ],
+  "Billiard/Pool Establishments": [
+    "billiard",
+    "billiard pool establishments",
+    "establishments",
+    "pool"
+  ],
+  "Bowling Alleys": [
+    "alleys",
+    "bowling",
+    "bowling alleys"
+  ],
+  "Sports Clubs/Fields": [
+    "athletic",
+    "clubs",
+    "fields",
+    "professional",
+    "promoters",
+    "sport",
+    "sports"
+  ],
+  "Tourist Attractions and Exhibits": [
+    "attractions",
+    "exhibits",
+    "tourist",
+    "tourist attractions exhibits"
+  ],
+  "Golf Courses - Public": [
+    "courses",
+    "golf",
+    "golf courses public",
+    "public"
+  ],
+  "Video Amusement Game Supplies": [
+    "amusement",
+    "game",
+    "supplies",
+    "video",
+    "video amusement game supplies"
+  ],
+  "Video Game Arcades": [
+    "arcades",
+    "establishments",
+    "game",
+    "video",
+    "video game arcades establishments"
+  ],
+  "Betting/Casino Gambling": [
+    "betting",
+    "casino",
+    "chips",
+    "gaming",
+    "including",
+    "lottery",
+    "off",
+    "race",
+    "tickets",
+    "track",
+    "tracks",
+    "wagers"
+  ],
+  "Amusement Parks/Carnivals": [
+    "amusement",
+    "amusement parks carnivals circuses fortune tellers",
+    "carnivals",
+    "circuses",
+    "fortune",
+    "parks",
+    "tellers"
+  ],
+  "Country Clubs": [
+    "athletic",
+    "clubs",
+    "country",
+    "courses",
+    "golf",
+    "membership",
+    "private",
+    "recreation",
+    "sports"
+  ],
+  "Aquariums": [
+    "aquariums",
+    "aquariums sea aquariums dolphinariums",
+    "dolphinariums",
+    "sea"
+  ],
+  "Miscellaneous Recreation Services": [
+    "recreation",
+    "recreation services not elsewhere classified"
+  ],
+  "Doctors": [
+    "doctors",
+    "doctors physicians not elsewhere classified",
+    "physicians"
+  ],
+  "Dentists": [
+    "dentists",
+    "dentists orthodontists",
+    "orthodontists"
+  ],
+  "Osteopaths": [
+    "osteopaths"
+  ],
+  "Chiropractors": [
+    "chiropractors"
+  ],
+  "Optometrists": [
+    "ophthalmologists",
+    "optometrists",
+    "optometrists ophthalmologists"
+  ],
+  "Opticians": [
+    "eyeglasses",
+    "goods",
+    "opticians",
+    "opticians opticians goods eyeglasses"
+  ],
+  "Chiropodists": [
+    "chiropodists",
+    "podiatrists",
+    "podiatrists chiropodists"
+  ],
+  "Nursing/Personal Care": [
+    "care",
+    "facilities",
+    "nursing",
+    "nursing personal care facilities",
+    "personal"
+  ],
+  "Hospitals": [
+    "hospitals"
+  ],
+  "Medical and Dental Labs": [
+    "dental",
+    "laboratories",
+    "medical",
+    "medical dental laboratories"
+  ],
+  "Medical Services": [
+    "health",
+    "medical",
+    "practitioners"
+  ],
+  "Legal Services": [
+    "attorneys",
+    "legal",
+    "legal services attorneys"
+  ],
+  "Elementary": [
+    "elementary",
+    "elementary secondary schools",
+    "schools",
+    "secondary"
+  ],
+  "Colleges": [
+    "colleges",
+    "junior",
+    "professionalschools",
+    "universities"
+  ],
+  "Correspondence Schools": [
+    "correspondence",
+    "correspondence schools",
+    "schools"
+  ],
+  "Business/Secretarial Schools": [
+    "business",
+    "business secretarial schools",
+    "schools",
+    "secretarial"
+  ],
+  "Vocational/Trade Schools": [
+    "schools",
+    "trade",
+    "vocational",
+    "vocational schools trade schools"
+  ],
+  "Educational Services": [
+    "educational",
+    "schools",
+    "schools educational services not elsewhere classified"
+  ],
+  "Child Care Services": [
+    "care",
+    "child",
+    "child care services"
+  ],
+  "Charitable and Social Service Organizations - Fundraising": [
+    "charitable",
+    "charitable social service organizations",
+    "organizations",
+    "social"
+  ],
+  "Civic": [
+    "associations",
+    "civic",
+    "civic fraternal social associations",
+    "fraternal",
+    "social"
+  ],
+  "Political Organizations": [
+    "organizations",
+    "political",
+    "political organizations"
+  ],
+  "Religious Organizations": [
+    "organizations",
+    "religious",
+    "religious organizations"
+  ],
+  "Automobile Associations": [
+    "associations",
+    "automobile",
+    "automobile associations"
+  ],
+  "Membership Organizations": [
+    "membership",
+    "membership organizations not elsewhere classified",
+    "organizations"
+  ],
+  "Testing Laboratories": [
+    "laboratories",
+    "medical",
+    "non",
+    "testing",
+    "testing laboratories non medical"
+  ],
+  "Architectural/Surveying Services": [
+    "architectural",
+    "architectural engineering surveying services",
+    "engineering",
+    "surveying"
+  ],
+  "Accounting/Bookkeeping Services": [
+    "accounting",
+    "accounting auditing bookkeeping services",
+    "auditing",
+    "bookkeeping"
+  ],
+  "Professional Services": [
+    "defined",
+    "professional",
+    "professional services not elsewhere defined"
+  ],
+  "Court Costs": [
+    "alimony",
+    "child",
+    "costs",
+    "court",
+    "court costs including alimony child support",
+    "including",
+    "support"
+  ],
+  "Fines - Government Administrative Entities": [
+    "fines"
+  ],
+  "Bail and Bond Payments (payment to the surety for the bond": [
+    "bail",
+    "bail bond payments",
+    "bond",
+    "payments"
+  ],
+  "Tax Payments - Government Agencies": [
+    "payments",
+    "tax",
+    "tax payments"
+  ],
+  "Government Services (Not Elsewhere Classified)": [
+    "government",
+    "government services not elsewhere classified"
+  ],
+  "Postal Services - Government Only": [
+    "government",
+    "only",
+    "postal",
+    "postal services government only"
+  ],
+  "U.S. Federal Government Agencies or Departments": [
+    "government",
+    "intra",
+    "intra government transactions",
+    "transactions"
+  ],
+  "Intra-Company Purchases": [
+    "company",
+    "intra",
+    "intra company purchases visa only",
+    "only",
+    "purchases",
+    "visa"
+  ]
+}

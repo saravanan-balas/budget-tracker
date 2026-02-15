@@ -369,7 +369,7 @@ public class SynchronousImportService : ISynchronousImportService
         var desc = description.Trim();
         
         // Remove common prefixes
-        var prefixesToRemove = new[] { "POS ", "DEBIT ", "CREDIT ", "ACH ", "CHECK ", "ATM " };
+        var prefixesToRemove = new[] { "POS ", "DEBIT ", "CREDIT ", "ACH ", "CHECK ", "ATM ", "PAYPAL " };
         foreach (var prefix in prefixesToRemove)
         {
             if (desc.StartsWith(prefix, StringComparison.OrdinalIgnoreCase))
@@ -379,8 +379,25 @@ public class SynchronousImportService : ISynchronousImportService
             }
         }
         
-        // Take first part (usually merchant name)
-        var parts = desc.Split(new[] { ' ', '#', '*', '-' }, StringSplitOptions.RemoveEmptyEntries);
-        return parts.Length > 0 ? parts[0] : "Unknown";
+        // Split by delimiters that typically separate merchant from ref/ID (keep # and * as split points)
+        var parts = desc.Split(new[] { ' ', '#', '*' }, StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length == 0) return "Unknown";
+
+        // Take tokens until we hit: all-digits, obvious ref/ID, or max tokens
+        var merchantTokens = new List<string>();
+        var stopWords = new HashSet<string>(StringComparer.OrdinalIgnoreCase) { "REF", "PAYMENT", "AUTH", "PENDING", "ONLINE", "CARD" };
+        const int maxTokens = 4;
+
+        foreach (var part in parts)
+        {
+            if (merchantTokens.Count >= maxTokens) break;
+            var p = part.Trim('-');
+            if (string.IsNullOrEmpty(p)) continue;
+            if (p.All(char.IsDigit) && p.Length >= 4) break;  // Likely store/ref number
+            if (stopWords.Contains(p)) break;
+            merchantTokens.Add(p);
+        }
+
+        return merchantTokens.Count > 0 ? string.Join(" ", merchantTokens) : parts[0];
     }
 }
