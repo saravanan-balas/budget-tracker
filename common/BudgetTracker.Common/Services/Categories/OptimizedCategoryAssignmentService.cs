@@ -20,6 +20,11 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private readonly string _merchantCategoryCachePrefix = "merchant_cat:";
     private readonly string _ruleCachePrefix = "cat_rule:";
 
+    /// <summary>When true, skip UserMerchantCategoryMappings (for testing MCC/HF/ML). Set via Categorization__SkipMerchantMappings or SKIP_MERCHANT_MAPPINGS.</summary>
+    private static bool SkipMerchantMappings =>
+        string.Equals(Environment.GetEnvironmentVariable("SKIP_MERCHANT_MAPPINGS"), "true", StringComparison.OrdinalIgnoreCase) ||
+        string.Equals(Environment.GetEnvironmentVariable("Categorization__SkipMerchantMappings"), "true", StringComparison.OrdinalIgnoreCase);
+
     // Performance counters
     private long _cacheHits = 0;
     private long _ruleMappings = 0;
@@ -68,13 +73,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return hfCategory.Value;
         }
 
-        // 4. Try merchant-based assignment (learn from previous assignments)
-        var merchantCategory = await TryMerchantBasedAssignment(merchant, userId);
-        if (merchantCategory.HasValue)
+        // 4. Try merchant-based assignment (learn from previous assignments) - skipped when SkipMerchantMappings
+        if (!SkipMerchantMappings)
         {
-            Interlocked.Increment(ref _merchantMappings);
-            _memoryCache.Set(cacheKey, merchantCategory.Value, _memoryCacheExpiry);
-            return merchantCategory.Value;
+            var merchantCategory = await TryMerchantBasedAssignment(merchant, userId);
+            if (merchantCategory.HasValue)
+            {
+                Interlocked.Increment(ref _merchantMappings);
+                _memoryCache.Set(cacheKey, merchantCategory.Value, _memoryCacheExpiry);
+                return merchantCategory.Value;
+            }
         }
 
         // 5. Default/AI fallback (placeholder for now)
@@ -117,9 +125,11 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return results;
         }
 
-        // 2. Batch load merchant categories for uncached transactions
+        // 2. Batch load merchant categories for uncached transactions (skipped when SkipMerchantMappings)
         var merchants = uncachedTransactions.Select(t => t.merchant).Distinct().ToList();
-        var merchantCategories = await GetMerchantCategoriesAsync(merchants, userId);
+        var merchantCategories = SkipMerchantMappings
+            ? new Dictionary<string, Guid?>()
+            : await GetMerchantCategoriesAsync(merchants, userId);
 
         // 3. Process uncached transactions
         var batchMcc = 0;

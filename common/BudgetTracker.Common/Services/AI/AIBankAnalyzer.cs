@@ -27,7 +27,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         _configuration = configuration;
         _httpClient = httpClient;
         
-        var apiKey = _configuration["OPENAI_API_KEY"];
+        var apiKey = _configuration["OPENAI_API_KEY"] ?? _configuration["OpenAI:ApiKey"];
         if (!string.IsNullOrEmpty(apiKey))
         {
             _httpClient.DefaultRequestHeaders.Authorization = 
@@ -112,7 +112,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
             _logger.LogInformation("Content extracted for AI analysis: {Length} characters", content.Length);
 
             // Check if OpenAI API key is configured
-            var apiKey = _configuration["OPENAI_API_KEY"];
+            var apiKey = _configuration["OPENAI_API_KEY"] ?? _configuration["OpenAI:ApiKey"];
             if (string.IsNullOrEmpty(apiKey))
             {
                 _logger.LogWarning("OpenAI API key not configured, using fallback parsing");
@@ -529,7 +529,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         {
             _logger.LogDebug("[AI-CATEGORIZE-START] Categorizing transaction with AI. Prompt length: {Length} chars", prompt.Length);
             
-            var apiKey = _configuration["OPENAI_API_KEY"];
+            var apiKey = _configuration["OPENAI_API_KEY"] ?? _configuration["OpenAI:ApiKey"];
             if (string.IsNullOrEmpty(apiKey))
             {
                 _logger.LogWarning("[AI-CATEGORIZE-NO-KEY] OpenAI API key not configured, using fallback categorization");

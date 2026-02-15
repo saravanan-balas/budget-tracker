@@ -1,0 +1,5 @@
+torch>=2.0
+transformers>=4.30
+fastapi>=0.100
+uvicorn>=0.22
+huggingface_hub>=0.17
