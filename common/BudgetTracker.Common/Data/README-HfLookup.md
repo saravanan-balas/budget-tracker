@@ -1,6 +1,6 @@
 # HF Transaction Dataset Lookup
 
-`HfTransactionLookup.json` provides transaction-to-category mappings from the [mitulshah/transaction-categorization](https://huggingface.co/datasets/mitulshah/transaction-categorization) dataset. It is used as a fallback when MCC keyword rules and merchant-based learning don't match.
+`HfTransactionLookup.json` provides transaction-to-category mappings from the [mitulshah/transaction-categorization](https://huggingface.co/datasets/mitulshah/transaction-categorization) dataset (~700K entries). It is shipped as a `Content` file (not embedded — too large at ~70MB).
 
 ## Generating the lookup
 
@@ -22,20 +22,21 @@ python scripts/build-hf-dataset-lookup.py
 
 Output goes to `common/BudgetTracker.Common/Data/HfTransactionLookup.json`.
 
-## Using the lookup
+> **Note:** This file is in `.gitignore` because it is too large for git. Regenerate it locally after cloning.
 
-1. **Embed in the assembly** – Add to `BudgetTracker.Common.csproj`:
-   ```xml
-   <EmbeddedResource Include="Data\HfTransactionLookup.json" />
-   ```
+## Categorization Pipeline Order
 
-2. **Or copy to output** – Copy `HfTransactionLookup.json` to your app's output directory (or `Data/` subfolder) so the loader can find it at runtime.
+1. Memory cache (in-process)
+2. Well-known merchant heuristics (`WellKnownMerchants.json`)
+3. **HF dataset lookup** (`HfTransactionLookup.json`) ← this file
+4. MCC keyword rules (`MerchantCategoryKeywords.json`)
+5. Learned merchant mappings (database)
+6. AI fallback (OpenAI) — results are persisted to avoid repeat calls
 
-If no lookup is present, HF-based categorization is skipped; the app continues with keyword rules and merchant learning.
+## How matching works
 
-## Categorization order
+1. Exact match on merchant name, description, or combined text
+2. Substring match with safeguards: HF key must cover ≥50% of merchant length to prevent false positives (e.g., HF key "delta" incorrectly matching "DELTA DENTAL")
+3. HF dataset categories are mapped to app categories via `HfToAppCategory` dictionary
 
-1. MCC keyword rules (`MerchantCategoryKeywords.json`)
-2. **HF dataset lookup**
-3. Merchant-based learning (from past assignments)
-4. AI fallback or Uncategorized
+If no lookup file is present, HF-based categorization is skipped; the app continues with the remaining pipeline stages.

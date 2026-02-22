@@ -274,7 +274,8 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
                 if (categoryId.HasValue)
                 {
                     categorizedCount++;
-                    _logger.LogInformation("Successfully categorized {Merchant} with category ID {CategoryId}", transaction.OriginalMerchant, categoryId);
+                    var categoryName = (await _context.Categories.FindAsync(categoryId.Value))?.Name ?? "Unknown";
+                    _logger.LogInformation("Successfully categorized {Merchant} with category {CategoryName}", transaction.OriginalMerchant, categoryName);
                 }
                 else
                 {

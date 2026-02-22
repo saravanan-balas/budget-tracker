@@ -1,35 +1,33 @@
 # Merchant Category Keywords
 
-`MerchantCategoryKeywords.json` drives rule-based transaction categorization. Keywords are matched against merchant names and transaction descriptions.
+`MerchantCategoryKeywords.json` provides rule-based transaction categorization using curated multi-word keywords. Keywords are matched (case-insensitive `Contains`) against merchant names and transaction descriptions.
 
-## Regenerating from MCC (recommended)
+## Design Principles
 
-The file is **generated** from the [greggles/mcc-codes](https://github.com/greggles/mcc-codes) dataset (MCC = Merchant Category Code standard). To regenerate:
+- **Multi-word only** — every keyword must be unambiguous enough that a substring match won't produce false positives (e.g., "grocery store" not "store")
+- **Curated, not generated** — the old auto-generated MCC approach produced 2700+ keywords with many false positives; this file is manually maintained
+- **Complementary** — well-known merchants are handled by `WellKnownMerchants.json`; the HF dataset handles the long tail; these keywords catch generic category patterns
 
-```bash
-npm run generate:mcc-keywords
-```
+## Categorization Pipeline Order
 
-This fetches `mcc_codes.csv` from GitHub, maps MCC irs_description values to app categories, extracts keywords from edited_description, and overwrites this JSON file. You get **280+ categories** with thousands of keywords—no longer limited to previously hardcoded values.
+1. Memory cache (in-process)
+2. Well-known merchant heuristics (`WellKnownMerchants.json`)
+3. HF dataset lookup (`HfTransactionLookup.json`)
+4. **MCC keyword rules** (`MerchantCategoryKeywords.json`) ← this file
+5. Learned merchant mappings (database)
+6. AI fallback (OpenAI) — results are persisted to avoid repeat calls
 
-## Customization
+## Editing
 
-Edit `scripts/generate-mcc-keywords.js` to:
-
-- Change `IRS_TO_APP_CATEGORY` – map MCC categories to your app category names
-- Adjust `GENERIC_SKIP` – filter out overly generic keywords
-- Modify `extractKeywords()` – change how keywords are derived from MCC entries
-
-## Manual editing
-
-You can also edit `MerchantCategoryKeywords.json` directly. Format:
+Edit `MerchantCategoryKeywords.json` directly. Format:
 
 ```json
 {
-  "CategoryName": ["keyword1", "keyword2", "keyword3"]
+  "CategoryName": ["keyword phrase 1", "keyword phrase 2"]
 }
 ```
 
-- Use lowercase keywords; matching is case-insensitive.
-- Keywords are matched with `Contains` against merchant + description text.
-- Category names must match app category names (or will be created on first use).
+- Use lowercase keywords; matching is case-insensitive
+- Keywords are matched with `Contains` against merchant + description text
+- Category names must match existing app category names
+- Test changes with: `dotnet test tests/BudgetTracker.Categorization.Tests/`

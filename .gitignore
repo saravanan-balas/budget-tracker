@@ -597,6 +597,12 @@ test-results/
 junit.xml
 
 # ===========================================
+# Large Generated Data Files
+# ===========================================
+# HF transaction lookup (70MB+, regenerate with: python scripts/build-hf-dataset-lookup.py)
+common/BudgetTracker.Common/Data/HfTransactionLookup.json
+
+# ===========================================
 # Miscellaneous
 # ===========================================
 # Backup files

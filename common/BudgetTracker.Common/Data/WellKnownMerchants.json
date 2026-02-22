@@ -1,0 +1,250 @@
+{
+  "merchants": [
+    {
+      "patterns": ["uber eats", "ubereats", "uber *eats"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["doordash", "dd *doordash"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["grubhub"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["instacart"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["starbucks"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["mcdonald", "mcdonald's"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["chipotle"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["chick-fil-a", "chick fil a"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["taco bell"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["subway"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["panera bread", "panera"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["dunkin", "dunkin donuts"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["panda express"],
+      "category": "Food & Dining"
+    },
+    {
+      "patterns": ["uber", "uber trip", "uber *trip"],
+      "category": "Transportation",
+      "excludePatterns": ["uber eats", "ubereats", "uber *eats"]
+    },
+    {
+      "patterns": ["lyft"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["shell oil", "shell service"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["chevron"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["exxonmobil", "exxon"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["speedway"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["ez pass", "ezpass", "e-zpass", "ptc ez pass"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["walmart", "wal-mart", "wm supercenter"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["costco whse", "costco wholesale"],
+      "category": "Groceries",
+      "excludePatterns": ["costco gas"]
+    },
+    {
+      "patterns": ["costco gas"],
+      "category": "Transportation"
+    },
+    {
+      "patterns": ["kroger"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["whole foods", "wholefds"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["trader joe"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["aldi"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["publix"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["safeway"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["sams club", "sam's club", "samsclub"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["h-e-b", "heb grocery"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["vani foods"],
+      "category": "Groceries"
+    },
+    {
+      "patterns": ["amazon.com", "amzn mktp", "amzn.com", "amazon prime", "amazon marktplc"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["target"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["home depot"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["lowes", "lowe's"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["kate spade"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["netflix", "netflix.com"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["spotify"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["hulu"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["disney+", "disneyplus"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["hbo max", "max.com"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["apple.com/bill", "apple.com"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["google play", "google *play"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["audible"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["yupptv"],
+      "category": "Entertainment"
+    },
+    {
+      "patterns": ["cvs pharmacy", "cvs/pharmacy"],
+      "category": "Healthcare"
+    },
+    {
+      "patterns": ["walgreens"],
+      "category": "Healthcare"
+    },
+    {
+      "patterns": ["att ", "at&t"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["verizon", "vzw"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["t-mobile"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["comcast", "xfinity"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["openai", "chatgpt"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["github"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["simplisafe"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["brilliant.org"],
+      "category": "Education"
+    },
+    {
+      "patterns": ["rebtel"],
+      "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["venmo"],
+      "category": "Transfer"
+    },
+    {
+      "patterns": ["zelle"],
+      "category": "Transfer"
+    },
+    {
+      "patterns": ["paypal"],
+      "category": "Transfer"
+    },
+    {
+      "patterns": ["eternal mother temple", "sri venkateswara"],
+      "category": "Charity"
+    }
+  ]
+}

@@ -371,7 +371,7 @@ public class AIBankAnalyzer : IAIBankAnalyzer
                 Date = DateTime.SpecifyKind(DateTime.UtcNow.AddDays(-new Random().Next(1, 5)), DateTimeKind.Utc), // Recent dates
                 Description = description,
                 Amount = -amount, // Expenses are negative
-                Category = InferCategory(description)
+                Category = "Uncategorized"
             };
         }
         catch
@@ -587,22 +587,4 @@ public class AIBankAnalyzer : IAIBankAnalyzer
         }
     }
 
-    private string InferCategory(string description)
-    {
-        // This is now only used as a fallback when OpenAI is not available
-        var desc = description.ToLowerInvariant();
-        return desc switch
-        {
-            var d when d.Contains("uber") && !d.Contains("eats") => "Transportation",
-            var d when d.Contains("uber eats") => "Food & Dining",
-            var d when d.Contains("netflix") => "Entertainment", 
-            var d when d.Contains("restaurant") || d.Contains("food") => "Food & Dining",
-            var d when d.Contains("grocery") || d.Contains("market") => "Groceries",
-            var d when d.Contains("gas") || d.Contains("fuel") => "Transportation",
-            var d when d.Contains("cinema") || d.Contains("cinemark") => "Entertainment",
-            var d when d.Contains("liquor") => "Shopping",
-            var d when d.Contains("fi") => "Utilities",
-            _ => "Miscellaneous"
-        };
-    }
 }

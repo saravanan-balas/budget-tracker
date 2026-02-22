@@ -3,7 +3,6 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Caching.Memory;
 using BudgetTracker.Common.Data;
 using BudgetTracker.Common.Models;
-using System.Text.Json;
 
 namespace BudgetTracker.Common.Services.Categories;
 
@@ -27,8 +26,9 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
     // Performance counters
     private long _cacheHits = 0;
-    private long _ruleMappings = 0;
+    private long _wellKnownMappings = 0;
     private long _hfLookupMappings = 0;
+    private long _ruleMappings = 0;
     private long _merchantMappings = 0;
     private long _aiFallbacks = 0;
 
@@ -47,7 +47,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     public async Task<Guid?> AssignCategoryAsync(string merchant, string? description, decimal amount, Guid userId)
     {
         var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
-        
+
         // 1. Check cache first
         if (_memoryCache.TryGetValue(cacheKey, out Guid? cachedCategoryId))
         {
@@ -55,16 +55,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return cachedCategoryId;
         }
 
-        // 2. Try rule-based assignment
-        var ruleCategory = await TryRuleBasedAssignment(merchant, description, amount, userId);
-        if (ruleCategory.HasValue)
+        // 2. Try well-known merchant heuristics (cheap, deterministic, high-precision)
+        var wellKnownCategory = await TryWellKnownMerchantAssignment(merchant, description, userId);
+        if (wellKnownCategory.HasValue)
         {
-            Interlocked.Increment(ref _ruleMappings);
-            _memoryCache.Set(cacheKey, ruleCategory.Value, _memoryCacheExpiry);
-            return ruleCategory.Value;
+            Interlocked.Increment(ref _wellKnownMappings);
+            _memoryCache.Set(cacheKey, wellKnownCategory.Value, _memoryCacheExpiry);
+            return wellKnownCategory.Value;
         }
 
-        // 3. Try HF transaction dataset lookup
+        // 3. Try HF transaction dataset lookup (free, large dataset)
         var hfCategory = await TryHfDatasetAssignment(merchant, description, userId);
         if (hfCategory.HasValue)
         {
@@ -73,7 +73,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return hfCategory.Value;
         }
 
-        // 4. Try merchant-based assignment (learn from previous assignments) - skipped when SkipMerchantMappings
+        // 4. Try curated MCC keyword rules (broad patterns, safety net)
+        var ruleCategory = await TryRuleBasedAssignment(merchant, description, amount, userId);
+        if (ruleCategory.HasValue)
+        {
+            Interlocked.Increment(ref _ruleMappings);
+            _memoryCache.Set(cacheKey, ruleCategory.Value, _memoryCacheExpiry);
+            return ruleCategory.Value;
+        }
+
+        // 5. Try learned merchant mappings (DB lookup, user-specific)
         if (!SkipMerchantMappings)
         {
             var merchantCategory = await TryMerchantBasedAssignment(merchant, userId);
@@ -85,7 +94,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             }
         }
 
-        // 5. Default/AI fallback (placeholder for now)
+        // 6. AI fallback (most expensive - result is persisted to avoid repeat calls)
         var defaultCategory = await TryDefaultAssignment(merchant, description, amount, userId);
         if (defaultCategory.HasValue)
         {
@@ -97,7 +106,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     }
 
     public async Task<Dictionary<string, Guid?>> BatchAssignCategoriesAsync(
-        List<(string merchant, string? description, decimal amount)> transactions, 
+        List<(string merchant, string? description, decimal amount)> transactions,
         Guid userId)
     {
         var results = new Dictionary<string, Guid?>();
@@ -108,7 +117,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         {
             var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
             var lookupKey = $"{merchant}|{description}|{amount}";
-            
+
             if (_memoryCache.TryGetValue(cacheKey, out Guid? cachedCategoryId))
             {
                 results[lookupKey] = cachedCategoryId;
@@ -131,9 +140,10 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             ? new Dictionary<string, Guid?>()
             : await GetMerchantCategoriesAsync(merchants, userId);
 
-        // 3. Process uncached transactions
-        var batchMcc = 0;
+        // 3. Process uncached transactions (pipeline: well-known -> HF -> MCC -> learned -> AI)
+        var batchWellKnown = 0;
         var batchHf = 0;
+        var batchMcc = 0;
         var batchMerchant = 0;
         var batchAi = 0;
         foreach (var (lookupKey, merchant, description, amount) in uncachedTransactions)
@@ -141,15 +151,13 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             Guid? categoryId = null;
             _logger.LogDebug("Processing uncached transaction: {LookupKey} (merchant: {Merchant})", lookupKey, merchant);
 
-            // Try rule-based first
-            categoryId = await TryRuleBasedAssignment(merchant, description, amount, userId);
+            // Try well-known merchant heuristics first
+            categoryId = await TryWellKnownMerchantAssignment(merchant, description, userId);
             if (categoryId.HasValue)
             {
-                Interlocked.Increment(ref _ruleMappings);
-                batchMcc++;
-                _logger.LogDebug("Rule-based (MCC) assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                
-                // Learn from rule-based assignment
+                Interlocked.Increment(ref _wellKnownMappings);
+                batchWellKnown++;
+                _logger.LogDebug("Well-known merchant assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if ((categoryId = await TryHfDatasetAssignment(merchant, description, userId)).HasValue)
@@ -159,27 +167,30 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 _logger.LogDebug("Hugging Face dataset assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
+            else if ((categoryId = await TryRuleBasedAssignment(merchant, description, amount, userId)).HasValue)
+            {
+                Interlocked.Increment(ref _ruleMappings);
+                batchMcc++;
+                _logger.LogDebug("Rule-based (MCC) assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
+            }
             else if (merchantCategories.TryGetValue(merchant, out var merchantCat) && merchantCat.HasValue)
             {
                 categoryId = merchantCat;
                 Interlocked.Increment(ref _merchantMappings);
                 batchMerchant++;
                 _logger.LogDebug("Merchant-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                
-                // Learn from merchant-based assignment (reinforce existing mapping)
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else
             {
-                // Fallback assignment
+                // AI fallback (persists result internally to avoid repeat calls)
                 categoryId = await TryDefaultAssignment(merchant, description, amount, userId);
                 if (categoryId.HasValue)
                 {
                     Interlocked.Increment(ref _aiFallbacks);
                     batchAi++;
-                    _logger.LogDebug("Default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                    
-                    // Learning already happens in TryDefaultAssignment for AI fallback
+                    _logger.LogDebug("AI/default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 }
                 else
                 {
@@ -199,8 +210,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         }
 
         _logger.LogInformation(
-            "Categorization batch complete: {MccCount} from MCC keywords, {HfCount} from Hugging Face dataset, {MerchantCount} from learned mappings, {AiCount} from AI/fallback (processed {Total} uncached)",
-            batchMcc, batchHf, batchMerchant, batchAi, uncachedTransactions.Count);
+            "Categorization batch complete: {WellKnownCount} from well-known merchants, {HfCount} from Hugging Face dataset, {MccCount} from MCC keywords, {MerchantCount} from learned mappings, {AiCount} from AI/fallback (processed {Total} uncached)",
+            batchWellKnown, batchHf, batchMcc, batchMerchant, batchAi, uncachedTransactions.Count);
 
         return results;
     }
@@ -241,7 +252,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             // Invalidate cache for this merchant
             var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
             _memoryCache.Remove(cacheKey);
-            
+
         }
         catch (Exception ex)
         {
@@ -249,10 +260,25 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         }
     }
 
+    private async Task<Guid?> TryWellKnownMerchantAssignment(string merchant, string? description, Guid userId)
+    {
+        var matchedCategory = WellKnownMerchantLoader.TryMatch(merchant, description);
+        if (matchedCategory == null)
+            return null;
+
+        var categoryId = await ResolveCategoryAsync(matchedCategory, userId);
+        if (categoryId.HasValue)
+        {
+            _logger.LogInformation("Assigned {Merchant} to {Category} (well-known merchant)", merchant, matchedCategory);
+            return categoryId.Value;
+        }
+        return null;
+    }
+
     private async Task<Guid?> TryRuleBasedAssignment(string merchant, string? description, decimal amount, Guid userId)
     {
         var ruleKey = $"{_ruleCachePrefix}{merchant.ToLowerInvariant()}";
-        
+
         if (_memoryCache.TryGetValue(ruleKey, out Guid? cachedRule))
         {
             _logger.LogDebug("Rule cache hit for merchant: {Merchant}", merchant);
@@ -262,7 +288,6 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var merchantLower = merchant.ToLowerInvariant();
         var descriptionLower = description?.ToLowerInvariant() ?? "";
 
-        // Data-driven: keywords loaded from MerchantCategoryKeywords.json (MCC-based, extensible)
         var matchedCategory = MerchantCategoryKeywordLoader.MatchCategory(merchantLower, descriptionLower, amount);
         if (matchedCategory != null)
         {
@@ -321,17 +346,24 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         ["Groceries"] = new[] { "Groceries" },
         ["Healthcare"] = new[] { "Healthcare" },
         ["Utilities"] = new[] { "Utilities", "Bills & Utilities" },
+        ["Bills & Utilities"] = new[] { "Bills & Utilities", "Utilities" },
         ["Entertainment"] = new[] { "Entertainment" },
         ["Charity"] = new[] { "Charity", "Donations" },
         ["Financial Services"] = new[] { "Financial Services", "Bank Fees", "Transfer" },
         ["Government"] = new[] { "Government", "Taxes", "Fees" },
         ["Income"] = new[] { "Income", "Salary" },
+        ["Transfer"] = new[] { "Transfer" },
+        ["Education"] = new[] { "Education" },
+        ["Insurance"] = new[] { "Insurance" },
+        ["Personal Care"] = new[] { "Personal Care" },
+        ["Child Care"] = new[] { "Child Care" },
+        ["Legal Services"] = new[] { "Legal Services" },
     };
 
     private async Task<Guid?> TryMerchantBasedAssignment(string merchant, Guid userId)
     {
         var merchantCacheKey = $"{_merchantCategoryCachePrefix}{userId}:{merchant}";
-        
+
         if (_memoryCache.TryGetValue(merchantCacheKey, out Guid? cachedMerchantCategory))
         {
             return cachedMerchantCategory;
@@ -343,7 +375,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             .OrderByDescending(m => m.ConfidenceScore)
             .ThenByDescending(m => m.UpdatedAt)
             .FirstOrDefaultAsync();
-        
+
         var mapping = mappingEntity?.CategoryId;
 
         if (mapping.HasValue)
@@ -357,30 +389,33 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private async Task<Guid?> TryDefaultAssignment(string merchant, string? description, decimal amount, Guid userId)
     {
         _logger.LogDebug("Attempting AI fallback assignment for {Merchant}", merchant);
-        
+
         try
         {
             // Try AI categorization as fallback
             var aiAnalyzer = _serviceProvider.GetService(typeof(AI.IAIBankAnalyzer)) as AI.IAIBankAnalyzer;
             if (aiAnalyzer != null)
             {
-                var prompt = $@"Categorize this financial transaction into one of these categories: 
-Food & Dining, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Travel, Education, 
-Personal Care, Home & Garden, Business, Investments, Income, Transfer, Uncategorized.
+                var prompt = $@"Categorize this financial transaction into one of these categories:
+Food & Dining, Groceries, Transportation, Shopping, Entertainment, Bills & Utilities, Healthcare, Travel, Education,
+Personal Care, Home & Garden, Business, Investments, Income, Transfer, Charity, Insurance.
 
 Transaction: {merchant} - {description} - Amount: ${amount:F2}
 
 Return only the category name:";
 
                 var aiCategory = await aiAnalyzer.CategorizeTransactionAsync(prompt);
-                if (!string.IsNullOrEmpty(aiCategory))
+                if (!string.IsNullOrEmpty(aiCategory) &&
+                    !aiCategory.Equals("Uncategorized", StringComparison.OrdinalIgnoreCase) &&
+                    !aiCategory.Equals("Miscellaneous", StringComparison.OrdinalIgnoreCase))
                 {
-                    // Find category by name
-                    var category = await GetCategoryByNameAsync(aiCategory, userId);
+                    var category = await ResolveCategoryAsync(aiCategory, userId);
                     if (category.HasValue)
                     {
                         _logger.LogDebug("AI assignment successful for {Merchant}: {Category}", merchant, aiCategory);
-                        
+
+                        // Persist AI result so we don't hit OpenAI again for this merchant
+                        await LearnFromAssignmentAsync(merchant, description, amount, category.Value, userId);
                         return category.Value;
                     }
                 }
@@ -390,8 +425,8 @@ Return only the category name:";
         {
             _logger.LogWarning(ex, "AI fallback failed for {Merchant}, falling back to Uncategorized", merchant);
         }
-        
-        // Fallback to Uncategorized
+
+        // Fallback to Uncategorized (not persisted to learned mappings)
         _logger.LogDebug("Falling back to 'Uncategorized' for {Merchant}", merchant);
         var uncategorized = await GetCategoryByNameAsync("Uncategorized", userId);
         if (uncategorized.HasValue)
@@ -408,31 +443,31 @@ Return only the category name:";
     private async Task<Dictionary<string, Guid?>> GetMerchantCategoriesAsync(List<string> merchants, Guid userId)
     {
         if (merchants.Count == 0) return new Dictionary<string, Guid?>();
-        
+
         try
         {
             _logger.LogDebug("Loading merchant categories for {Count} merchants", merchants.Count);
-            
+
             // Query merchant-category mappings for the given merchants using LINQ
             var mappings = await _context.UserMerchantCategoryMappings
                 .Where(m => m.UserId == userId && merchants.Contains(m.MerchantName))
                 .OrderBy(m => m.MerchantName)
                 .ThenByDescending(m => m.ConfidenceScore)
                 .ToListAsync();
-            
+
             var result = new Dictionary<string, Guid?>();
-            
+
             // Group by merchant and take the highest confidence mapping for each
             var groupedMappings = mappings
                 .GroupBy(m => m.MerchantName)
                 .ToDictionary(g => g.Key, g => (Guid?)g.First().CategoryId);
-            
+
             // Add all merchants to result (null for those without mappings)
             foreach (var merchant in merchants)
             {
                 result[merchant] = groupedMappings.TryGetValue(merchant, out var categoryId) ? categoryId : null;
             }
-            
+
             _logger.LogDebug("Loaded {Count} merchant category mappings", groupedMappings.Count);
             return result;
         }
@@ -446,15 +481,15 @@ Return only the category name:";
     private async Task<Guid?> GetCategoryByNameAsync(string categoryName, Guid userId)
     {
         _logger.LogDebug("Looking for category '{CategoryName}' for user {UserId}", categoryName, userId);
-        
+
         var category = await _context.Categories
             .Where(c => c.Name == categoryName && c.UserId == userId)
             .FirstOrDefaultAsync();
-        
+
         if (category == null)
         {
             _logger.LogDebug("Category '{CategoryName}' not found for user {UserId}, attempting to create", categoryName, userId);
-            
+
             // Try to create a default category for this user
             try
             {
@@ -469,10 +504,10 @@ Return only the category name:";
                     CreatedAt = DateTime.UtcNow,
                     UpdatedAt = DateTime.UtcNow
                 };
-                
+
                 _context.Categories.Add(category);
                 await _context.SaveChangesAsync();
-                
+
                 _logger.LogInformation("Created new category '{CategoryName}' for user {UserId} with ID {CategoryId}", categoryName, userId, category.Id);
             }
             catch (Exception ex)
@@ -485,7 +520,7 @@ Return only the category name:";
         {
             _logger.LogDebug("Found existing category '{CategoryName}' for user {UserId} with ID {CategoryId}", categoryName, userId, category.Id);
         }
-        
+
         return category?.Id;
     }
 
@@ -496,15 +531,17 @@ Return only the category name:";
 
     public async Task<Dictionary<string, object>> GetAssignmentStatsAsync()
     {
+        var total = _cacheHits + _wellKnownMappings + _hfLookupMappings + _ruleMappings + _merchantMappings + _aiFallbacks;
         return new Dictionary<string, object>
         {
             ["cache_hits"] = _cacheHits,
+            ["well_known_mappings"] = _wellKnownMappings,
+            ["hf_lookup_mappings"] = _hfLookupMappings,
             ["rule_mappings"] = _ruleMappings,
             ["merchant_mappings"] = _merchantMappings,
             ["ai_fallbacks"] = _aiFallbacks,
-            ["hf_lookup_mappings"] = _hfLookupMappings,
-            ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / (_cacheHits + _ruleMappings + _hfLookupMappings + _merchantMappings + _aiFallbacks) : 0,
-            ["total_assignments"] = _cacheHits + _ruleMappings + _hfLookupMappings + _merchantMappings + _aiFallbacks
+            ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / total : 0,
+            ["total_assignments"] = total
         };
     }
 }

@@ -1,0 +1,326 @@
+{
+  "testCases": [
+    {
+      "id": "walmart-grocery",
+      "merchant": "WALMART #2280 MOUNTAIN VIEW CA",
+      "description": "WALMART #2280 MOUNTAIN VIEW CA",
+      "amount": -58.86,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    },
+    {
+      "id": "walmart-supercenter",
+      "merchant": "WM SUPERCENTER #1234",
+      "description": "WM SUPERCENTER #1234",
+      "amount": -120.50,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    },
+    {
+      "id": "uber-eats",
+      "merchant": "UBER *EATS HELP.UBER.COM",
+      "description": "UBER *EATS HELP.UBER.COM CA",
+      "amount": -20.73,
+      "expectedCategory": "Food & Dining",
+      "tags": ["well-known", "food"]
+    },
+    {
+      "id": "uber-ride",
+      "merchant": "UBER *TRIP",
+      "description": "UBER *TRIP HELP.UBER.COM CA",
+      "amount": -15.00,
+      "expectedCategory": "Transportation",
+      "tags": ["well-known", "transport"]
+    },
+    {
+      "id": "netflix",
+      "merchant": "NETFLIX.COM",
+      "description": "NETFLIX.COM",
+      "amount": -15.99,
+      "expectedCategory": "Entertainment",
+      "tags": ["well-known", "entertainment"]
+    },
+    {
+      "id": "spotify",
+      "merchant": "SPOTIFY USA",
+      "description": "SPOTIFY USA",
+      "amount": -9.99,
+      "expectedCategory": "Entertainment",
+      "tags": ["well-known", "entertainment"]
+    },
+    {
+      "id": "kroger-grocery",
+      "merchant": "KROGER #366",
+      "description": "KROGER #366",
+      "amount": -40.16,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    },
+    {
+      "id": "costco-wholesale",
+      "merchant": "COSTCO WHSE #1087",
+      "description": "COSTCO WHSE #1087",
+      "amount": -156.23,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    },
+    {
+      "id": "costco-gas",
+      "merchant": "COSTCO GAS #1087",
+      "description": "COSTCO GAS #1087",
+      "amount": -43.91,
+      "expectedCategory": "Transportation",
+      "tags": ["well-known", "gas"]
+    },
+    {
+      "id": "amazon-shopping",
+      "merchant": "AMZN MKTP US*1A2B3C4D5",
+      "description": "AMZN MKTP US*1A2B3C4D5",
+      "amount": -29.99,
+      "expectedCategory": "Shopping",
+      "tags": ["well-known", "shopping"]
+    },
+    {
+      "id": "target-shopping",
+      "merchant": "TARGET 00012345",
+      "description": "TARGET 00012345",
+      "amount": -45.67,
+      "expectedCategory": "Shopping",
+      "tags": ["well-known", "shopping"]
+    },
+    {
+      "id": "starbucks",
+      "merchant": "STARBUCKS #12345",
+      "description": "STARBUCKS #12345",
+      "amount": -6.75,
+      "expectedCategory": "Food & Dining",
+      "tags": ["well-known", "food"]
+    },
+    {
+      "id": "doordash",
+      "merchant": "DD *DOORDASH CHIPOTLE",
+      "description": "DD *DOORDASH CHIPOTLE",
+      "amount": -18.50,
+      "expectedCategory": "Food & Dining",
+      "tags": ["well-known", "food"]
+    },
+    {
+      "id": "lyft-ride",
+      "merchant": "LYFT *RIDE",
+      "description": "LYFT *RIDE",
+      "amount": -12.50,
+      "expectedCategory": "Transportation",
+      "tags": ["well-known", "transport"]
+    },
+    {
+      "id": "openai-subscription",
+      "merchant": "OPENAI *CHATGPT SUBSCR",
+      "description": "OPENAI *CHATGPT SUBSCR OPENAI.COM CA",
+      "amount": -20.00,
+      "expectedCategory": "Bills & Utilities",
+      "tags": ["well-known", "subscription"]
+    },
+    {
+      "id": "simplisafe",
+      "merchant": "SIMPLISAFE",
+      "description": "SIMPLISAFE HOME SECURITY",
+      "amount": -29.99,
+      "expectedCategory": "Bills & Utilities",
+      "tags": ["well-known", "subscription"]
+    },
+    {
+      "id": "comcast-xfinity",
+      "merchant": "COMCAST CABLE",
+      "description": "COMCAST CABLE COMM",
+      "amount": -89.99,
+      "expectedCategory": "Bills & Utilities",
+      "tags": ["well-known", "utilities"]
+    },
+    {
+      "id": "verizon",
+      "merchant": "VERIZON WIRELESS",
+      "description": "VERIZON WIRELESS PAYMENT",
+      "amount": -75.00,
+      "expectedCategory": "Bills & Utilities",
+      "tags": ["well-known", "utilities"]
+    },
+    {
+      "id": "home-depot",
+      "merchant": "THE HOME DEPOT #1234",
+      "description": "THE HOME DEPOT #1234",
+      "amount": -89.50,
+      "expectedCategory": "Shopping",
+      "tags": ["well-known", "shopping"]
+    },
+    {
+      "id": "cvs-pharmacy",
+      "merchant": "CVS/PHARMACY #1234",
+      "description": "CVS/PHARMACY #1234",
+      "amount": -12.99,
+      "expectedCategory": "Healthcare",
+      "tags": ["well-known", "healthcare"]
+    },
+    {
+      "id": "walgreens",
+      "merchant": "WALGREENS #8780",
+      "description": "WALGREENS #8780",
+      "amount": -8.50,
+      "expectedCategory": "Healthcare",
+      "tags": ["well-known", "healthcare"]
+    },
+    {
+      "id": "venmo-transfer",
+      "merchant": "VENMO PAYMENT",
+      "description": "VENMO PAYMENT",
+      "amount": -50.00,
+      "expectedCategory": "Transfer",
+      "tags": ["well-known", "transfer"]
+    },
+    {
+      "id": "ez-pass",
+      "merchant": "PTC EZ PASS AUTO",
+      "description": "PTC EZ PASS AUTO REPLENISH",
+      "amount": -35.00,
+      "expectedCategory": "Transportation",
+      "tags": ["well-known", "transport"]
+    },
+    {
+      "id": "yupptv",
+      "merchant": "YUPPTV USA INC",
+      "description": "YUPPTV USA INC",
+      "amount": -9.99,
+      "expectedCategory": "Entertainment",
+      "tags": ["well-known", "entertainment"]
+    },
+    {
+      "id": "vani-foods",
+      "merchant": "VANI FOODS",
+      "description": "VANI FOODS",
+      "amount": -35.00,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    },
+    {
+      "id": "brilliant-org",
+      "merchant": "BRILLIANT.ORG EDU",
+      "description": "BRILLIANT.ORG EDU",
+      "amount": -24.99,
+      "expectedCategory": "Education",
+      "tags": ["well-known", "education"]
+    },
+    {
+      "id": "temple-charity",
+      "merchant": "SQ SRI VENKATESWARA TEMP",
+      "description": "SQ SRI VENKATESWARA TEMPLE",
+      "amount": -101.00,
+      "expectedCategory": "Charity",
+      "tags": ["well-known", "charity"]
+    },
+    {
+      "id": "mcdonalds",
+      "merchant": "MCDONALD'S F12345",
+      "description": "MCDONALD'S F12345",
+      "amount": -8.99,
+      "expectedCategory": "Food & Dining",
+      "tags": ["well-known", "food"]
+    },
+    {
+      "id": "chipotle",
+      "merchant": "CHIPOTLE ONLINE",
+      "description": "CHIPOTLE ONLINE",
+      "amount": -14.25,
+      "expectedCategory": "Food & Dining",
+      "tags": ["well-known", "food"]
+    },
+    {
+      "id": "whole-foods",
+      "merchant": "WHOLEFDS MKT 10234",
+      "description": "WHOLEFDS MKT 10234",
+      "amount": -67.89,
+      "expectedCategory": "Groceries",
+      "tags": ["well-known", "grocery"]
+    }
+  ],
+  "falsePositiveTests": [
+    {
+      "id": "fp-delta-dental-not-transport",
+      "merchant": "DELTA DENTAL",
+      "description": "DELTA DENTAL PREMIUM",
+      "amount": -45.00,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-air-freshener-not-transport",
+      "merchant": "AIR FRESHENER CO",
+      "description": "AIR FRESHENER CO",
+      "amount": -5.99,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-express-scripts-not-transport",
+      "merchant": "EXPRESS SCRIPTS",
+      "description": "EXPRESS SCRIPTS PHARMACY",
+      "amount": -12.00,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-united-healthcare-not-transport",
+      "merchant": "UNITED HEALTHCARE",
+      "description": "UNITED HEALTHCARE PREMIUM",
+      "amount": -300.00,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-budget-blinds-not-travel",
+      "merchant": "BUDGET BLINDS",
+      "description": "BUDGET BLINDS",
+      "amount": -200.00,
+      "mustNotBeCategory": "Travel",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-island-pacific-not-transport",
+      "merchant": "ISLAND PACIFIC SUPERMARKET",
+      "description": "ISLAND PACIFIC SUPERMARKET",
+      "amount": -45.00,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-golden-corral-not-travel",
+      "merchant": "GOLDEN CORRAL",
+      "description": "GOLDEN CORRAL #1234",
+      "amount": -35.00,
+      "mustNotBeCategory": "Travel",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-city-market-not-travel",
+      "merchant": "CITY MARKET",
+      "description": "CITY MARKET #234",
+      "amount": -55.00,
+      "mustNotBeCategory": "Travel",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-royal-farms-not-travel",
+      "merchant": "ROYAL FARMS",
+      "description": "ROYAL FARMS #123",
+      "amount": -15.00,
+      "mustNotBeCategory": "Travel",
+      "tags": ["false-positive"]
+    },
+    {
+      "id": "fp-auto-zone-not-transport",
+      "merchant": "AUTOZONE",
+      "description": "AUTOZONE #1234",
+      "amount": -25.00,
+      "mustNotBeCategory": "Transportation",
+      "tags": ["false-positive"]
+    }
+  ]
+}

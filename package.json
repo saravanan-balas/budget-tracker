@@ -18,8 +18,7 @@
     "build": "npm run build:api && npm run build:frontend",
     "build:api": "cd api/BudgetTracker.API && dotnet build",
     "build:frontend": "cd app && npm run build",
-    "install:frontend": "cd app && npm install",
-    "generate:mcc-keywords": "node scripts/generate-mcc-keywords.js"
+    "install:frontend": "cd app && npm install"
   },
   "devDependencies": {
     "concurrently": "^8.2.2"

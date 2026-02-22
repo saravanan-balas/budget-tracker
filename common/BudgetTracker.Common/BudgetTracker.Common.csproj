@@ -26,7 +26,10 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <EmbeddedResource Include="Data\MerchantCategoryKeywords.json" />
-    <EmbeddedResource Include="Data\HfTransactionLookup.json" />
+    <EmbeddedResource Include="Data\WellKnownMerchants.json" />
+    <Content Include="Data\HfTransactionLookup.json" Condition="Exists('Data\HfTransactionLookup.json')">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

@@ -28,6 +28,12 @@ public static class HfTransactionLookupLoader
         ["Charity & Donations"] = ["Charity", "Donations"],
         ["Government & Legal"] = ["Government", "Taxes", "Fees"],
         ["Income"] = ["Income", "Salary"],
+        ["Travel"] = ["Travel", "Hotel"],
+        ["Education"] = ["Education"],
+        ["Insurance"] = ["Insurance"],
+        ["Personal Care"] = ["Personal Care"],
+        ["Transfer"] = ["Transfer"],
+        ["Bills & Utilities"] = ["Bills & Utilities", "Utilities"],
     };
 
     /// <summary>
@@ -74,10 +80,12 @@ public static class HfTransactionLookupLoader
             foreach (var (key, cat) in lookup)
             {
                 if (string.IsNullOrEmpty(key) || key.Length < 4) continue;
-                // Dataset key contains merchant, or merchant/search contains key (min 4 chars to reduce false positives)
+                // Dataset key contains merchant, or merchant/search contains key.
+                // Require key to be ≥50% of merchant length for substring matches to avoid
+                // false positives (e.g., HF key "delta" matching "delta dental" as Transportation).
                 var match = (!string.IsNullOrEmpty(merchantLower) && merchantLower.Length >= 4 && key.Contains(merchantLower, StringComparison.OrdinalIgnoreCase))
-                    || (!string.IsNullOrEmpty(merchantLower) && key.Length >= 4 && merchantLower.Contains(key, StringComparison.OrdinalIgnoreCase))
-                    || (key.Length >= 4 && searchText.Contains(key, StringComparison.OrdinalIgnoreCase))
+                    || (!string.IsNullOrEmpty(merchantLower) && key.Length >= 4 && key.Length * 2 >= merchantLower.Length && merchantLower.Contains(key, StringComparison.OrdinalIgnoreCase))
+                    || (key.Length >= 8 && searchText.Contains(key, StringComparison.OrdinalIgnoreCase))
                     || (searchText.Length >= 4 && key.Contains(searchText, StringComparison.OrdinalIgnoreCase));
                 if (!match) continue;
                 // Prefer when merchant is at start of key, then shorter keys
@@ -112,29 +120,7 @@ public static class HfTransactionLookupLoader
     {
         var result = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
 
-        // 1. Try embedded resource
-        try
-        {
-            var assembly = Assembly.GetExecutingAssembly();
-            using var stream = assembly.GetManifestResourceStream("BudgetTracker.Common.Data.HfTransactionLookup.json");
-            if (stream != null)
-            {
-                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(stream);
-                if (dict != null)
-                {
-                    foreach (var (k, v) in dict)
-                        if (!string.IsNullOrEmpty(k) && !string.IsNullOrEmpty(v))
-                            result[k] = v;
-                    return result;
-                }
-            }
-        }
-        catch
-        {
-            // Fall through to file load
-        }
-
-        // 2. Try file next to assembly
+        // 1. Try file next to assembly (preferred — file is large, shipped as Content)
         try
         {
             var asmDir = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location);
@@ -159,6 +145,28 @@ public static class HfTransactionLookupLoader
                             return result;
                         }
                     }
+                }
+            }
+        }
+        catch
+        {
+            // Fall through to embedded resource
+        }
+
+        // 2. Try embedded resource (fallback)
+        try
+        {
+            var assembly = Assembly.GetExecutingAssembly();
+            using var stream = assembly.GetManifestResourceStream("BudgetTracker.Common.Data.HfTransactionLookup.json");
+            if (stream != null)
+            {
+                var dict = JsonSerializer.Deserialize<Dictionary<string, string>>(stream);
+                if (dict != null)
+                {
+                    foreach (var (k, v) in dict)
+                        if (!string.IsNullOrEmpty(k) && !string.IsNullOrEmpty(v))
+                            result[k] = v;
+                    return result;
                 }
             }
         }
