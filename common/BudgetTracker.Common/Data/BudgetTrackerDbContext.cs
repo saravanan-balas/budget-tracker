@@ -22,6 +22,7 @@ public class BudgetTrackerDbContext : DbContext
     public DbSet<Goal> Goals { get; set; } = null!;
     public DbSet<ImportedFile> ImportedFiles { get; set; } = null!;
     public DbSet<UserMerchantCategoryMapping> UserMerchantCategoryMappings { get; set; } = null!;
+    public DbSet<GlobalMerchantCategoryMapping> GlobalMerchantCategoryMappings { get; set; } = null!;
     public DbSet<BankTemplate> BankTemplates { get; set; } = null!;
     public DbSet<ImportParsingCache> ImportParsingCache { get; set; } = null!;
     public DbSet<AuditEvent> AuditEvents { get; set; } = null!;
@@ -222,6 +223,18 @@ public class BudgetTrackerDbContext : DbContext
             entity.Property(e => e.ConfidenceScore).HasPrecision(5, 2);
             entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
             entity.HasOne(e => e.Category).WithMany().HasForeignKey(e => e.CategoryId);
+        });
+
+        modelBuilder.Entity<GlobalMerchantCategoryMapping>(entity =>
+        {
+            entity.HasKey(e => e.Id);
+            entity.HasIndex(e => e.MerchantName).IsUnique();
+            entity.HasIndex(e => e.ConfidenceScore);
+            entity.HasIndex(e => e.Source);
+            entity.Property(e => e.MerchantName).IsRequired().HasMaxLength(200);
+            entity.Property(e => e.CategoryName).IsRequired().HasMaxLength(100);
+            entity.Property(e => e.ConfidenceScore).HasPrecision(5, 2);
+            entity.Property(e => e.Source).HasMaxLength(50);
         });
 
         modelBuilder.Entity<BankTemplate>(entity =>

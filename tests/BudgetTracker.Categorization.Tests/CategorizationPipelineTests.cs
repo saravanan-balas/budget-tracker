@@ -74,4 +74,89 @@ public class CategorizationPipelineTests : IClassFixture<CategorizationTestFixtu
             yield return new object?[] { tc.Id, tc.Merchant, tc.Description, tc.Amount, tc.MustNotBeCategory };
         }
     }
+
+    [Fact]
+    public async Task Pipeline_UsesGlobalMapping_BeforeUserMapping()
+    {
+        // Arrange - global mapping exists for ACME COFFEE SHOP (from fixture)
+        // Create a user mapping for a different merchant
+        var userCategory = _fixture.DbContext.Categories
+            .First(c => c.UserId == _fixture.TestUserId && c.Name == "Shopping");
+
+        _fixture.DbContext.UserMerchantCategoryMappings.Add(new Common.Models.UserMerchantCategoryMapping
+        {
+            Id = Guid.NewGuid(),
+            UserId = _fixture.TestUserId,
+            MerchantName = "OTHER MERCHANT",
+            CategoryId = userCategory.Id,
+            ConfidenceScore = 1.0m,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _fixture.DbContext.SaveChangesAsync();
+
+        // Act - assign ACME COFFEE SHOP (should use global mapping, not user mapping)
+        var categoryId = await _fixture.CategoryService.AssignCategoryAsync(
+            "ACME COFFEE SHOP", null, 5.75m, _fixture.TestUserId);
+
+        // Assert - should get Food & Dining from global mapping
+        Assert.NotNull(categoryId);
+        var category = await _fixture.DbContext.Categories.FindAsync(categoryId.Value);
+        Assert.NotNull(category);
+        Assert.Equal("Food & Dining", category.Name);
+
+        // Verify stats show global mapping was used
+        var stats = await _fixture.CategoryService.GetAssignmentStatsAsync();
+        Assert.True((long)stats["global_mappings"] > 0);
+    }
+
+    [Fact]
+    public async Task Pipeline_UserMappingOverridesGlobal()
+    {
+        // Arrange - use a unique merchant name to avoid cache pollution from other tests
+        var uniqueMerchant = "UNIQUE COFFEE SHOP XYZ";
+
+        // Create global mapping
+        _fixture.DbContext.GlobalMerchantCategoryMappings.Add(new Common.Models.GlobalMerchantCategoryMapping
+        {
+            Id = Guid.NewGuid(),
+            MerchantName = uniqueMerchant,
+            CategoryName = "Food & Dining",
+            ConfirmationCount = 1,
+            ConfidenceScore = 1.0m,
+            Source = "AI",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        // Create user mapping that overrides global
+        var userCategory = _fixture.DbContext.Categories
+            .First(c => c.UserId == _fixture.TestUserId && c.Name == "Entertainment");
+
+        _fixture.DbContext.UserMerchantCategoryMappings.Add(new Common.Models.UserMerchantCategoryMapping
+        {
+            Id = Guid.NewGuid(),
+            UserId = _fixture.TestUserId,
+            MerchantName = uniqueMerchant,
+            CategoryId = userCategory.Id,
+            ConfidenceScore = 1.0m,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        await _fixture.DbContext.SaveChangesAsync();
+
+        // Act
+        var categoryId = await _fixture.CategoryService.AssignCategoryAsync(
+            uniqueMerchant, null, 5.75m, _fixture.TestUserId);
+
+        // Assert - should use user mapping (Entertainment), not global (Food & Dining)
+        Assert.NotNull(categoryId);
+        var category = await _fixture.DbContext.Categories.FindAsync(categoryId.Value);
+        Assert.NotNull(category);
+        Assert.Equal("Entertainment", category.Name);
+
+        // Verify stats show user mapping was used (not global)
+        var stats = await _fixture.CategoryService.GetAssignmentStatsAsync();
+        Assert.True((long)stats["merchant_mappings"] > 0);
+    }
 }

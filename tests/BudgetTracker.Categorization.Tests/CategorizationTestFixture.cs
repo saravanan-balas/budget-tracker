@@ -51,6 +51,23 @@ public class CategorizationTestFixture : IAsyncLifetime
                 UpdatedAt = DateTime.UtcNow
             });
         }
+
+        // Seed global merchant category mappings for testing
+        // Use a merchant that won't be caught by well-known/HF/MCC rules
+        DbContext.GlobalMerchantCategoryMappings.AddRange(
+            new GlobalMerchantCategoryMapping
+            {
+                Id = Guid.NewGuid(),
+                MerchantName = "ACME COFFEE SHOP",
+                CategoryName = "Food & Dining",
+                ConfirmationCount = 5,
+                ConfidenceScore = 1.4m,
+                Source = "AI",
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            }
+        );
+
         await DbContext.SaveChangesAsync();
 
         // Create service with no AI (to test local-only categorization)

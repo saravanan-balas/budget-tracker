@@ -21,7 +21,7 @@ public interface ICategoryAssignmentService
     /// <summary>
     /// Learn from user category assignments to improve future matching
     /// </summary>
-    Task LearnFromAssignmentAsync(string merchant, string? description, decimal amount, Guid categoryId, Guid userId);
+    Task LearnFromAssignmentAsync(string merchant, string? description, decimal amount, Guid categoryId, Guid userId, string source = "AI");
 
     /// <summary>
     /// Get category assignment statistics and cache performance

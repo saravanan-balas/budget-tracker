@@ -25,6 +25,21 @@ export default defineNuxtConfig({
       title: 'AI Budget Tracker',
       meta: [
         { name: 'description', content: 'AI-powered personal finance management' }
+      ],
+      script: [
+        {
+          src: 'https://www.googletagmanager.com/gtag/js?id=G-S7D1TXEMG3',
+          async: true
+        },
+        {
+          innerHTML: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-S7D1TXEMG3');
+          `,
+          type: 'text/javascript'
+        }
       ]
     }
   },

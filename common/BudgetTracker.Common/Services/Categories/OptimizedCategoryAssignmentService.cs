@@ -29,6 +29,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private long _wellKnownMappings = 0;
     private long _hfLookupMappings = 0;
     private long _ruleMappings = 0;
+    private long _globalMappings = 0;
     private long _merchantMappings = 0;
     private long _aiFallbacks = 0;
 
@@ -82,7 +83,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             return ruleCategory.Value;
         }
 
-        // 5. Try learned merchant mappings (DB lookup, user-specific)
+        // 5. Try learned merchant mappings (DB lookup, user-specific overrides)
         if (!SkipMerchantMappings)
         {
             var merchantCategory = await TryMerchantBasedAssignment(merchant, userId);
@@ -94,7 +95,16 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             }
         }
 
-        // 6. AI fallback (most expensive - result is persisted to avoid repeat calls)
+        // 6. Try global merchant mappings (shared across all users, after user overrides)
+        var globalCategory = await TryGlobalMerchantAssignment(merchant, userId);
+        if (globalCategory.HasValue)
+        {
+            Interlocked.Increment(ref _globalMappings);
+            _memoryCache.Set(cacheKey, globalCategory.Value, _memoryCacheExpiry);
+            return globalCategory.Value;
+        }
+
+        // 7. AI fallback (most expensive - result is persisted to avoid repeat calls)
         var defaultCategory = await TryDefaultAssignment(merchant, description, amount, userId);
         if (defaultCategory.HasValue)
         {
@@ -140,10 +150,11 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             ? new Dictionary<string, Guid?>()
             : await GetMerchantCategoriesAsync(merchants, userId);
 
-        // 3. Process uncached transactions (pipeline: well-known -> HF -> MCC -> learned -> AI)
+        // 3. Process uncached transactions (pipeline: well-known -> HF -> MCC -> user overrides -> global -> AI)
         var batchWellKnown = 0;
         var batchHf = 0;
         var batchMcc = 0;
+        var batchGlobal = 0;
         var batchMerchant = 0;
         var batchAi = 0;
         foreach (var (lookupKey, merchant, description, amount) in uncachedTransactions)
@@ -152,35 +163,39 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             _logger.LogDebug("Processing uncached transaction: {LookupKey} (merchant: {Merchant})", lookupKey, merchant);
 
             // Try well-known merchant heuristics first
+            // Note: Don't call LearnFromAssignmentAsync for well-known/HF/MCC - they already work globally
             categoryId = await TryWellKnownMerchantAssignment(merchant, description, userId);
             if (categoryId.HasValue)
             {
                 Interlocked.Increment(ref _wellKnownMappings);
                 batchWellKnown++;
                 _logger.LogDebug("Well-known merchant assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if ((categoryId = await TryHfDatasetAssignment(merchant, description, userId)).HasValue)
             {
                 Interlocked.Increment(ref _hfLookupMappings);
                 batchHf++;
                 _logger.LogDebug("Hugging Face dataset assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if ((categoryId = await TryRuleBasedAssignment(merchant, description, amount, userId)).HasValue)
             {
                 Interlocked.Increment(ref _ruleMappings);
                 batchMcc++;
                 _logger.LogDebug("Rule-based (MCC) assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
-                await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
             }
             else if (merchantCategories.TryGetValue(merchant, out var merchantCat) && merchantCat.HasValue)
             {
                 categoryId = merchantCat;
                 Interlocked.Increment(ref _merchantMappings);
                 batchMerchant++;
-                _logger.LogDebug("Merchant-based assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                _logger.LogDebug("Merchant-based (user override) assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 await LearnFromAssignmentAsync(merchant, description, amount, categoryId.Value, userId);
+            }
+            else if ((categoryId = await TryGlobalMerchantAssignment(merchant, userId)).HasValue)
+            {
+                Interlocked.Increment(ref _globalMappings);
+                batchGlobal++;
+                _logger.LogDebug("Global merchant assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
             }
             else
             {
@@ -216,38 +231,52 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         return results;
     }
 
-    public async Task LearnFromAssignmentAsync(string merchant, string? description, decimal amount, Guid categoryId, Guid userId)
+    public async Task LearnFromAssignmentAsync(string merchant, string? description, decimal amount, Guid categoryId, Guid userId, string source = "AI")
     {
         try
         {
-            // Check if mapping already exists using LINQ
-            var existingMapping = await _context.UserMerchantCategoryMappings
-                .FirstOrDefaultAsync(m => m.UserId == userId && m.MerchantName == merchant);
-
-            if (existingMapping == null)
+            // For automatic sources (AI/HF/MCC/WellKnown), only store in global table
+            // User-level mappings are only created for "User" source (manual overrides)
+            if (source == "User")
             {
-                // Create the mapping
-                var newMapping = new UserMerchantCategoryMapping
+                // User explicitly changed/set this mapping - store in user table as an override
+                var existingMapping = await _context.UserMerchantCategoryMappings
+                    .FirstOrDefaultAsync(m => m.UserId == userId && m.MerchantName == merchant);
+
+                if (existingMapping == null)
                 {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    MerchantName = merchant,
-                    CategoryId = categoryId,
-                    ConfidenceScore = 1.0m,
-                    CreatedAt = DateTime.UtcNow,
-                    UpdatedAt = DateTime.UtcNow
-                };
-                _context.UserMerchantCategoryMappings.Add(newMapping);
-                await _context.SaveChangesAsync();
+                    // Create the user override mapping
+                    var newMapping = new UserMerchantCategoryMapping
+                    {
+                        Id = Guid.NewGuid(),
+                        UserId = userId,
+                        MerchantName = merchant,
+                        CategoryId = categoryId,
+                        ConfidenceScore = 1.0m,
+                        CreatedAt = DateTime.UtcNow,
+                        UpdatedAt = DateTime.UtcNow
+                    };
+                    _context.UserMerchantCategoryMappings.Add(newMapping);
+                    _logger.LogDebug("Created user override mapping: {Merchant} → {CategoryId} for user {UserId}",
+                        merchant, categoryId, userId);
+                }
+                else
+                {
+                    // Update existing user override
+                    existingMapping.CategoryId = categoryId;
+                    existingMapping.ConfidenceScore += 0.1m;
+                    existingMapping.UpdatedAt = DateTime.UtcNow;
+                    _logger.LogDebug("Updated user override mapping: {Merchant} → {CategoryId} for user {UserId}",
+                        merchant, categoryId, userId);
+                }
             }
             else
             {
-                // Update existing mapping
-                existingMapping.CategoryId = categoryId;
-                existingMapping.ConfidenceScore += 0.1m;
-                existingMapping.UpdatedAt = DateTime.UtcNow;
-                await _context.SaveChangesAsync();
+                // For AI/HF/MCC/WellKnown sources, only update global mapping (no user-level duplication)
+                await UpdateGlobalMappingAsync(merchant, categoryId, source);
             }
+
+            await _context.SaveChangesAsync();
 
             // Invalidate cache for this merchant
             var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
@@ -359,6 +388,167 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         ["Child Care"] = new[] { "Child Care" },
         ["Legal Services"] = new[] { "Legal Services" },
     };
+
+    private async Task<Guid?> TryGlobalMerchantAssignment(string merchant, Guid userId)
+    {
+        var normalizedMerchant = NormalizeMerchantForMapping(merchant);
+
+        var globalMapping = await _context.GlobalMerchantCategoryMappings
+            .Where(m => m.MerchantName == normalizedMerchant)
+            .OrderByDescending(m => m.ConfidenceScore)
+            .FirstOrDefaultAsync();
+
+        if (globalMapping == null)
+            return null;
+
+        var categoryId = await ResolveCategoryAsync(globalMapping.CategoryName, userId);
+        if (categoryId.HasValue)
+        {
+            _logger.LogInformation(
+                "Assigned {OriginalMerchant} (normalized: {NormalizedMerchant}) to {Category} (global mapping, confidence: {Score})",
+                merchant, normalizedMerchant, globalMapping.CategoryName, globalMapping.ConfidenceScore);
+            return categoryId.Value;
+        }
+        return null;
+    }
+
+    private async Task UpdateGlobalMappingAsync(string merchant, Guid categoryId, string source)
+    {
+        var category = await _context.Categories.FindAsync(categoryId);
+        if (category == null) return;
+
+        var normalizedMerchant = NormalizeMerchantForMapping(merchant);
+
+        var existing = await _context.GlobalMerchantCategoryMappings
+            .FirstOrDefaultAsync(m => m.MerchantName == normalizedMerchant);
+
+        if (existing == null)
+        {
+            // Create new global mapping
+            _context.GlobalMerchantCategoryMappings.Add(new GlobalMerchantCategoryMapping
+            {
+                Id = Guid.NewGuid(),
+                MerchantName = normalizedMerchant,
+                CategoryName = category.Name,
+                ConfirmationCount = 1,
+                ConfidenceScore = 1.0m,
+                Source = source,
+                CreatedAt = DateTime.UtcNow,
+                UpdatedAt = DateTime.UtcNow
+            });
+            _logger.LogDebug("Created global mapping: {OriginalMerchant} → {NormalizedMerchant} → {Category} ({Source})",
+                merchant, normalizedMerchant, category.Name, source);
+        }
+        else
+        {
+            // Update existing - increase confidence if same category
+            if (existing.CategoryName == category.Name)
+            {
+                existing.ConfirmationCount++;
+                existing.ConfidenceScore += 0.1m;
+                existing.UpdatedAt = DateTime.UtcNow;
+                _logger.LogDebug("Increased confidence for global mapping: {NormalizedMerchant} → {Category} (count: {Count}, score: {Score})",
+                    normalizedMerchant, category.Name, existing.ConfirmationCount, existing.ConfidenceScore);
+            }
+            else
+            {
+                // Different category - only update if new source has higher priority
+                if (GetSourcePriority(source) > GetSourcePriority(existing.Source))
+                {
+                    _logger.LogWarning(
+                        "Global mapping conflict for {NormalizedMerchant}: {OldCat} ({OldSrc}) → {NewCat} ({NewSrc})",
+                        normalizedMerchant, existing.CategoryName, existing.Source, category.Name, source);
+                    existing.CategoryName = category.Name;
+                    existing.ConfirmationCount = 1;
+                    existing.ConfidenceScore = 1.0m;
+                    existing.Source = source;
+                    existing.UpdatedAt = DateTime.UtcNow;
+                }
+            }
+        }
+    }
+
+    private static int GetSourcePriority(string source) => source switch
+    {
+        "WellKnown" => 4,
+        "HF" => 3,
+        "MCC" => 2,
+        "AI" => 1,
+        _ => 0
+    };
+
+    /// <summary>
+    /// Normalizes merchant names for global mapping storage by removing variable parts
+    /// (account numbers, confirmation numbers, personal names, etc.) to enable cross-user matching.
+    /// </summary>
+    /// <param name="merchant">Raw merchant/transaction description</param>
+    /// <returns>Normalized merchant name suitable for global mappings</returns>
+    private static string NormalizeMerchantForMapping(string merchant)
+    {
+        if (string.IsNullOrWhiteSpace(merchant))
+            return merchant;
+
+        var normalized = merchant.ToUpperInvariant().Trim();
+
+        // Remove confirmation numbers first (various patterns)
+        // Examples: "Confirmation# XXXXX86417", "Conf# 99c1pylzx", "CONF #123456"
+        normalized = System.Text.RegularExpressions.Regex.Replace(
+            normalized,
+            @"\bCONF(?:IRMATION)?\s*#?\s*[A-Z0-9]+",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Remove semicolons early (often used as separators before conf numbers)
+        normalized = normalized.Replace(";", " ");
+
+        // For Zelle/Venmo/payment patterns, remove everything after "from/to" (includes personal names and purposes)
+        // Examples: "Zelle payment from JOHN DOE for rent" → "ZELLE PAYMENT"
+        // Examples: "Venmo to JANE SMITH for dinner" → "VENMO"
+        if (normalized.Contains("ZELLE") || normalized.Contains("VENMO") || normalized.Contains("PAYMENT"))
+        {
+            normalized = System.Text.RegularExpressions.Regex.Replace(
+                normalized,
+                @"\b(?:FROM|TO)\s+.+$",
+                "",
+                System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+        }
+
+        // Remove account type + number patterns
+        // Examples: "BRK 2826", "CHK 7794", "SAV 6119", "ACCT 1234"
+        normalized = System.Text.RegularExpressions.Regex.Replace(
+            normalized,
+            @"\b(?:BRK|CHK|SAV|ACCT|ACCOUNT)\s*\d+",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Remove standalone "TO" or "FROM" words (often left over after account removal)
+        normalized = System.Text.RegularExpressions.Regex.Replace(
+            normalized,
+            @"\b(?:TO|FROM)\b",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        // Remove details after "for" (transaction-specific purposes)
+        // Examples: "for burlington", "for rent payment"
+        var forIndex = normalized.IndexOf(" FOR ", StringComparison.OrdinalIgnoreCase);
+        if (forIndex > 0)
+        {
+            normalized = normalized.Substring(0, forIndex);
+        }
+
+        // Remove extra whitespace
+        normalized = System.Text.RegularExpressions.Regex.Replace(normalized, @"\s+", " ").Trim();
+
+        // Remove common business suffixes at the end
+        // Must be at word boundaries to avoid removing "INCORPORATED" from "INCORPORATED BANK"
+        normalized = System.Text.RegularExpressions.Regex.Replace(
+            normalized,
+            @"\s+(?:INC\.?|LLC|LTD\.?|CORP\.?|CORPORATION|CO\.?|COMPANY)\s*$",
+            "",
+            System.Text.RegularExpressions.RegexOptions.IgnoreCase);
+
+        return normalized.Trim();
+    }
 
     private async Task<Guid?> TryMerchantBasedAssignment(string merchant, Guid userId)
     {
@@ -531,13 +721,14 @@ Return only the category name:";
 
     public async Task<Dictionary<string, object>> GetAssignmentStatsAsync()
     {
-        var total = _cacheHits + _wellKnownMappings + _hfLookupMappings + _ruleMappings + _merchantMappings + _aiFallbacks;
+        var total = _cacheHits + _wellKnownMappings + _hfLookupMappings + _ruleMappings + _globalMappings + _merchantMappings + _aiFallbacks;
         return new Dictionary<string, object>
         {
             ["cache_hits"] = _cacheHits,
             ["well_known_mappings"] = _wellKnownMappings,
             ["hf_lookup_mappings"] = _hfLookupMappings,
             ["rule_mappings"] = _ruleMappings,
+            ["global_mappings"] = _globalMappings,
             ["merchant_mappings"] = _merchantMappings,
             ["ai_fallbacks"] = _aiFallbacks,
             ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / total : 0,
