@@ -17,7 +17,7 @@
       <section>
         <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Information We Collect</h2>
         <p class="text-gray-700 leading-relaxed">
-          We collect information you provide when using Budget Tracker, including account details,
+          We collect information you provide when using BudgetVu, including account details,
           uploaded financial files, and interactions with the service.
         </p>
       </section>
@@ -25,7 +25,7 @@
       <section>
         <h2 class="text-xl font-semibold text-gray-900 mb-3">2. How We Use Information</h2>
         <ul class="list-disc list-inside space-y-2 text-gray-700 leading-relaxed">
-          <li>To deliver and maintain the Budget Tracker service.</li>
+          <li>To deliver and maintain the BudgetVu service.</li>
           <li>To improve features and diagnose technical issues.</li>
           <li>To communicate with you about updates or support.</li>
         </ul>

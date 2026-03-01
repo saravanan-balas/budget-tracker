@@ -1,0 +1,16 @@
+<svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <!-- Eye/Vision icon with dollar sign - standalone version -->
+  <!-- Outer eye shape -->
+  <path d="M20 8C12 8 6 16 4 20C6 24 12 32 20 32C28 32 34 24 36 20C34 16 28 8 20 8Z" fill="url(#gradient1)" stroke="#0EA5E9" stroke-width="1.5"/>
+  <!-- Inner circle (iris) -->
+  <circle cx="20" cy="20" r="6" fill="white" opacity="0.9"/>
+  <!-- Dollar sign -->
+  <text x="20" y="24.5" font-family="Arial, sans-serif" font-size="10" font-weight="bold" fill="#0EA5E9" text-anchor="middle">$</text>
+
+  <defs>
+    <linearGradient id="gradient1" x1="4" y1="20" x2="36" y2="20" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stop-color="#0EA5E9"/>
+      <stop offset="100%" stop-color="#10B981"/>
+    </linearGradient>
+  </defs>
+</svg>

@@ -17,7 +17,7 @@
       <section>
         <h2 class="text-xl font-semibold text-gray-900 mb-3">1. Acceptance of Terms</h2>
         <p class="text-gray-700 leading-relaxed">
-          By accessing or using Budget Tracker, you agree to be bound by these Terms. If you do not agree,
+          By accessing or using BudgetVu, you agree to be bound by these Terms. If you do not agree,
           do not use the service.
         </p>
       </section>

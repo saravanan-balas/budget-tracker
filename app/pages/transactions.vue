@@ -894,7 +894,7 @@ onMounted(() => {
 
 // Set page meta
 useHead({
-  title: 'Transactions - Budget Tracker'
+  title: 'Transactions - BudgetVu'
 })
 </script>
 

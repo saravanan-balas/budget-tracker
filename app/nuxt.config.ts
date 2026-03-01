@@ -22,9 +22,20 @@ export default defineNuxtConfig({
   },
   app: {
     head: {
-      title: 'AI Budget Tracker',
+      title: 'BudgetVu - Smart Budget Tracking',
       meta: [
-        { name: 'description', content: 'AI-powered personal finance management' }
+        { name: 'description', content: 'AI-powered personal finance management. Track spending, gain insights, and take control of your budget with BudgetVu.' },
+        { property: 'og:title', content: 'BudgetVu - Smart Budget Tracking' },
+        { property: 'og:description', content: 'AI-powered personal finance management. Track spending, gain insights, and take control of your budget.' },
+        { property: 'og:type', content: 'website' },
+        { property: 'og:url', content: 'https://budgetvu.com' },
+        { name: 'twitter:card', content: 'summary_large_image' },
+        { name: 'twitter:title', content: 'BudgetVu - Smart Budget Tracking' },
+        { name: 'twitter:description', content: 'AI-powered personal finance management' }
+      ],
+      link: [
+        { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg' },
+        { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' }
       ],
       script: [
         {
