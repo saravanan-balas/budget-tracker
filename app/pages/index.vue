@@ -7,9 +7,12 @@
           Smart Financial Management with
           <span class="text-blue-600">AI Insights</span>
         </h1>
-        <p class="text-base md:text-lg text-gray-600 mb-6 max-w-2xl mx-auto">
+        <p class="text-base md:text-lg text-gray-600 mb-2 max-w-2xl mx-auto">
           Import bank statements, get intelligent categorization, and chat with your financial data.
           Understand your spending patterns like never before.
+        </p>
+        <p class="text-sm text-gray-500 mb-6 max-w-2xl mx-auto">
+          Private by design — encrypted connections, your data stays yours.
         </p>
         <div class="flex gap-3 justify-center">
           <template v-if="authStore.isAuthenticated">
