@@ -7,40 +7,36 @@
       </div>
       
       <!-- Quick Actions (moved to top right) -->
-      <div class="flex gap-3">
-        <NuxtLink to="/import" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2 hover:shadow-md transition-shadow cursor-pointer flex items-center space-x-2">
-          <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-          </div>
+      <div class="flex gap-3 items-center">
+        <NuxtLink to="/import" class="bg-blue-600 text-white rounded-lg px-4 py-2.5 hover:bg-blue-700 transition-colors cursor-pointer flex items-center gap-2 shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+          </svg>
           <div class="text-left">
-            <h3 class="text-xs font-medium">Import</h3>
-            <p class="text-xs text-gray-600">CSV</p>
+            <h3 class="text-sm font-semibold leading-tight">Import</h3>
+            <p class="text-xs text-blue-200 leading-tight">CSV / Bank</p>
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/chat" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2 hover:shadow-md transition-shadow cursor-pointer flex items-center space-x-2">
-          <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"></path>
-            </svg>
-          </div>
+        <NuxtLink to="/chat" class="bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg px-4 py-2.5 hover:from-violet-700 hover:to-purple-700 transition-all cursor-pointer flex items-center gap-2 shadow-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
+          </svg>
           <div class="text-left">
-            <h3 class="text-xs font-medium">Ask AI</h3>
-            <p class="text-xs text-gray-600">Insights</p>
+            <h3 class="text-sm font-semibold leading-tight">Ask AI</h3>
+            <p class="text-xs text-purple-200 leading-tight">Insights</p>
           </div>
         </NuxtLink>
 
-        <div @click="openQuickAddModal" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2 hover:shadow-md transition-shadow cursor-pointer flex items-center space-x-2">
-          <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div @click="openQuickAddModal" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-2">
+          <div class="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
             </svg>
           </div>
           <div class="text-left">
-            <h3 class="text-xs font-medium">Quick Add</h3>
-            <p class="text-xs text-gray-600">Transaction</p>
+            <h3 class="text-sm font-medium text-gray-700 leading-tight">Quick Add</h3>
+            <p class="text-xs text-gray-500 leading-tight">Transaction</p>
           </div>
         </div>
       </div>
