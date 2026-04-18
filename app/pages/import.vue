@@ -51,7 +51,7 @@
               <span class="text-lg">🏦</span>
               <div>
                 <p class="text-sm font-semibold text-blue-900">How do I download my bank statement as CSV?</p>
-                <p class="text-xs text-blue-600">Step-by-step instructions for major banks</p>
+                <p class="text-xs text-blue-600">Works with any bank — quick steps inside</p>
               </div>
             </div>
             <svg class="w-5 h-5 text-blue-500 transition-transform flex-shrink-0" :class="showBankGuide ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -60,34 +60,27 @@
           </button>
 
           <div v-show="showBankGuide" class="border-t border-blue-200 px-5 pb-5 pt-4">
-            <!-- Bank Tabs -->
-            <div class="flex flex-wrap gap-2 mb-5">
-              <button
-                v-for="bank in bankGuides"
-                :key="bank.id"
-                @click="activeBankTab = bank.id"
-                :class="[
-                  'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
-                  activeBankTab === bank.id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'
-                ]"
-              >
-                {{ bank.name }}
-              </button>
-            </div>
-
-            <!-- Bank Instructions -->
-            <div v-for="bank in bankGuides" :key="bank.id" v-show="activeBankTab === bank.id">
-              <ol class="space-y-2.5">
-                <li v-for="(step, i) in bank.steps" :key="i" class="flex gap-3 text-sm text-blue-900">
-                  <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{{ i + 1 }}</span>
-                  <span v-html="step"></span>
-                </li>
-              </ol>
-              <p v-if="bank.note" class="mt-3 text-xs text-blue-600 bg-white rounded-lg px-3 py-2 border border-blue-200">
-                💡 {{ bank.note }}
-              </p>
+            <ol class="space-y-3">
+              <li class="flex gap-3 text-sm text-blue-900">
+                <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">1</span>
+                <span>Log in to your bank's website or mobile app and open the account you want to export.</span>
+              </li>
+              <li class="flex gap-3 text-sm text-blue-900">
+                <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</span>
+                <span>Look for a <strong>Download, Export,</strong> or <strong>Statement</strong> option — usually near your transaction list or account activity section.</span>
+              </li>
+              <li class="flex gap-3 text-sm text-blue-900">
+                <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</span>
+                <span>Select <strong>CSV</strong> as the file format. If multiple formats are shown, avoid PDF — CSV, Excel, or Spreadsheet formats all work.</span>
+              </li>
+              <li class="flex gap-3 text-sm text-blue-900">
+                <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</span>
+                <span>Choose your date range and download. Then upload that file here — we handle the rest automatically.</span>
+              </li>
+            </ol>
+            <div class="mt-4 bg-white rounded-lg px-3 py-2.5 border border-blue-200 space-y-1">
+              <p class="text-xs text-blue-700">💡 <strong>Tip:</strong> You can also download from your bank's mobile app — look under Account Details or Statements in the app menu.</p>
+              <p class="text-xs text-blue-600">🔄 Already imported before? No problem — re-uploading the same file won't create duplicates.</p>
             </div>
           </div>
         </div>
@@ -539,76 +532,6 @@ interface Account {
 
 // Bank guide state
 const showBankGuide = ref(false)
-const activeBankTab = ref('chase')
-
-const bankGuides = [
-  {
-    id: 'chase',
-    name: 'Chase',
-    steps: [
-      'Log in at <strong>chase.com</strong> and go to your checking or savings account.',
-      'Click <strong>"Download account activity"</strong> (usually near the transaction list).',
-      'Set your desired date range.',
-      'Select <strong>CSV</strong> as the file format and click Download.'
-    ],
-    note: 'Chase also lets you download from the mobile app under Account Details → Download.'
-  },
-  {
-    id: 'bofa',
-    name: 'Bank of America',
-    steps: [
-      'Log in at <strong>bankofamerica.com</strong> and select your account.',
-      'Click <strong>"Download"</strong> near the transaction list.',
-      'Choose your date range.',
-      'Select <strong>Microsoft Excel format (CSV)</strong> and click Download.'
-    ],
-    note: 'BofA labels the CSV option as "Microsoft Excel" — it\'s the same thing.'
-  },
-  {
-    id: 'wellsfargo',
-    name: 'Wells Fargo',
-    steps: [
-      'Log in at <strong>wellsfargo.com</strong> and open your account.',
-      'Click <strong>"Download Account Activity"</strong> at the top of your transactions.',
-      'Pick your date range.',
-      'Choose <strong>Comma-Delimited File (CSV)</strong> and click Download.'
-    ],
-    note: null
-  },
-  {
-    id: 'citi',
-    name: 'Citi',
-    steps: [
-      'Log in at <strong>online.citi.com</strong> and select your account.',
-      'Click <strong>"View All Transactions"</strong>.',
-      'Click <strong>"Download"</strong> at the top right of the transactions list.',
-      'Select <strong>CSV</strong> and choose your date range, then Download.'
-    ],
-    note: null
-  },
-  {
-    id: 'capitalone',
-    name: 'Capital One',
-    steps: [
-      'Log in at <strong>capitalone.com</strong> and open your account.',
-      'Click <strong>"Download Transactions"</strong> or the download icon.',
-      'Select your date range.',
-      'Choose <strong>CSV</strong> format and click Download.'
-    ],
-    note: null
-  },
-  {
-    id: 'other',
-    name: 'Other banks',
-    steps: [
-      'Log in to your bank\'s online portal and navigate to your account.',
-      'Look for a <strong>"Download", "Export", or "Statement"</strong> option near your transactions.',
-      'Select <strong>CSV</strong> format if multiple options are available.',
-      'Choose any date range — we automatically detect and skip duplicates if you re-import.'
-    ],
-    note: 'Most banks offer CSV export. If you only see PDF, check if there\'s a "transaction history" or "activity" download option separate from statements.'
-  }
-]
 
 // State
 const currentStep = ref(0)

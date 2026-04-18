@@ -4,10 +4,10 @@
     <!-- Hero -->
     <div class="bg-gradient-to-br from-blue-600 via-blue-700 to-violet-700 -mx-4 -mt-6 px-4 py-9 text-center text-white rounded-b-3xl">
 
-      <!-- FREE badge -->
-      <div class="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-3 py-1.5 mb-4 max-w-xs">
+      <!-- Free badge -->
+      <div class="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-3 py-1.5 mb-4">
         <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
-        <span class="text-xs sm:text-sm font-bold tracking-wide">100% FREE · No credit card needed</span>
+        <span class="text-xs sm:text-sm font-bold tracking-wide">BudgetVu is completely free</span>
       </div>
 
       <h1 class="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 leading-tight px-2">
@@ -15,7 +15,7 @@
       </h1>
 
       <p class="text-blue-100 text-sm mb-5 max-w-sm sm:max-w-lg mx-auto px-2">
-        Upload your bank CSV → AI categorizes every transaction → Ask anything about your spending
+        Connect your bank account, let AI sort your transactions, and finally understand your spending — all in one place.
       </p>
 
       <div class="flex gap-3 justify-center flex-wrap">
@@ -26,7 +26,7 @@
         </template>
         <template v-else>
           <NuxtLink to="/auth/register" class="bg-white text-blue-700 px-7 py-2.5 rounded-lg font-bold text-base hover:bg-blue-50 transition-colors shadow-sm">
-            Start for Free →
+            Get Started
           </NuxtLink>
           <NuxtLink to="/auth/login" class="bg-white/10 border border-white/30 text-white px-7 py-2.5 rounded-lg font-semibold text-base hover:bg-white/20 transition-colors">
             Sign In
@@ -34,7 +34,6 @@
         </template>
       </div>
 
-      <p class="text-blue-200 text-xs mt-3">Private by design — your data stays yours, always</p>
     </div>
 
     <!-- Features: compact horizontal cards -->
@@ -47,7 +46,7 @@
         </div>
         <div>
           <h3 class="font-semibold text-gray-900 mb-0.5">Smart Import</h3>
-          <p class="text-sm text-gray-500">Works with any bank's CSV. AI auto-categorizes and skips duplicates.</p>
+          <p class="text-sm text-gray-500">Download your bank statement and upload it here — AI reads and sorts everything automatically.</p>
         </div>
       </div>
 
@@ -91,19 +90,6 @@
       </div>
     </div>
 
-    <!-- Free callout strip -->
-    <div v-if="!authStore.isAuthenticated" class="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
-      <div class="flex items-center gap-3">
-        <span class="text-2xl">🎉</span>
-        <div>
-          <p class="font-bold text-gray-900">BudgetVu is completely free</p>
-          <p class="text-sm text-gray-500">No plans, no paywalls, no hidden fees — ever.</p>
-        </div>
-      </div>
-      <NuxtLink to="/auth/register" class="flex-shrink-0 bg-green-600 text-white px-5 py-2 rounded-lg font-semibold text-sm hover:bg-green-700 transition-colors">
-        Create free account →
-      </NuxtLink>
-    </div>
 
   </div>
 </template>
@@ -113,7 +99,7 @@ const authStore = useAuthStore()
 
 const howItWorks = [
   { title: 'Create account', desc: 'Sign up in 30 sec', color: 'bg-blue-600 text-white' },
-  { title: 'Import CSV', desc: 'Any bank, any format', color: 'bg-blue-500 text-white' },
+  { title: 'Connect your bank', desc: 'Download & upload statements', color: 'bg-blue-500 text-white' },
   { title: 'AI categorizes', desc: 'Automatic & smart', color: 'bg-violet-600 text-white' },
   { title: 'Get insights', desc: 'Ask anything', color: 'bg-green-600 text-white' }
 ]
