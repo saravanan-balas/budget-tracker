@@ -1,13 +1,13 @@
 <template>
   <div>
-    <div class="mb-8 flex justify-between items-start">
+    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
       <div>
         <h1 class="text-3xl font-bold text-gray-900">Financial Dashboard</h1>
         <p class="text-gray-600 mt-2">Your personal finance overview</p>
       </div>
-      
-      <!-- Quick Actions (moved to top right) -->
-      <div class="flex gap-3 items-center">
+
+      <!-- Quick Actions -->
+      <div class="flex gap-2 items-center flex-wrap">
         <NuxtLink to="/import" class="bg-blue-600 text-white rounded-lg px-4 py-2.5 hover:bg-blue-700 transition-colors cursor-pointer flex items-center gap-2 shadow-sm">
           <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
@@ -137,8 +137,8 @@
                 class="flex items-center justify-between py-3 border-b border-gray-100 hover:bg-gray-50 transition-colors duration-200 cursor-pointer"
                 @click="openEditModal(transaction)"
               >
-                <div class="flex items-center space-x-3 flex-1">
-                  <div class="w-8 h-8 rounded-full flex items-center justify-center" :class="getTransactionIconBg(transaction.amount)">
+                <div class="flex items-center space-x-3 flex-1 min-w-0">
+                  <div class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" :class="getTransactionIconBg(transaction.amount)">
                     <span class="text-xs font-bold" :class="getTransactionIconText(transaction.amount)">
                       {{ getTransactionIcon(transaction.categoryName) }}
                     </span>
@@ -148,7 +148,7 @@
                     <p class="text-sm text-gray-500 truncate">{{ transaction.categoryName || 'Uncategorized' }}</p>
                   </div>
                 </div>
-                <div class="text-right">
+                <div class="text-right flex-shrink-0 ml-3">
                   <p class="font-medium" :class="transaction.amount > 0 ? 'text-green-600' : 'text-red-600'">
                     {{ formatTransactionAmount(transaction.amount) }}
                   </p>
