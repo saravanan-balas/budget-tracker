@@ -51,31 +51,31 @@
     <div v-else>
       <!-- Quick Stats -->
       <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <NuxtLink to="/transactions?type=expense" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Expenses</p>
               <p class="text-2xl font-bold text-gray-900">{{ formatCurrency(stats.monthlyExpenses) }}</p>
             </div>
-            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-red-600">📉</span>
             </div>
           </div>
-        </div>
+        </NuxtLink>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <NuxtLink to="/transactions?type=income" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Income</p>
               <p class="text-2xl font-bold text-green-600">{{ formatCurrency(stats.monthlyIncome) }}</p>
             </div>
-            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-green-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-green-600">📈</span>
             </div>
           </div>
-        </div>
+        </NuxtLink>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <NuxtLink to="/transactions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Net Savings</p>
@@ -83,23 +83,23 @@
                 {{ formatCurrency(Math.abs(stats.netSavings)) }}
               </p>
             </div>
-            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-blue-600">💰</span>
             </div>
           </div>
-        </div>
+        </NuxtLink>
 
-        <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <NuxtLink to="/transactions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Transactions</p>
               <p class="text-2xl font-bold text-gray-900">{{ stats.transactionCount }}</p>
             </div>
-            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+            <div class="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center group-hover:scale-110 transition-transform">
               <span class="text-purple-600">📋</span>
             </div>
           </div>
-        </div>
+        </NuxtLink>
 
         <NuxtLink to="/transactions?filter=uncategorized" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
           <div class="flex items-center justify-between">

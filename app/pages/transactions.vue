@@ -109,13 +109,13 @@
         </div>
 
         <!-- Filter Actions -->
-        <div class="mt-4 flex justify-between items-center">
-          <div class="flex items-center gap-4">
+        <div class="mt-4 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
+          <div class="flex flex-wrap items-center gap-x-4 gap-y-1">
             <div class="text-sm text-gray-600">
-              Showing {{ transactions.length }} of {{ totalTransactions }} transactions (Page {{ currentPage }} of {{ totalPages }})
+              Showing {{ transactions.length }} of {{ totalTransactions }} (Page {{ currentPage }} of {{ totalPages }})
             </div>
             <div v-if="uncategorizedCount > 0" class="text-sm text-amber-600 font-medium">
-              ({{ uncategorizedCount }} uncategorized)
+              {{ uncategorizedCount }} uncategorized
             </div>
             <div class="flex items-center gap-2">
               <label class="text-sm text-gray-600">Per page:</label>
@@ -127,7 +127,7 @@
               </select>
             </div>
           </div>
-          <button @click="resetFilters" class="text-sm text-blue-600 hover:text-blue-800">
+          <button @click="resetFilters" class="text-sm text-blue-600 hover:text-blue-800 self-start sm:self-auto">
             Reset Filters
           </button>
         </div>
@@ -352,6 +352,7 @@ Chart.register(...registerables)
 
 // Reactive state
 const transactions = ref<Transaction[]>([])
+const chartTransactions = ref<Transaction[]>([]) // all data for charts (unpaginated)
 const accounts = ref<Account[]>([])
 const categories = ref<Category[]>([])
 const loading = ref(false)
@@ -527,6 +528,51 @@ const loadTransactions = async (resetPage = false) => {
   }
 }
 
+const loadChartTransactions = async () => {
+  try {
+    const filter: TransactionFilter = {}
+    const now = new Date()
+    const currentMonth = now.getMonth()
+    const currentYear = now.getFullYear()
+
+    if (filters.value.dateRange === 'thisMonth') {
+      filter.startDate = new Date(currentYear, currentMonth, 1).toISOString().split('T')[0]
+      filter.endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+    } else if (filters.value.dateRange === 'lastMonth') {
+      filter.startDate = new Date(currentYear, currentMonth - 1, 1).toISOString().split('T')[0]
+      filter.endDate = new Date(currentYear, currentMonth, 0).toISOString().split('T')[0]
+    } else if (filters.value.dateRange === 'last3Months') {
+      filter.startDate = new Date(currentYear, currentMonth - 2, 1).toISOString().split('T')[0]
+      filter.endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+    } else if (filters.value.dateRange === 'last6Months') {
+      filter.startDate = new Date(currentYear, currentMonth - 5, 1).toISOString().split('T')[0]
+      filter.endDate = new Date(currentYear, currentMonth + 1, 0).toISOString().split('T')[0]
+    } else if (filters.value.dateRange === 'thisYear') {
+      filter.startDate = new Date(currentYear, 0, 1).toISOString().split('T')[0]
+      filter.endDate = new Date(currentYear, 11, 31).toISOString().split('T')[0]
+    } else if (filters.value.dateRange === 'custom') {
+      filter.startDate = filters.value.startDate
+      filter.endDate = filters.value.endDate
+    }
+
+    if (filters.value.accountId) filter.accountId = filters.value.accountId
+    if (filters.value.categoryId === 'uncategorized') {
+      filter.categoryIdString = 'uncategorized'
+    } else if (filters.value.categoryId) {
+      filter.categoryId = filters.value.categoryId
+    }
+    if (filters.value.searchTerm) filter.searchTerm = filters.value.searchTerm
+
+    filter.page = 1
+    filter.pageSize = 5000 // fetch all for charts
+
+    const response = await api.getTransactions(filter)
+    chartTransactions.value = response.items
+  } catch (error) {
+    console.error('Error loading chart transactions:', error)
+  }
+}
+
 const loadAccounts = async () => {
   try {
     accounts.value = await api.getAccounts()
@@ -546,6 +592,7 @@ const loadCategories = async () => {
 const handleDateRangeChange = () => {
   if (filters.value.dateRange !== 'custom') {
     loadTransactions(true)
+    loadChartTransactions()
   }
 }
 
@@ -656,7 +703,7 @@ const updateCharts = () => {
   nextTick(() => {
     // Category spending chart
     if (categoryChart.value) {
-      const categoryData = filteredTransactions.value
+      const categoryData = chartTransactions.value
         .filter(t => t.amount < 0) // Only expenses
         .reduce((acc, t) => {
           const category = t.categoryName || 'Uncategorized'
@@ -739,7 +786,7 @@ const updateCharts = () => {
       }
       
       // Aggregate transaction data by date
-      const dailyData = filteredTransactions.value.reduce((acc, t) => {
+      const dailyData = chartTransactions.value.reduce((acc, t) => {
         const date = t.transactionDate.split('T')[0]
         if (!acc[date]) {
           acc[date] = { income: 0, expense: 0 }
@@ -847,7 +894,7 @@ const updateCharts = () => {
 }
 
 // Watch for transactions changes to update charts
-watch(transactions, () => {
+watch(chartTransactions, () => {
   updateCharts()
 })
 
@@ -859,6 +906,7 @@ watch(currentPage, () => {
 // Watch for filter changes that require reloading
 watch([() => filters.value.accountId, () => filters.value.categoryId, () => filters.value.searchTerm], () => {
   loadTransactions(true)
+  loadChartTransactions()
 })
 
 // Watch for transaction type changes (client-side filter)
@@ -871,6 +919,7 @@ watch(() => filters.value.transactionType, () => {
 watch([() => filters.value.startDate, () => filters.value.endDate], () => {
   if (filters.value.dateRange === 'custom' && filters.value.startDate && filters.value.endDate) {
     loadTransactions(true)
+    loadChartTransactions()
   }
 })
 
@@ -886,8 +935,14 @@ onMounted(() => {
   if (route.query.filter === 'uncategorized') {
     filters.value.categoryId = 'uncategorized'
   }
+  if (route.query.type === 'expense') {
+    filters.value.transactionType = 'expense'
+  } else if (route.query.type === 'income') {
+    filters.value.transactionType = 'income'
+  }
   
   loadTransactions()
+  loadChartTransactions()
   loadAccounts()
   loadCategories()
 })
