@@ -94,7 +94,11 @@
           <label
             for="file-upload"
             class="group relative flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer transition-colors"
-            :class="selectedFile ? 'border-green-400 bg-green-50 py-5' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 py-10'"
+            :class="selectedFile ? 'border-green-400 bg-green-50 py-5' : isDragging ? 'border-blue-500 bg-blue-50 py-10' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 py-10'"
+            @dragover.prevent="isDragging = true"
+            @dragenter.prevent="isDragging = true"
+            @dragleave="isDragging = false"
+            @drop.prevent="handleDrop"
           >
             <!-- File selected state -->
             <div v-if="selectedFile" class="flex items-center gap-4 w-full px-6">
@@ -532,6 +536,7 @@ interface Account {
 
 // Bank guide state
 const showBankGuide = ref(false)
+const isDragging = ref(false)
 
 // State
 const currentStep = ref(0)
@@ -625,6 +630,14 @@ const handleFileSelect = (event: Event) => {
   const target = event.target as HTMLInputElement
   if (target.files && target.files.length > 0) {
     selectedFile.value = target.files[0]
+  }
+}
+
+const handleDrop = (event: DragEvent) => {
+  isDragging.value = false
+  const files = event.dataTransfer?.files
+  if (files && files.length > 0) {
+    selectedFile.value = files[0]
   }
 }
 
