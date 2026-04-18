@@ -1,13 +1,5 @@
 <template>
   <div class="max-w-4xl mx-auto py-16 px-4 sm:px-6 lg:px-8">
-    <div class="bg-blue-50 border border-blue-200 text-blue-800 rounded-md p-4 mb-8">
-      <h2 class="text-lg font-semibold mb-2">Notice</h2>
-      <p>
-        This Privacy Policy content is provided as a placeholder template. Replace it with your
-        organization&apos;s official policy before going live.
-      </p>
-    </div>
-
     <article class="bg-white rounded-lg shadow-sm border border-gray-200 p-8 space-y-8">
       <header>
         <h1 class="text-3xl font-bold text-gray-900 mb-4">Privacy Policy</h1>

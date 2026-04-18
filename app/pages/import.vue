@@ -12,7 +12,7 @@
           </div>
           <h1 class="text-3xl font-bold text-gray-900">Import Bank Statement</h1>
         </div>
-        <p class="text-gray-500 mt-1">Upload a CSV export from your bank — our AI will automatically read, parse, and categorize your transactions.</p>
+        <p class="text-gray-500 mt-1">Upload a CSV export from your bank. Our AI will automatically read, parse, and categorize your transactions.</p>
       </div>
 
       <!-- Progress Steps -->
@@ -51,7 +51,7 @@
               <span class="text-lg">🏦</span>
               <div>
                 <p class="text-sm font-semibold text-blue-900">How do I download my bank statement as CSV?</p>
-                <p class="text-xs text-blue-600">Works with any bank — quick steps inside</p>
+                <p class="text-xs text-blue-600">Works with any bank. Quick steps inside.</p>
               </div>
             </div>
             <svg class="w-5 h-5 text-blue-500 transition-transform flex-shrink-0" :class="showBankGuide ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -67,20 +67,20 @@
               </li>
               <li class="flex gap-3 text-sm text-blue-900">
                 <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">2</span>
-                <span>Look for a <strong>Download, Export,</strong> or <strong>Statement</strong> option — usually near your transaction list or account activity section.</span>
+                <span>Look for a <strong>Download, Export,</strong> or <strong>Statement</strong> option. It is usually near your transaction list or account activity section.</span>
               </li>
               <li class="flex gap-3 text-sm text-blue-900">
                 <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">3</span>
-                <span>Select <strong>CSV</strong> as the file format. If multiple formats are shown, avoid PDF — CSV, Excel, or Spreadsheet formats all work.</span>
+                <span>Select <strong>CSV</strong> as the file format. If multiple formats are shown, avoid PDF. CSV, Excel, or Spreadsheet formats all work.</span>
               </li>
               <li class="flex gap-3 text-sm text-blue-900">
                 <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">4</span>
-                <span>Choose your date range and download. Then upload that file here — we handle the rest automatically.</span>
+                <span>Choose your date range and download. Then upload that file here and we handle the rest automatically.</span>
               </li>
             </ol>
             <div class="mt-4 bg-white rounded-lg px-3 py-2.5 border border-blue-200 space-y-1">
-              <p class="text-xs text-blue-700">💡 <strong>Tip:</strong> You can also download from your bank's mobile app — look under Account Details or Statements in the app menu.</p>
-              <p class="text-xs text-blue-600">🔄 Already imported before? No problem — re-uploading the same file won't create duplicates.</p>
+              <p class="text-xs text-blue-700">💡 <strong>Tip:</strong> You can also download from your bank's mobile app. Look under Account Details or Statements in the app menu.</p>
+              <p class="text-xs text-blue-600">🔄 Already imported before? Re-uploading the same file will not create duplicates.</p>
             </div>
           </div>
         </div>
@@ -223,7 +223,7 @@
           </div>
           <div class="bg-gray-50 rounded-lg px-4 py-3">
             <p class="text-xs text-gray-500 mb-0.5">Est. transactions</p>
-            <p class="text-sm font-semibold text-gray-900">{{ fileAnalysis.estimatedRowCount ?? '—' }}</p>
+            <p class="text-sm font-semibold text-gray-900">{{ fileAnalysis.estimatedRowCount ?? 'N/A' }}</p>
           </div>
           <div class="bg-gray-50 rounded-lg px-4 py-3">
             <p class="text-xs text-gray-500 mb-0.5">Processing</p>
@@ -234,7 +234,7 @@
         </div>
 
         <div v-if="!fileAnalysis.canProcessSynchronously" class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 mb-5 text-sm text-orange-800">
-          <strong>Heads up:</strong> This file is large and will be processed in the background. We'll import your transactions automatically — you can leave this page and check back later.
+          <strong>Heads up:</strong> This file is large and will be processed in the background. We will import your transactions automatically. You can leave this page and check back later.
         </div>
 
         <div class="flex gap-3">

@@ -190,8 +190,12 @@
     <!-- Footer -->
     <footer class="bg-white border-t mt-12">
       <div class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        <div class="text-center text-gray-500 text-sm">
-          &copy; 2025-2026 <a href="https://budgetvu.com" class="hover:text-gray-700">BudgetVu</a>. All rights reserved.
+        <div class="flex flex-col sm:flex-row items-center justify-between gap-2 text-sm text-gray-400">
+          <span>&copy; 2025-2026 BudgetVu. All rights reserved.</span>
+          <div class="flex items-center gap-4">
+            <NuxtLink to="/terms" class="hover:text-gray-600 transition-colors">Terms of Service</NuxtLink>
+            <NuxtLink to="/privacy" class="hover:text-gray-600 transition-colors">Privacy Policy</NuxtLink>
+          </div>
         </div>
       </div>
     </footer>

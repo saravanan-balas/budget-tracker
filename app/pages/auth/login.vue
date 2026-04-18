@@ -98,8 +98,8 @@ definePageMeta({
 import { onMounted } from 'vue'
 
 const form = reactive({
-  email: 'test@example.com', // Pre-fill for testing
-  password: 'Test123**', // Pre-fill for testing
+  email: '',
+  password: '',
   rememberMe: false
 })
 

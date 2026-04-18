@@ -5,9 +5,9 @@
     <div class="bg-gradient-to-br from-blue-600 via-blue-700 to-violet-700 -mx-4 -mt-6 px-4 py-9 text-center text-white rounded-b-3xl">
 
       <!-- Free badge -->
-      <div class="inline-flex items-center gap-2 bg-white/15 border border-white/25 rounded-full px-3 py-1.5 mb-4">
-        <span class="w-2 h-2 bg-green-400 rounded-full animate-pulse flex-shrink-0"></span>
-        <span class="text-xs sm:text-sm font-bold tracking-wide">BudgetVu is completely free</span>
+      <div class="inline-flex items-center gap-2 bg-green-500 border border-green-400 rounded-full px-3 py-1.5 mb-4 shadow-sm">
+        <span class="w-2 h-2 bg-white rounded-full animate-pulse flex-shrink-0"></span>
+        <span class="text-xs sm:text-sm font-bold tracking-wide text-white">BudgetVu is completely free</span>
       </div>
 
       <h1 class="text-2xl sm:text-3xl md:text-5xl font-bold mb-3 leading-tight px-2">
@@ -15,13 +15,13 @@
       </h1>
 
       <p class="text-blue-100 text-sm mb-5 max-w-sm sm:max-w-lg mx-auto px-2">
-        Connect your bank account, let AI sort your transactions, and finally understand your spending — all in one place.
+        Connect your bank account, let AI sort your transactions, and finally understand your spending.
       </p>
 
       <div class="flex gap-3 justify-center flex-wrap">
         <template v-if="authStore.isAuthenticated">
           <NuxtLink to="/dashboard" class="bg-white text-blue-700 px-7 py-2.5 rounded-lg font-bold text-base hover:bg-blue-50 transition-colors shadow-sm">
-            Go to Dashboard →
+            Go to Dashboard
           </NuxtLink>
         </template>
         <template v-else>
@@ -46,7 +46,7 @@
         </div>
         <div>
           <h3 class="font-semibold text-gray-900 mb-0.5">Smart Import</h3>
-          <p class="text-sm text-gray-500">Download your bank statement and upload it here — AI reads and sorts everything automatically.</p>
+          <p class="text-sm text-gray-500">Download your bank statement and upload it here. AI reads and sorts everything automatically.</p>
         </div>
       </div>
 
@@ -58,7 +58,7 @@
         </div>
         <div>
           <h3 class="font-semibold text-gray-900 mb-0.5">Ask AI</h3>
-          <p class="text-sm text-gray-500">"How much did I spend on dining last month?" — instant answers.</p>
+          <p class="text-sm text-gray-500">Ask questions like "How much did I spend on dining last month?" and get instant answers.</p>
         </div>
       </div>
 
@@ -90,7 +90,6 @@
       </div>
     </div>
 
-
   </div>
 </template>
 
@@ -99,8 +98,8 @@ const authStore = useAuthStore()
 
 const howItWorks = [
   { title: 'Create account', desc: 'Sign up in 30 sec', color: 'bg-blue-600 text-white' },
-  { title: 'Connect your bank', desc: 'Download & upload statements', color: 'bg-blue-500 text-white' },
-  { title: 'AI categorizes', desc: 'Automatic & smart', color: 'bg-violet-600 text-white' },
+  { title: 'Connect your bank', desc: 'Download and upload statements', color: 'bg-blue-500 text-white' },
+  { title: 'AI categorizes', desc: 'Automatic and smart', color: 'bg-violet-600 text-white' },
   { title: 'Get insights', desc: 'Ask anything', color: 'bg-green-600 text-white' }
 ]
 
@@ -109,6 +108,6 @@ onMounted(() => {
 })
 
 useHead({
-  title: 'BudgetVu — Free AI Budget Tracker'
+  title: 'BudgetVu | Free AI Budget Tracker'
 })
 </script>
