@@ -1,7 +1,5 @@
-using System.Net;
-using System.Net.Mail;
-using System.Text;
-using System.Text.Json;
+using Azure;
+using Azure.Communication.Email;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 
@@ -20,44 +18,48 @@ public class EmailService : IEmailService
 
     public async Task<bool> SendPasswordResetEmailAsync(string email, string resetToken, string firstName)
     {
-        var resetUrl = $"{_configuration["AppSettings:FrontendUrl"]}/auth/reset-password?token={resetToken}";
-        
-        var subject = "Reset Your Password - Budget Tracker";
+        var frontendUrl = _configuration["AppSettings:FrontendUrl"];
+        var resetUrl = $"{frontendUrl}/auth/reset-password?token={resetToken}";
+
+        var subject = "Reset your BudgetVu password";
         var body = $@"
 <!DOCTYPE html>
 <html>
 <head>
-    <meta charset='utf-8'>
-    <title>Password Reset</title>
-    <style>
-        body {{ font-family: Arial, sans-serif; line-height: 1.6; color: #333; }}
-        .container {{ max-width: 600px; margin: 0 auto; padding: 20px; }}
-        .header {{ background-color: #3b82f6; color: white; padding: 20px; text-align: center; border-radius: 8px 8px 0 0; }}
-        .content {{ background-color: #f8fafc; padding: 30px; border-radius: 0 0 8px 8px; }}
-        .button {{ display: inline-block; background-color: #3b82f6; color: white; padding: 12px 24px; text-decoration: none; border-radius: 6px; margin: 20px 0; }}
-        .footer {{ text-align: center; margin-top: 20px; color: #666; font-size: 14px; }}
-    </style>
+  <meta charset='utf-8'>
+  <title>Reset your password</title>
+  <style>
+    body {{ font-family: Arial, sans-serif; background-color: #f3f4f6; margin: 0; padding: 0; }}
+    .wrapper {{ max-width: 560px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.08); }}
+    .header {{ background: linear-gradient(135deg, #2563eb, #7c3aed); padding: 32px 24px; text-align: center; }}
+    .header h1 {{ color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }}
+    .header p {{ color: #bfdbfe; margin: 6px 0 0; font-size: 14px; }}
+    .body {{ padding: 32px 24px; color: #374151; }}
+    .body h2 {{ margin: 0 0 12px; font-size: 18px; color: #111827; }}
+    .body p {{ margin: 0 0 16px; font-size: 15px; line-height: 1.6; color: #6b7280; }}
+    .btn {{ display: inline-block; background-color: #2563eb; color: #ffffff; padding: 13px 28px; border-radius: 8px; text-decoration: none; font-weight: 600; font-size: 15px; margin: 8px 0 20px; }}
+    .fallback {{ background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 6px; padding: 10px 14px; font-size: 13px; color: #6b7280; word-break: break-all; }}
+    .footer {{ text-align: center; padding: 20px 24px; font-size: 12px; color: #9ca3af; border-top: 1px solid #f3f4f6; }}
+  </style>
 </head>
 <body>
-    <div class='container'>
-        <div class='header'>
-            <h1>🔐 Password Reset Request</h1>
-        </div>
-        <div class='content'>
-            <h2>Hello {firstName}!</h2>
-            <p>We received a request to reset your password for your Budget Tracker account.</p>
-            <p>Click the button below to reset your password:</p>
-            <a href='{resetUrl}' class='button'>Reset My Password</a>
-            <p>This link will expire in 1 hour for security reasons.</p>
-            <p>If you didn't request this password reset, please ignore this email. Your password will remain unchanged.</p>
-            <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
-            <p style='word-break: break-all; background-color: #e5e7eb; padding: 10px; border-radius: 4px;'>{resetUrl}</p>
-        </div>
-        <div class='footer'>
-            <p>Best regards,<br>The Budget Tracker Team</p>
-            <p><small>This is an automated message. Please do not reply to this email.</small></p>
-        </div>
+  <div class='wrapper'>
+    <div class='header'>
+      <h1>BudgetVu</h1>
+      <p>Password Reset Request</p>
     </div>
+    <div class='body'>
+      <h2>Hi {firstName},</h2>
+      <p>We received a request to reset the password for your BudgetVu account. Click the button below to choose a new password.</p>
+      <a href='{resetUrl}' class='btn'>Reset My Password</a>
+      <p>This link expires in 1 hour. If you did not request a password reset, you can safely ignore this email.</p>
+      <p style='font-size:13px; color:#9ca3af;'>If the button above does not work, paste this link into your browser:</p>
+      <div class='fallback'>{resetUrl}</div>
+    </div>
+    <div class='footer'>
+      <p>BudgetVu. This is an automated message, please do not reply.</p>
+    </div>
+  </div>
 </body>
 </html>";
 
@@ -68,120 +70,43 @@ public class EmailService : IEmailService
     {
         try
         {
-            // Check if SendGrid is configured
-            var sendGridApiKey = _configuration["Email:SendGridApiKey"];
-            var fromEmail = _configuration["Email:FromEmail"];
-            var fromName = _configuration["Email:FromName"] ?? "Budget Tracker";
+            var connectionString = _configuration["AzureCommunication:ConnectionString"];
+            var senderAddress = _configuration["AzureCommunication:SenderAddress"];
 
-            // If SendGrid is not configured, fall back to SMTP or log for development
-            if (string.IsNullOrEmpty(sendGridApiKey))
+            if (string.IsNullOrEmpty(connectionString) || string.IsNullOrEmpty(senderAddress))
             {
-                return await SendEmailViaSmtpAsync(to, subject, body, isHtml);
+                _logger.LogWarning("Azure Communication Services not configured. Would send email to {Email}: {Subject}", to, subject);
+                return true;
             }
 
-            // Send via SendGrid
-            return await SendEmailViaSendGridAsync(to, subject, body, fromEmail, fromName, isHtml);
+            var emailClient = new EmailClient(connectionString);
+
+            var emailContent = new EmailContent(subject);
+            if (isHtml)
+                emailContent.Html = body;
+            else
+                emailContent.PlainText = body;
+
+            var message = new EmailMessage(
+                senderAddress: senderAddress,
+                content: emailContent,
+                recipients: new EmailRecipients(new List<EmailAddress> { new EmailAddress(to) })
+            );
+
+            var operation = await emailClient.SendAsync(WaitUntil.Completed, message);
+
+            if (operation.HasValue && operation.Value.Status == EmailSendStatus.Succeeded)
+            {
+                _logger.LogInformation("Email sent via Azure Communication Services to {Email}", to);
+                return true;
+            }
+
+            _logger.LogError("Azure email send failed with status: {Status}", operation.Value?.Status);
+            return false;
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to send email to {Email}", to);
-            return false;
-        }
-    }
-
-    private async Task<bool> SendEmailViaSendGridAsync(string to, string subject, string body, string fromEmail, string fromName, bool isHtml)
-    {
-        try
-        {
-            var sendGridApiKey = _configuration["Email:SendGridApiKey"];
-            
-            using var httpClient = new HttpClient();
-            httpClient.DefaultRequestHeaders.Add("Authorization", $"Bearer {sendGridApiKey}");
-
-            var emailData = new
-            {
-                personalizations = new[]
-                {
-                    new
-                    {
-                        to = new[] { new { email = to } }
-                    }
-                },
-                from = new { email = fromEmail, name = fromName },
-                subject = subject,
-                content = new[]
-                {
-                    new
-                    {
-                        type = isHtml ? "text/html" : "text/plain",
-                        value = body
-                    }
-                }
-            };
-
-            var json = JsonSerializer.Serialize(emailData);
-            var content = new StringContent(json, Encoding.UTF8, "application/json");
-
-            var response = await httpClient.PostAsync("https://api.sendgrid.com/v3/mail/send", content);
-            
-            if (response.IsSuccessStatusCode)
-            {
-                _logger.LogInformation("Email sent successfully via SendGrid to {Email}", to);
-                return true;
-            }
-            else
-            {
-                var errorContent = await response.Content.ReadAsStringAsync();
-                _logger.LogError("SendGrid API error: {StatusCode} - {Error}", response.StatusCode, errorContent);
-                return false;
-            }
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send email via SendGrid to {Email}", to);
-            return false;
-        }
-    }
-
-    private async Task<bool> SendEmailViaSmtpAsync(string to, string subject, string body, bool isHtml)
-    {
-        try
-        {
-            // Check if SMTP is configured
-            var smtpHost = _configuration["Email:SmtpHost"];
-            var smtpPort = int.Parse(_configuration["Email:SmtpPort"] ?? "587");
-            var smtpUsername = _configuration["Email:SmtpUsername"];
-            var smtpPassword = _configuration["Email:SmtpPassword"];
-            var fromEmail = _configuration["Email:FromEmail"];
-            var fromName = _configuration["Email:FromName"] ?? "Budget Tracker";
-
-            // If email is not configured, log the email content for development
-            if (string.IsNullOrEmpty(smtpHost) || string.IsNullOrEmpty(smtpUsername))
-            {
-                _logger.LogInformation("Email not configured. Would send email to {To} with subject '{Subject}':\n{Body}", 
-                    to, subject, body);
-                return true; // Return true for development
-            }
-
-            using var client = new SmtpClient(smtpHost, smtpPort);
-            client.EnableSsl = true;
-            client.Credentials = new NetworkCredential(smtpUsername, smtpPassword);
-
-            using var message = new MailMessage();
-            message.From = new MailAddress(fromEmail ?? "noreply@budgettracker.com", fromName);
-            message.To.Add(to);
-            message.Subject = subject;
-            message.Body = body;
-            message.IsBodyHtml = isHtml;
-
-            await client.SendMailAsync(message);
-            
-            _logger.LogInformation("Email sent successfully via SMTP to {Email}", to);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to send email via SMTP to {Email}", to);
             return false;
         }
     }
