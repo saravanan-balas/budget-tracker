@@ -2,22 +2,22 @@
   <div>
     <!-- Header with filters -->
     <div class="mb-6">
-      <div class="flex justify-between items-start mb-4">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-3 mb-4">
         <div>
           <h1 class="text-3xl font-bold text-gray-900">Transactions</h1>
           <p class="text-gray-600 mt-1">Manage and analyze your financial transactions</p>
         </div>
-        
+
         <!-- Quick Actions -->
-        <div class="flex gap-3">
-          <button @click="exportTransactions('csv')" class="bg-white border border-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-50 flex items-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <div class="flex gap-2 flex-shrink-0">
+          <button @click="exportTransactions('csv')" class="bg-white border border-gray-300 text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-50 flex items-center text-sm">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
             </svg>
             Export CSV
           </button>
-          <button @click="openAddModal" class="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 flex items-center">
-            <svg class="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <button @click="openAddModal" class="bg-blue-600 text-white px-3 py-2 rounded-lg hover:bg-blue-700 flex items-center text-sm">
+            <svg class="w-4 h-4 mr-1.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
             </svg>
             Add Transaction
@@ -135,9 +135,9 @@
     </div>
 
     <!-- Main Content Grid -->
-    <div class="flex gap-6">
-      <!-- Transactions Table (Left Side) -->
-      <div class="flex-1 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
+    <div class="flex flex-col lg:flex-row gap-6">
+      <!-- Transactions Table -->
+      <div class="flex-1 min-w-0 bg-white rounded-lg shadow-sm border border-gray-200 overflow-hidden">
         <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-200 table-fixed transactions-table" style="min-width: 800px;">
             <thead class="bg-gray-50">
@@ -282,8 +282,8 @@
       </div>
       </div>
 
-      <!-- Charts Section (Right Side) -->
-      <div class="w-80 space-y-4">
+      <!-- Charts Section (hidden on mobile) -->
+      <div class="hidden lg:block w-80 space-y-4">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
           <h3 class="text-sm font-semibold mb-3">Spending by Category</h3>
           <div class="h-48">
