@@ -1,156 +1,266 @@
 <template>
   <div class="min-h-screen bg-gray-50">
     <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
+
       <!-- Header -->
       <div class="mb-8">
-        <h1 class="text-3xl font-bold text-gray-900">Import Transactions</h1>
-        <p class="mt-2 text-gray-600">Upload bank statements from any bank globally using CSV files.</p>
-      </div>
-
-      <!-- Import Steps -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div v-for="(step, index) in steps" :key="index" 
-               :class="[
-                 'flex items-center',
-                 index < steps.length - 1 ? 'flex-1' : ''
-               ]">
-            <div :class="[
-              'flex items-center justify-center w-8 h-8 rounded-full text-sm font-medium',
-              currentStep > index ? 'bg-green-500 text-white' :
-              currentStep === index ? 'bg-blue-500 text-white' :
-              'bg-gray-200 text-gray-500'
-            ]">
-              {{ index + 1 }}
-            </div>
-            <span :class="[
-              'ml-2 text-sm font-medium',
-              currentStep >= index ? 'text-gray-900' : 'text-gray-500'
-            ]">{{ step }}</span>
-            <div v-if="index < steps.length - 1" class="flex-1 h-px bg-gray-200 mx-4"></div>
-          </div>
-        </div>
-      </div>
-
-      <!-- File Upload Section -->
-      <div v-if="currentStep === 0" class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4">Choose File Type</h2>
-        
-        <!-- File Type Selection -->
-        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-          <div @click="selectFileType('csv')" 
-               :class="[
-                 'border-2 rounded-lg p-4 cursor-pointer transition-colors',
-                 selectedFileType === 'csv' ? 'border-blue-500 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
-               ]">
-            <div class="text-center">
-              <svg class="w-12 h-12 mx-auto mb-2 text-green-500" fill="currentColor" viewBox="0 0 20 20">
-                <path d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm2 2h8a1 1 0 110 2H6a1 1 0 110-2zm0 3h8a1 1 0 110 2H6a1 1 0 110-2zm0 3h4a1 1 0 110 2H6a1 1 0 110-2z"/>
-              </svg>
-              <h3 class="font-medium">CSV File</h3>
-              <p class="text-sm text-gray-500">Comma-separated values from your bank</p>
-            </div>
-          </div>
-        </div>
-
-        <!-- File Upload Area -->
-        <div v-if="selectedFileType" class="border-2 border-dashed border-gray-300 rounded-lg p-6">
-          <div class="text-center">
-            <svg class="w-12 h-12 mx-auto mb-4 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 48 48">
-              <path d="M28 8H12a4 4 0 00-4 4v20m32-12v8m0 0v8a4 4 0 01-4 4H12a4 4 0 01-4-4v-4m32-4l-3.172-3.172a4 4 0 00-5.656 0L28 28M8 32l9.172-9.172a4 4 0 015.656 0L28 28m0 0l4 4m4-24h8m-4-4v8m-12 4h.02" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+        <div class="flex items-center gap-3 mb-2">
+          <div class="w-10 h-10 bg-blue-100 rounded-xl flex items-center justify-center flex-shrink-0">
+            <svg class="w-5 h-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
             </svg>
-            <div class="mb-4">
-              <label for="file-upload" class="cursor-pointer">
-                <span class="text-blue-600 hover:text-blue-500 font-medium">Click to upload</span>
-                <span class="text-gray-500"> or drag and drop</span>
-              </label>
-              <input 
-                id="file-upload" 
-                name="file-upload" 
-                type="file" 
-                class="sr-only" 
-                :accept="fileAcceptTypes[selectedFileType]"
-                @change="handleFileSelect"
-              >
+          </div>
+          <h1 class="text-3xl font-bold text-gray-900">Import Bank Statement</h1>
+        </div>
+        <p class="text-gray-500 mt-1">Upload a CSV export from your bank — our AI will automatically read, parse, and categorize your transactions.</p>
+      </div>
+
+      <!-- Progress Steps -->
+      <div class="mb-8">
+        <div class="flex items-center">
+          <div v-for="(step, index) in steps" :key="index" class="flex items-center" :class="index < steps.length - 1 ? 'flex-1' : ''">
+            <div class="flex items-center gap-2">
+              <div :class="[
+                'flex items-center justify-center w-8 h-8 rounded-full text-sm font-semibold transition-colors',
+                currentStep > index ? 'bg-green-500 text-white' :
+                currentStep === index ? 'bg-blue-600 text-white' :
+                'bg-gray-200 text-gray-400'
+              ]">
+                <svg v-if="currentStep > index" class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/>
+                </svg>
+                <span v-else>{{ index + 1 }}</span>
+              </div>
+              <span :class="['text-sm font-medium', currentStep >= index ? 'text-gray-900' : 'text-gray-400']">{{ step }}</span>
             </div>
-            <p class="text-sm text-gray-500">
-              {{ fileTypeDescriptions[selectedFileType] }}
+            <div v-if="index < steps.length - 1" class="flex-1 h-px mx-4" :class="currentStep > index ? 'bg-green-300' : 'bg-gray-200'"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 0: Upload File -->
+      <div v-if="currentStep === 0">
+
+        <!-- Bank Download Guide -->
+        <div class="bg-blue-50 border border-blue-200 rounded-xl mb-6 overflow-hidden">
+          <button
+            @click="showBankGuide = !showBankGuide"
+            class="w-full flex items-center justify-between px-5 py-4 text-left hover:bg-blue-100 transition-colors"
+          >
+            <div class="flex items-center gap-2.5">
+              <span class="text-lg">🏦</span>
+              <div>
+                <p class="text-sm font-semibold text-blue-900">How do I download my bank statement as CSV?</p>
+                <p class="text-xs text-blue-600">Step-by-step instructions for major banks</p>
+              </div>
+            </div>
+            <svg class="w-5 h-5 text-blue-500 transition-transform flex-shrink-0" :class="showBankGuide ? 'rotate-180' : ''" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+            </svg>
+          </button>
+
+          <div v-show="showBankGuide" class="border-t border-blue-200 px-5 pb-5 pt-4">
+            <!-- Bank Tabs -->
+            <div class="flex flex-wrap gap-2 mb-5">
+              <button
+                v-for="bank in bankGuides"
+                :key="bank.id"
+                @click="activeBankTab = bank.id"
+                :class="[
+                  'px-3 py-1.5 rounded-full text-xs font-medium transition-colors',
+                  activeBankTab === bank.id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-blue-700 border border-blue-300 hover:bg-blue-50'
+                ]"
+              >
+                {{ bank.name }}
+              </button>
+            </div>
+
+            <!-- Bank Instructions -->
+            <div v-for="bank in bankGuides" :key="bank.id" v-show="activeBankTab === bank.id">
+              <ol class="space-y-2.5">
+                <li v-for="(step, i) in bank.steps" :key="i" class="flex gap-3 text-sm text-blue-900">
+                  <span class="flex-shrink-0 w-5 h-5 bg-blue-600 text-white rounded-full flex items-center justify-center text-xs font-bold mt-0.5">{{ i + 1 }}</span>
+                  <span v-html="step"></span>
+                </li>
+              </ol>
+              <p v-if="bank.note" class="mt-3 text-xs text-blue-600 bg-white rounded-lg px-3 py-2 border border-blue-200">
+                💡 {{ bank.note }}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Upload Card -->
+        <div class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+          <h2 class="text-lg font-semibold text-gray-900 mb-1">Upload your CSV file</h2>
+          <p class="text-sm text-gray-500 mb-5">Supports any bank's CSV export. Commas, semicolons, and tabs all work.</p>
+
+          <!-- Drop Zone -->
+          <label
+            for="file-upload"
+            class="group relative flex flex-col items-center justify-center w-full border-2 border-dashed rounded-xl cursor-pointer transition-colors"
+            :class="selectedFile ? 'border-green-400 bg-green-50 py-5' : 'border-gray-300 bg-gray-50 hover:border-blue-400 hover:bg-blue-50 py-10'"
+          >
+            <!-- File selected state -->
+            <div v-if="selectedFile" class="flex items-center gap-4 w-full px-6">
+              <div class="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center flex-shrink-0">
+                <svg class="w-6 h-6 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0"/>
+                </svg>
+              </div>
+              <div class="flex-1 min-w-0">
+                <p class="text-sm font-semibold text-gray-900 truncate">{{ selectedFile.name }}</p>
+                <p class="text-xs text-gray-500 mt-0.5">{{ formatFileSize(selectedFile.size) }} · Ready to upload</p>
+              </div>
+              <span class="text-xs text-blue-600 underline flex-shrink-0">Change file</span>
+            </div>
+
+            <!-- Empty state -->
+            <div v-else class="text-center px-6">
+              <svg class="w-12 h-12 mx-auto mb-3 text-gray-300 group-hover:text-blue-400 transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
+              </svg>
+              <p class="text-sm font-medium text-gray-700 group-hover:text-blue-700">
+                <span class="text-blue-600 font-semibold">Click to select</span> or drag and drop
+              </p>
+              <p class="text-xs text-gray-400 mt-1">CSV or TXT files up to 10 MB</p>
+            </div>
+
+            <input
+              id="file-upload"
+              name="file-upload"
+              type="file"
+              class="sr-only"
+              accept=".csv,.txt"
+              @change="handleFileSelect"
+            >
+          </label>
+
+          <!-- Account Selection -->
+          <div v-if="selectedFile" class="mt-5">
+            <label class="block text-sm font-semibold text-gray-700 mb-1.5">Which account is this statement for?</label>
+            <p class="text-xs text-gray-500 mb-2">Transactions will be linked to this account.</p>
+            <select
+              v-model="selectedAccountId"
+              class="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+            >
+              <option value="">Select an account…</option>
+              <option v-for="account in accountOptions" :key="account.id" :value="account.id">
+                {{ account.name }} ({{ account.type || 'N/A' }})
+              </option>
+            </select>
+          </div>
+
+          <!-- Analyze Button -->
+          <div v-if="selectedFile && selectedAccountId" class="mt-5">
+            <button
+              @click="analyzeFile"
+              :disabled="isAnalyzing"
+              class="w-full flex items-center justify-center gap-2 bg-blue-600 text-white py-3 px-4 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <svg v-if="isAnalyzing" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+                <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+                <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+              </svg>
+              <span>{{ isAnalyzing ? 'Analyzing file…' : 'Continue →' }}</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- What happens next -->
+        <div class="bg-white rounded-xl border border-gray-200 p-5">
+          <h3 class="text-sm font-semibold text-gray-700 mb-3">What happens after you upload?</h3>
+          <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div class="flex gap-3 items-start">
+              <div class="w-8 h-8 bg-blue-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span class="text-sm">🔍</span>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">Auto-detect format</p>
+                <p class="text-xs text-gray-500">We recognize any bank's CSV layout automatically.</p>
+              </div>
+            </div>
+            <div class="flex gap-3 items-start">
+              <div class="w-8 h-8 bg-purple-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span class="text-sm">✨</span>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">AI categorization</p>
+                <p class="text-xs text-gray-500">Each transaction is categorized intelligently by AI.</p>
+              </div>
+            </div>
+            <div class="flex gap-3 items-start">
+              <div class="w-8 h-8 bg-green-100 rounded-lg flex items-center justify-center flex-shrink-0">
+                <span class="text-sm">🔄</span>
+              </div>
+              <div>
+                <p class="text-sm font-medium text-gray-800">Duplicate safe</p>
+                <p class="text-xs text-gray-500">Re-importing the same file won't create duplicates.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- File Analysis Results -->
+      <div v-if="currentStep === 1 && fileAnalysis" class="bg-white rounded-xl shadow-sm border border-gray-200 p-6 mb-6">
+        <div class="flex items-center gap-3 mb-5">
+          <div class="w-9 h-9 bg-green-100 rounded-lg flex items-center justify-center">
+            <svg class="w-5 h-5 text-green-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0"/>
+            </svg>
+          </div>
+          <div>
+            <h2 class="text-lg font-semibold text-gray-900">File looks good!</h2>
+            <p class="text-sm text-gray-500">Review the details below and start the import when ready.</p>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 mb-6">
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <p class="text-xs text-gray-500 mb-0.5">Format</p>
+            <p class="text-sm font-semibold text-gray-900">{{ fileAnalysis.fileFormat }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <p class="text-xs text-gray-500 mb-0.5">File size</p>
+            <p class="text-sm font-semibold text-gray-900">{{ formatFileSize(fileAnalysis.fileSize) }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <p class="text-xs text-gray-500 mb-0.5">Est. transactions</p>
+            <p class="text-sm font-semibold text-gray-900">{{ fileAnalysis.estimatedRowCount ?? '—' }}</p>
+          </div>
+          <div class="bg-gray-50 rounded-lg px-4 py-3">
+            <p class="text-xs text-gray-500 mb-0.5">Processing</p>
+            <p class="text-sm font-semibold" :class="fileAnalysis.canProcessSynchronously ? 'text-green-600' : 'text-orange-500'">
+              {{ fileAnalysis.canProcessSynchronously ? 'Instant' : 'Background' }}
             </p>
           </div>
         </div>
 
-        <!-- Account Selection -->
-        <div v-if="selectedFile" class="mt-6">
-          <label class="block text-sm font-medium text-gray-700 mb-2">Select Account</label>
-          <select v-model="selectedAccountId" class="w-full p-2 border border-gray-300 rounded-md">
-            <option value="">Choose an account...</option>
-            <option v-for="account in accountOptions" :key="account.id" :value="account.id">
-              {{ account.name }} ({{ account.type || 'N/A' }})
-            </option>
-          </select>
+        <div v-if="!fileAnalysis.canProcessSynchronously" class="bg-orange-50 border border-orange-200 rounded-lg px-4 py-3 mb-5 text-sm text-orange-800">
+          <strong>Heads up:</strong> This file is large and will be processed in the background. We'll import your transactions automatically — you can leave this page and check back later.
         </div>
 
-        <!-- Analyze File Button -->
-        <div v-if="selectedFile && selectedAccountId" class="mt-6">
-          <button 
-            @click="analyzeFile"
-            :disabled="isAnalyzing"
-            class="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
-            <span v-if="isAnalyzing">Analyzing File...</span>
-            <span v-else>Analyze File</span>
-          </button>
-        </div>
-      </div>
-
-      <!-- File Analysis Results -->
-      <div v-if="currentStep === 1 && fileAnalysis" class="bg-white rounded-lg shadow p-6 mb-6">
-        <h2 class="text-xl font-semibold mb-4">File Analysis</h2>
-        
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">Detected Information</h3>
-            <ul class="space-y-1 text-sm">
-              <li><span class="text-gray-600">Format:</span> {{ fileAnalysis.fileFormat }}</li>
-              <li><span class="text-gray-600">Size:</span> {{ formatFileSize(fileAnalysis.fileSize) }}</li>
-              <li><span class="text-gray-600">Processing:</span> 
-                <span :class="fileAnalysis.canProcessSynchronously ? 'text-green-600' : 'text-orange-600'">
-                  {{ fileAnalysis.canProcessSynchronously ? 'Instant' : 'Background' }}
-                </span>
-              </li>
-              <li v-if="fileAnalysis.estimatedRowCount"><span class="text-gray-600">Est. Transactions:</span> {{ fileAnalysis.estimatedRowCount }}</li>
-            </ul>
-          </div>
-          
-          <div>
-            <h3 class="font-medium text-gray-900 mb-2">Processing Details</h3>
-            <ul class="space-y-1 text-sm">
-              <li><span class="text-gray-600">Template Available:</span> 
-                <span :class="fileAnalysis.hasKnownTemplate ? 'text-green-600' : 'text-gray-500'">
-                  {{ fileAnalysis.hasKnownTemplate ? 'Yes' : 'No' }}
-                </span>
-              </li>
-              <li><span class="text-gray-600">Estimated Time:</span> {{ fileAnalysis.estimatedSeconds }}s</li>
-              <li><span class="text-gray-600">AI Cost:</span> ${{ fileAnalysis.estimatedCost.toFixed(4) }}</li>
-              <li v-if="!fileAnalysis.canProcessSynchronously"><span class="text-gray-600">Reason:</span> {{ fileAnalysis.asyncReason }}</li>
-            </ul>
-          </div>
-        </div>
-
-        <div class="mt-6 flex space-x-4">
-          <button 
+        <div class="flex gap-3">
+          <button
             @click="startImport"
             :disabled="isImporting"
-            class="bg-green-600 text-white py-2 px-4 rounded-md hover:bg-green-700 disabled:opacity-50"
+            class="flex items-center gap-2 bg-blue-600 text-white py-2.5 px-5 rounded-lg font-semibold hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            <span v-if="isImporting">Starting Import...</span>
-            <span v-else>Start Import</span>
+            <svg v-if="isImporting" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"/>
+            </svg>
+            <span>{{ isImporting ? 'Starting import…' : 'Start Import' }}</span>
           </button>
-          <button 
+          <button
             @click="goBack"
-            class="bg-gray-300 text-gray-700 py-2 px-4 rounded-md hover:bg-gray-400"
+            class="py-2.5 px-5 rounded-lg font-medium text-gray-600 border border-gray-300 hover:bg-gray-50 transition-colors"
           >
-            Choose Different File
+            ← Choose different file
           </button>
         </div>
       </div>
@@ -426,6 +536,79 @@ interface Account {
   name: string
   type: string
 }
+
+// Bank guide state
+const showBankGuide = ref(false)
+const activeBankTab = ref('chase')
+
+const bankGuides = [
+  {
+    id: 'chase',
+    name: 'Chase',
+    steps: [
+      'Log in at <strong>chase.com</strong> and go to your checking or savings account.',
+      'Click <strong>"Download account activity"</strong> (usually near the transaction list).',
+      'Set your desired date range.',
+      'Select <strong>CSV</strong> as the file format and click Download.'
+    ],
+    note: 'Chase also lets you download from the mobile app under Account Details → Download.'
+  },
+  {
+    id: 'bofa',
+    name: 'Bank of America',
+    steps: [
+      'Log in at <strong>bankofamerica.com</strong> and select your account.',
+      'Click <strong>"Download"</strong> near the transaction list.',
+      'Choose your date range.',
+      'Select <strong>Microsoft Excel format (CSV)</strong> and click Download.'
+    ],
+    note: 'BofA labels the CSV option as "Microsoft Excel" — it\'s the same thing.'
+  },
+  {
+    id: 'wellsfargo',
+    name: 'Wells Fargo',
+    steps: [
+      'Log in at <strong>wellsfargo.com</strong> and open your account.',
+      'Click <strong>"Download Account Activity"</strong> at the top of your transactions.',
+      'Pick your date range.',
+      'Choose <strong>Comma-Delimited File (CSV)</strong> and click Download.'
+    ],
+    note: null
+  },
+  {
+    id: 'citi',
+    name: 'Citi',
+    steps: [
+      'Log in at <strong>online.citi.com</strong> and select your account.',
+      'Click <strong>"View All Transactions"</strong>.',
+      'Click <strong>"Download"</strong> at the top right of the transactions list.',
+      'Select <strong>CSV</strong> and choose your date range, then Download.'
+    ],
+    note: null
+  },
+  {
+    id: 'capitalone',
+    name: 'Capital One',
+    steps: [
+      'Log in at <strong>capitalone.com</strong> and open your account.',
+      'Click <strong>"Download Transactions"</strong> or the download icon.',
+      'Select your date range.',
+      'Choose <strong>CSV</strong> format and click Download.'
+    ],
+    note: null
+  },
+  {
+    id: 'other',
+    name: 'Other banks',
+    steps: [
+      'Log in to your bank\'s online portal and navigate to your account.',
+      'Look for a <strong>"Download", "Export", or "Statement"</strong> option near your transactions.',
+      'Select <strong>CSV</strong> format if multiple options are available.',
+      'Choose any date range — we automatically detect and skip duplicates if you re-import.'
+    ],
+    note: 'Most banks offer CSV export. If you only see PDF, check if there\'s a "transaction history" or "activity" download option separate from statements.'
+  }
+]
 
 // State
 const currentStep = ref(0)

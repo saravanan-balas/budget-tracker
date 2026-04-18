@@ -179,12 +179,13 @@ onMounted(() => {
     })
     
     // Render the button
+    const container = document.getElementById('g_id_signin')
     window.google.accounts.id.renderButton(
-      document.getElementById('g_id_signin'),
-      { 
+      container,
+      {
         theme: 'outline',
         size: 'large',
-        width: 400,
+        width: container.offsetWidth || 400,
         text: 'continue_with',
         shape: 'rectangular'
       }
