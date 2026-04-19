@@ -241,10 +241,21 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
 
     private async Task AssignCategoriesBatch(List<Transaction> transactions, Guid userId)
     {
+        // Keep categories already assigned upstream (for example, trusted bank-category mappings).
+        var uncategorizedTransactions = transactions
+            .Where(t => !t.CategoryId.HasValue)
+            .ToList();
+
+        if (uncategorizedTransactions.Count == 0)
+        {
+            _logger.LogInformation("Skipping batch categorization: all {Count} transactions already have categories", transactions.Count);
+            return;
+        }
+
         // Prepare data for batch category assignment
-        var transactionData = transactions
+        var transactionData = uncategorizedTransactions
             .Select(t => (
-                merchant: t.Description ?? t.OriginalMerchant, // Use Description (full name) instead of OriginalMerchant (truncated)
+                merchant: t.OriginalMerchant,
                 description: t.Description,
                 amount: t.Amount
             ))
@@ -260,11 +271,10 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
 
         // Apply category assignments to transactions
         int categorizedCount = 0;
-        for (int i = 0; i < transactions.Count; i++)
+        for (int i = 0; i < uncategorizedTransactions.Count; i++)
         {
-            var transaction = transactions[i];
-            var merchantForLookup = transaction.Description ?? transaction.OriginalMerchant;
-            var lookupKey = $"{merchantForLookup}|{transaction.Description}|{transaction.Amount}";
+            var transaction = uncategorizedTransactions[i];
+            var lookupKey = $"{transaction.OriginalMerchant}|{transaction.Description}|{transaction.Amount}";
             
             _logger.LogDebug("Looking for key: '{LookupKey}' for transaction: {Merchant}", lookupKey, transaction.OriginalMerchant);
             
@@ -287,7 +297,7 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
                 _logger.LogWarning("No category assignment found for key: '{LookupKey}' (merchant: {Merchant})", lookupKey, transaction.OriginalMerchant);
             }
         }
-        _logger.LogInformation("Applied categories to {Count} out of {Total} transactions", categorizedCount, transactions.Count);
+        _logger.LogInformation("Applied categories to {Count} out of {Total} uncategorized transactions", categorizedCount, uncategorizedTransactions.Count);
     }
 
     private string GenerateTransactionHash(Transaction transaction)

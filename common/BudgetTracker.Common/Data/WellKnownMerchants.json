@@ -1,4 +1,4 @@
-1{
+{
   "merchants": [
     {
       "patterns": ["uber eats", "ubereats", "uber *eats"],
@@ -99,6 +99,10 @@
       "category": "Groceries"
     },
     {
+      "patterns": ["meijer", "meijer express"],
+      "category": "Groceries"
+    },
+    {
       "patterns": ["whole foods", "wholefds"],
       "category": "Groceries"
     },
@@ -131,7 +135,15 @@
       "category": "Groceries"
     },
     {
-      "patterns": ["amazon.com", "amzn mktp", "amzn.com", "amazon prime", "amazon marktplc"],
+      "patterns": ["amazon.com", "amazon mktpl", "amazon mktplace", "amazon mktp", "amzn mktp", "amzn.com", "amazon prime", "amazon marktplc"],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["h&m", "hm "],
+      "category": "Shopping"
+    },
+    {
+      "patterns": ["skechers"],
       "category": "Shopping"
     },
     {
@@ -191,6 +203,10 @@
       "category": "Healthcare"
     },
     {
+      "patterns": ["usps", "us postal service", "postal service"],
+      "category": "Bills & Utilities"
+    },
+    {
       "patterns": ["walgreens"],
       "category": "Healthcare"
     },
@@ -221,6 +237,10 @@
     {
       "patterns": ["simplisafe"],
       "category": "Bills & Utilities"
+    },
+    {
+      "patterns": ["hair salon", "barber shop", "beauty salon"],
+      "category": "Personal Care"
     },
     {
       "patterns": ["brilliant.org"],

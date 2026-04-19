@@ -1,5 +1,6 @@
 using System.Collections.Concurrent;
 using System.Reflection;
+using System.Text.RegularExpressions;
 using System.Text.Json;
 
 namespace BudgetTracker.Common.Services.Categories;
@@ -10,6 +11,7 @@ namespace BudgetTracker.Common.Services.Categories;
 /// </summary>
 public static class HfTransactionLookupLoader
 {
+    private const int MinPartialMatchScore = 80;
     private static readonly Lazy<IReadOnlyDictionary<string, string>> _lookup = new(LoadLookup);
     private static readonly ConcurrentDictionary<string, string?> _matchCache = new(StringComparer.OrdinalIgnoreCase);
 
@@ -23,7 +25,7 @@ public static class HfTransactionLookupLoader
         ["Shopping & Retail"] = ["Shopping", "Online Shopping"],
         ["Entertainment & Recreation"] = ["Entertainment"],
         ["Healthcare & Medical"] = ["Healthcare"],
-        ["Utilities & Services"] = ["Utilities", "Bills & Utilities"],
+        ["Utilities & Services"] = ["Bills & Utilities", "Utilities"],
         ["Financial Services"] = ["Financial Services", "Bank Fees", "Transfer"],
         ["Charity & Donations"] = ["Charity", "Donations"],
         ["Government & Legal"] = ["Government", "Taxes", "Fees"],
@@ -47,7 +49,11 @@ public static class HfTransactionLookupLoader
         if (string.IsNullOrEmpty(merchantLower) && string.IsNullOrEmpty(descriptionLower))
             return null;
 
-        var cacheKey = $"{merchantLower}|{descriptionLower}";
+        var normalizedMerchant = NormalizeText(merchantLower);
+        var normalizedDescription = NormalizeText(descriptionLower);
+        var normalizedCombined = NormalizeText($"{merchantLower} {descriptionLower}".Trim());
+
+        var cacheKey = $"{normalizedMerchant}|{normalizedDescription}";
         if (_matchCache.TryGetValue(cacheKey, out var cached))
             return cached;
 
@@ -60,43 +66,64 @@ public static class HfTransactionLookupLoader
 
         string? hfCategory = null;
 
-        // 1. Try exact matches: merchant, description, or combined
-        if (!string.IsNullOrEmpty(merchantLower) && lookup.TryGetValue(merchantLower, out var mCat))
-            hfCategory = mCat;
-        else if (!string.IsNullOrEmpty(descriptionLower) && lookup.TryGetValue(descriptionLower, out var dCat))
-            hfCategory = dCat;
-        else if (!string.IsNullOrEmpty(merchantLower) && !string.IsNullOrEmpty(descriptionLower))
+        // 1. Try exact matches with both raw and normalized forms.
+        var exactCandidates = new[]
         {
-            var combined = $"{merchantLower} {descriptionLower}".Trim();
-            if (lookup.TryGetValue(combined, out var cCat))
-                hfCategory = cCat;
+            merchantLower,
+            descriptionLower,
+            $"{merchantLower} {descriptionLower}".Trim(),
+            normalizedMerchant,
+            normalizedDescription,
+            normalizedCombined
+        }
+        .Where(c => !string.IsNullOrWhiteSpace(c))
+        .Distinct(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var candidate in exactCandidates)
+        {
+            if (lookup.TryGetValue(candidate, out var exactCategory))
+            {
+                hfCategory = exactCategory;
+                break;
+            }
         }
 
-        // 2. Try partial/substring match (HF has full descriptions e.g. "simplisafe home security")
-        if (hfCategory == null && (!string.IsNullOrEmpty(merchantLower) || !string.IsNullOrEmpty(descriptionLower)))
+        // 2. Score-based partial match for noisy descriptors.
+        if (hfCategory == null)
         {
-            var searchText = $"{merchantLower} {descriptionLower}".Trim();
-            (string Key, string Category)? best = null;
+            var searchText = $"{normalizedMerchant} {normalizedDescription}".Trim();
+            var searchTokens = GetSignificantTokens(searchText).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            var merchantTokens = GetSignificantTokens(normalizedMerchant).ToHashSet(StringComparer.OrdinalIgnoreCase);
+            (string Key, string Category, int Score)? best = null;
+
             foreach (var (key, cat) in lookup)
             {
-                if (string.IsNullOrEmpty(key) || key.Length < 4) continue;
-                // Dataset key contains merchant, or merchant/search contains key.
-                // Require key to be ≥50% of merchant length for substring matches to avoid
-                // false positives (e.g., HF key "delta" matching "delta dental" as Transportation).
-                var match = (!string.IsNullOrEmpty(merchantLower) && merchantLower.Length >= 4 && key.Contains(merchantLower, StringComparison.OrdinalIgnoreCase))
-                    || (!string.IsNullOrEmpty(merchantLower) && key.Length >= 4 && key.Length * 2 >= merchantLower.Length && merchantLower.Contains(key, StringComparison.OrdinalIgnoreCase))
-                    || (key.Length >= 8 && searchText.Contains(key, StringComparison.OrdinalIgnoreCase))
-                    || (searchText.Length >= 4 && key.Contains(searchText, StringComparison.OrdinalIgnoreCase));
-                if (!match) continue;
-                // Prefer when merchant is at start of key, then shorter keys
-                var atStart = !string.IsNullOrEmpty(merchantLower) && key.StartsWith(merchantLower, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
-                var bestAtStart = best.HasValue && !string.IsNullOrEmpty(merchantLower) && best.Value.Key.StartsWith(merchantLower, StringComparison.OrdinalIgnoreCase) ? 0 : 1;
-                var isBetter = best == null
-                    || atStart < bestAtStart
-                    || (atStart == bestAtStart && key.Length < best.Value.Key.Length);
+                if (string.IsNullOrEmpty(key) || key.Length < 4)
+                    continue;
+
+                var normalizedKey = NormalizeText(key);
+                if (string.IsNullOrEmpty(normalizedKey))
+                    continue;
+
+                var score = ScoreMatch(
+                    normalizedMerchant,
+                    normalizedDescription,
+                    searchText,
+                    merchantTokens,
+                    searchTokens,
+                    normalizedKey);
+
+                if (score < MinPartialMatchScore)
+                    continue;
+
+                var isBetter = !best.HasValue
+                    || score > best.Value.Score
+                    || (score == best.Value.Score && normalizedKey.Length < best.Value.Key.Length);
+
                 if (isBetter)
-                    best = (key, cat);
+                    best = (normalizedKey, cat, score);
             }
+
             if (best.HasValue)
                 hfCategory = best.Value.Category;
         }
@@ -179,4 +206,95 @@ public static class HfTransactionLookupLoader
     }
 
     public static void ClearCache() => _matchCache.Clear();
+
+    private static int ScoreMatch(
+        string normalizedMerchant,
+        string normalizedDescription,
+        string searchText,
+        HashSet<string> merchantTokens,
+        HashSet<string> searchTokens,
+        string normalizedKey)
+    {
+        var score = 0;
+
+        if (!string.IsNullOrEmpty(normalizedMerchant))
+        {
+            if (normalizedKey == normalizedMerchant)
+                return 100;
+
+            if (normalizedKey.StartsWith(normalizedMerchant, StringComparison.OrdinalIgnoreCase))
+                score = Math.Max(score, 90);
+
+            // Preserve a guard against short alias false positives.
+            if (normalizedMerchant.StartsWith(normalizedKey, StringComparison.OrdinalIgnoreCase)
+                && normalizedKey.Length >= 4
+                && normalizedKey.Length * 2 >= normalizedMerchant.Length)
+            {
+                score = Math.Max(score, 82);
+            }
+
+            if (normalizedKey.Contains(normalizedMerchant, StringComparison.OrdinalIgnoreCase) && normalizedMerchant.Length >= 4)
+                score = Math.Max(score, 78);
+        }
+
+        if (!string.IsNullOrEmpty(normalizedDescription))
+        {
+            if (normalizedKey == normalizedDescription)
+                score = Math.Max(score, 88);
+
+            if (normalizedDescription.Contains(normalizedKey, StringComparison.OrdinalIgnoreCase) && normalizedKey.Length >= 8)
+                score = Math.Max(score, 70);
+
+            if (normalizedKey.Contains(normalizedDescription, StringComparison.OrdinalIgnoreCase) && normalizedDescription.Length >= 6)
+                score = Math.Max(score, 68);
+        }
+
+        if (!string.IsNullOrEmpty(searchText))
+        {
+            if (normalizedKey == searchText)
+                score = Math.Max(score, 92);
+
+            if (searchText.Contains(normalizedKey, StringComparison.OrdinalIgnoreCase) && normalizedKey.Length >= 8)
+                score = Math.Max(score, 72);
+        }
+
+        var keyTokens = GetSignificantTokens(normalizedKey).ToArray();
+        if (keyTokens.Length > 0 && searchTokens.Count > 0)
+        {
+            var overlap = keyTokens.Count(t => searchTokens.Contains(t));
+            if (overlap >= 2)
+            {
+                score = Math.Max(score, 60 + Math.Min(20, overlap * 5));
+            }
+            else if (overlap == 1)
+            {
+                var matchedToken = keyTokens.First(t => searchTokens.Contains(t));
+                if (matchedToken.Length >= 7 && merchantTokens.Contains(matchedToken))
+                    score = Math.Max(score, 58);
+            }
+        }
+
+        return score;
+    }
+
+    private static string NormalizeText(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return string.Empty;
+
+        var normalized = value.Trim().ToLowerInvariant();
+        normalized = Regex.Replace(normalized, @"[^a-z0-9\s]", " ");
+        normalized = Regex.Replace(normalized, @"\s+", " ").Trim();
+        return normalized;
+    }
+
+    private static IEnumerable<string> GetSignificantTokens(string text)
+    {
+        if (string.IsNullOrWhiteSpace(text))
+            return Array.Empty<string>();
+
+        return text
+            .Split(' ', StringSplitOptions.RemoveEmptyEntries)
+            .Where(t => t.Length >= 4);
+    }
 }
