@@ -88,13 +88,25 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
             }
 
             // 4. Batch process merchants (normalize and find/create)
+            var merchantStopwatch = Stopwatch.StartNew();
             await ProcessMerchantsBatch(newTransactions);
+            merchantStopwatch.Stop();
+            _logger.LogInformation("⏱️ Import stage [merchant] completed in {ElapsedMs}ms for {Count} transactions",
+                merchantStopwatch.ElapsedMilliseconds, newTransactions.Count);
 
             // 5. Batch assign categories
+            var categorizeStopwatch = Stopwatch.StartNew();
             await AssignCategoriesBatch(newTransactions, userId);
+            categorizeStopwatch.Stop();
+            _logger.LogInformation("⏱️ Import stage [categorize] completed in {ElapsedMs}ms for {Count} transactions",
+                categorizeStopwatch.ElapsedMilliseconds, newTransactions.Count);
 
             // 6. Bulk insert transactions
+            var insertStopwatch = Stopwatch.StartNew();
             var insertedCount = await BulkInsertTransactionsAsync(newTransactions);
+            insertStopwatch.Stop();
+            _logger.LogInformation("⏱️ Import stage [insert] completed in {ElapsedMs}ms for {Count} transactions",
+                insertStopwatch.ElapsedMilliseconds, newTransactions.Count);
 
             // 7. Update performance counters
             Interlocked.Add(ref _totalProcessed, transactions.Count);
@@ -288,7 +300,7 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
                 {
                     categorizedCount++;
                     var categoryName = (await _context.Categories.FindAsync(categoryId.Value))?.Name ?? "Unknown";
-                    _logger.LogInformation("Successfully categorized {Merchant} with category {CategoryName}", transaction.OriginalMerchant, categoryName);
+                    _logger.LogDebug("Successfully categorized {Merchant} with category {CategoryName}", transaction.OriginalMerchant, categoryName);
                 }
                 else
                 {

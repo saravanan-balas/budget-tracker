@@ -156,7 +156,9 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             ? new Dictionary<string, Guid?>()
             : await GetMerchantCategoriesAsync(merchants, userId);
 
-        // 3. Process uncached transactions (pipeline: user overrides -> global -> well-known -> HF -> MCC -> AI)
+        // 3. Process uncached transactions
+        // Pipeline:
+        //   user overrides -> global -> parsed category hint -> well-known -> HF -> MCC -> AI -> fallback
         var batchWellKnown = 0;
         var batchHf = 0;
         var batchMcc = 0;
@@ -184,6 +186,15 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 Interlocked.Increment(ref _globalMappings);
                 batchGlobal++;
                 _logger.LogDebug("Global merchant assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+            }
+            // Parsed category from trusted import sources (for example card statement category column)
+            else if ((categoryId = await TryParsedCategoryAssignment(parsedCategoryHint, userId)).HasValue)
+            {
+                Interlocked.Increment(ref _parsedFallbackMappings);
+                batchParsedFallback++;
+                _logger.LogDebug(
+                    "Parsed-category assignment successful for {Merchant}: {CategoryId} (hint: {ParsedCategoryHint})",
+                    merchant, categoryId, parsedCategoryHint);
             }
             // Deterministic rule layers.
             else if ((categoryId = await TryWellKnownMerchantAssignment(merchant, description, userId)).HasValue)
@@ -216,20 +227,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
                 }
                 else
                 {
-                    categoryId = await TryParsedCategoryAssignment(parsedCategoryHint, userId);
-                    if (categoryId.HasValue)
-                    {
-                        Interlocked.Increment(ref _parsedFallbackMappings);
-                        batchParsedFallback++;
-                        _logger.LogDebug(
-                            "Parsed-category fallback assignment successful for {Merchant}: {CategoryId} (hint: {ParsedCategoryHint})",
-                            merchant, categoryId, parsedCategoryHint);
-                    }
-                    else
-                    {
-                        categoryId = await GetFallbackUncategorizedAsync(merchant, userId);
-                        _logger.LogWarning("All categorization methods failed for {Merchant}; using Uncategorized fallback", merchant);
-                    }
+                    categoryId = await GetFallbackUncategorizedAsync(merchant, userId);
+                    _logger.LogWarning("All categorization methods failed for {Merchant}; using Uncategorized fallback", merchant);
                 }
             }
 
@@ -245,8 +244,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         }
 
         _logger.LogInformation(
-            "Categorization batch complete: {MerchantCount} from user mappings, {GlobalCount} from global mappings, {WellKnownCount} from well-known merchants, {HfCount} from Hugging Face dataset, {MccCount} from MCC keywords, {AiCount} from AI fallback, {ParsedFallbackCount} from parsed-category fallback (processed {Total} uncached)",
-            batchMerchant, batchGlobal, batchWellKnown, batchHf, batchMcc, batchAi, batchParsedFallback, uncachedTransactions.Count);
+            "Categorization batch complete: {MerchantCount} from user mappings, {GlobalCount} from global mappings, {ParsedFallbackCount} from parsed-category hints, {WellKnownCount} from well-known merchants, {HfCount} from Hugging Face dataset, {MccCount} from MCC keywords, {AiCount} from AI fallback (processed {Total} uncached)",
+            batchMerchant, batchGlobal, batchParsedFallback, batchWellKnown, batchHf, batchMcc, batchAi, uncachedTransactions.Count);
 
         return results;
     }
@@ -603,7 +602,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
 
         if (!IsAiFallbackEnabled())
         {
-            _logger.LogInformation("AI fallback disabled or misconfigured for {Merchant}", merchant);
+            _logger.LogDebug("AI fallback disabled or misconfigured for {Merchant}", merchant);
             return null;
         }
 

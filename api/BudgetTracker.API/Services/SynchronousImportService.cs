@@ -164,6 +164,7 @@ public class SynchronousImportService : ISynchronousImportService
 
     private async Task<List<ParsedTransaction>> ParseCsvFileAsync(ImportedFile import, byte[] fileData)
     {
+        var parseStopwatch = System.Diagnostics.Stopwatch.StartNew();
         // Use universal parser if available
         if (_universalParser != null)
         {
@@ -191,8 +192,10 @@ public class SynchronousImportService : ISynchronousImportService
                 
                 if (parseResult.IsSuccessful)
                 {
+                    parseStopwatch.Stop();
                     _logger.LogInformation("✅ Parsed {Count} transactions (AI Cost: ${Cost:F4})", 
                         parseResult.Transactions.Count, parseResult.AICost);
+                    _logger.LogInformation("⏱️ Parse stage completed in {ElapsedMs}ms using universal parser", parseStopwatch.ElapsedMilliseconds);
                     
                     import.AICost = parseResult.AICost;
                     
@@ -224,7 +227,10 @@ public class SynchronousImportService : ISynchronousImportService
 
         // Fallback to simple CSV parsing
         _logger.LogInformation("⚠️ Using simple CSV parser");
-        return ParseCsvSimple(fileData);
+        var fallbackTransactions = ParseCsvSimple(fileData);
+        parseStopwatch.Stop();
+        _logger.LogInformation("⏱️ Parse stage completed in {ElapsedMs}ms using simple parser", parseStopwatch.ElapsedMilliseconds);
+        return fallbackTransactions;
     }
 
     private List<ParsedTransaction> ParseCsvSimple(byte[] fileData)
