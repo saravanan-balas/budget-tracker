@@ -7,6 +7,7 @@ using BudgetTracker.Common.Services.Categories;
 using System.Security.Cryptography;
 using System.Text;
 using System.Diagnostics;
+using System.Text.Json;
 
 namespace BudgetTracker.Common.Services.Transactions;
 
@@ -257,7 +258,8 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
             .Select(t => (
                 merchant: t.OriginalMerchant,
                 description: t.Description,
-                amount: t.Amount
+                amount: t.Amount,
+                parsedCategoryHint: GetParsedCategoryHint(t.Metadata)
             ))
             .ToList();
 
@@ -274,7 +276,8 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
         for (int i = 0; i < uncategorizedTransactions.Count; i++)
         {
             var transaction = uncategorizedTransactions[i];
-            var lookupKey = $"{transaction.OriginalMerchant}|{transaction.Description}|{transaction.Amount}";
+            var parsedCategoryHint = GetParsedCategoryHint(transaction.Metadata);
+            var lookupKey = BuildLookupKey(transaction.OriginalMerchant, transaction.Description, transaction.Amount, parsedCategoryHint);
             
             _logger.LogDebug("Looking for key: '{LookupKey}' for transaction: {Merchant}", lookupKey, transaction.OriginalMerchant);
             
@@ -308,6 +311,29 @@ public class OptimizedBatchTransactionService : IBatchTransactionService
         using var sha256 = SHA256.Create();
         var hashBytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(hashString));
         return Convert.ToHexString(hashBytes);
+    }
+
+    private static string BuildLookupKey(string merchant, string? description, decimal amount, string? parsedCategoryHint)
+        => $"{merchant}|{description}|{amount}|{parsedCategoryHint}";
+
+    private static string? GetParsedCategoryHint(string? metadata)
+    {
+        if (string.IsNullOrWhiteSpace(metadata))
+            return null;
+
+        try
+        {
+            using var doc = JsonDocument.Parse(metadata);
+            if (!doc.RootElement.TryGetProperty("parsedCategory", out var parsedCategoryNode))
+                return null;
+
+            var parsedCategory = parsedCategoryNode.GetString();
+            return string.IsNullOrWhiteSpace(parsedCategory) ? null : parsedCategory.Trim();
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
     }
 
     public async Task<Dictionary<string, object>> GetBatchProcessingStatsAsync()

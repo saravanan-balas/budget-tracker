@@ -173,6 +173,11 @@ public class UniversalBankParser : IUniversalBankParser
                 "trans. description", "transaction desc", "name", "to/from", "beneficiary",
                 "counterparty", "recipient", "statement description", "transaction narrative"
             });
+            var categoryIndex = FindColumnIndex(headers, new[]
+            {
+                "category", "transaction category", "merchant category", "spending category",
+                "expense category", "income category"
+            });
             var balanceIndex = FindColumnIndex(headers, new[] { 
                 "balance", "running balance", "running bal", "available balance", 
                 "current balance", "closing balance", "ending balance", "new balance",
@@ -192,12 +197,11 @@ public class UniversalBankParser : IUniversalBankParser
             // Try to find transaction type column (indicates debit/credit)
             var typeIndex = FindColumnIndex(headers, new[] {
                 "type", "transaction type", "trans type", "txn type", "transaction kind",
-                "debit/credit", "dr/cr", "d/c", "direction", "payment type", "category",
-                "transaction category", "trans. type"
+                "debit/credit", "dr/cr", "d/c", "direction", "payment type", "trans. type"
             });
             
-            _logger.LogInformation("[CSV-COLUMNS] DateIndex: {DateIndex}, AmountIndex: {AmountIndex}, DebitIndex: {DebitIndex}, CreditIndex: {CreditIndex}, TypeIndex: {TypeIndex}, DescriptionIndex: {DescIndex}, BalanceIndex: {BalIndex}, ReferenceIndex: {RefIndex}",
-                dateIndex, amountIndex, debitIndex, creditIndex, typeIndex, descriptionIndex, balanceIndex, referenceIndex);
+            _logger.LogInformation("[CSV-COLUMNS] DateIndex: {DateIndex}, AmountIndex: {AmountIndex}, DebitIndex: {DebitIndex}, CreditIndex: {CreditIndex}, TypeIndex: {TypeIndex}, DescriptionIndex: {DescIndex}, CategoryIndex: {CategoryIndex}, BalanceIndex: {BalIndex}, ReferenceIndex: {RefIndex}",
+                dateIndex, amountIndex, debitIndex, creditIndex, typeIndex, descriptionIndex, categoryIndex, balanceIndex, referenceIndex);
 
             _logger.LogDebug("[CSV-STEP-4] Parsing {Count} data rows", lines.Length - headerLineIndex - 1);
             
@@ -282,6 +286,16 @@ public class UniversalBankParser : IUniversalBankParser
                     if (descriptionIndex >= 0 && descriptionIndex < fields.Length)
                     {
                         transaction.Description = fields[descriptionIndex].Trim('"');
+                    }
+
+                    // Parse bank-provided category label (used as downstream fallback hint)
+                    if (categoryIndex >= 0 && categoryIndex < fields.Length)
+                    {
+                        var parsedCategory = fields[categoryIndex].Trim('"').Trim();
+                        if (!string.IsNullOrWhiteSpace(parsedCategory))
+                        {
+                            transaction.Category = parsedCategory;
+                        }
                     }
 
                     // Parse balance

@@ -10,6 +10,7 @@ using BudgetTracker.Common.Services.Transactions;
 using Microsoft.EntityFrameworkCore;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace BudgetTracker.API.Services;
 
@@ -336,17 +337,6 @@ public class SynchronousImportService : ISynchronousImportService
     {
         _logger.LogInformation("🔄 Processing {Count} transactions with batch service", transactions.Count);
 
-        // Build a case-insensitive lookup so bank-provided category labels can be reused when they
-        // match an existing user category.
-        var categoryLookup = await _context.Categories
-            .Where(c => c.UserId == userId && c.IsActive)
-            .Select(c => new { c.Id, c.Name })
-            .ToListAsync();
-
-        var categoryByName = categoryLookup
-            .GroupBy(c => c.Name.Trim(), StringComparer.OrdinalIgnoreCase)
-            .ToDictionary(g => g.Key, g => g.First().Id, StringComparer.OrdinalIgnoreCase);
-
         // Convert ParsedTransactions to Transaction objects
         var transactionList = transactions.Select(parsedTxn => new Transaction
         {
@@ -356,7 +346,7 @@ public class SynchronousImportService : ISynchronousImportService
             Type = parsedTxn.Amount >= 0 ? TransactionType.Credit : TransactionType.Debit,
             Description = parsedTxn.Description ?? "Import",
             OriginalMerchant = ExtractMerchantFromDescription(parsedTxn.Description),
-            CategoryId = TryResolveImportedCategoryId(parsedTxn.Category, categoryByName),
+            Metadata = BuildImportMetadata(parsedTxn.Category),
             ImportedFileId = import.Id
         }).ToList();
 
@@ -373,27 +363,15 @@ public class SynchronousImportService : ISynchronousImportService
         return (result.Inserted, result.Duplicates);
     }
 
-    private static Guid? TryResolveImportedCategoryId(
-        string? importedCategory,
-        IReadOnlyDictionary<string, Guid> categoryByName)
+    private static string? BuildImportMetadata(string? parsedCategory)
     {
-        if (string.IsNullOrWhiteSpace(importedCategory))
+        if (string.IsNullOrWhiteSpace(parsedCategory))
             return null;
 
-        var normalized = importedCategory.Trim();
-        if (categoryByName.TryGetValue(normalized, out var categoryId))
-            return categoryId;
-
-        // Handle common separators from bank exports: "Food/Dining", "Bills:Utilities", etc.
-        var fallback = normalized
-            .Replace("/", " ")
-            .Replace(":", " ")
-            .Trim();
-
-        if (categoryByName.TryGetValue(fallback, out categoryId))
-            return categoryId;
-
-        return null;
+        return JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["parsedCategory"] = parsedCategory.Trim()
+        });
     }
 
     private string ExtractMerchantFromDescription(string? description)

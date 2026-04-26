@@ -15,7 +15,7 @@ public interface ICategoryAssignmentService
     /// Optimized for bulk processing during imports
     /// </summary>
     Task<Dictionary<string, Guid?>> BatchAssignCategoriesAsync(
-        List<(string merchant, string? description, decimal amount)> transactions, 
+        List<(string merchant, string? description, decimal amount, string? parsedCategoryHint)> transactions, 
         Guid userId);
 
     /// <summary>

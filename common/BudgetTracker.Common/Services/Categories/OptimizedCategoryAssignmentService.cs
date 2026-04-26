@@ -32,6 +32,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
     private long _globalMappings = 0;
     private long _merchantMappings = 0;
     private long _aiFallbacks = 0;
+    private long _parsedFallbackMappings = 0;
 
     public OptimizedCategoryAssignmentService(
         BudgetTrackerDbContext context,
@@ -103,28 +104,35 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         }
 
         // 5. AI fallback (most expensive - result is persisted to avoid repeat calls).
-        var defaultCategory = await TryDefaultAssignment(merchant, description, amount, userId);
-        if (defaultCategory.HasValue)
+        var aiCategory = await TryAiAssignment(merchant, description, amount, userId);
+        if (aiCategory.HasValue)
         {
             Interlocked.Increment(ref _aiFallbacks);
-            _memoryCache.Set(cacheKey, defaultCategory.Value, _memoryCacheExpiry);
+            _memoryCache.Set(cacheKey, aiCategory.Value, _memoryCacheExpiry);
+            return aiCategory;
         }
 
-        return defaultCategory;
+        var fallbackCategory = await GetFallbackUncategorizedAsync(merchant, userId);
+        if (fallbackCategory.HasValue)
+        {
+            _memoryCache.Set(cacheKey, fallbackCategory.Value, _memoryCacheExpiry);
+        }
+
+        return fallbackCategory;
     }
 
     public async Task<Dictionary<string, Guid?>> BatchAssignCategoriesAsync(
-        List<(string merchant, string? description, decimal amount)> transactions,
+        List<(string merchant, string? description, decimal amount, string? parsedCategoryHint)> transactions,
         Guid userId)
     {
         var results = new Dictionary<string, Guid?>();
-        var uncachedTransactions = new List<(string key, string merchant, string? description, decimal amount)>();
+        var uncachedTransactions = new List<(string key, string merchant, string? description, decimal amount, string? parsedCategoryHint)>();
 
         // 1. Check cache for all transactions first
-        foreach (var (merchant, description, amount) in transactions)
+        foreach (var (merchant, description, amount, parsedCategoryHint) in transactions)
         {
-            var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
-            var lookupKey = $"{merchant}|{description}|{amount}";
+            var cacheKey = GenerateCacheKey(merchant, description, amount, userId, parsedCategoryHint);
+            var lookupKey = BuildLookupKey(merchant, description, amount, parsedCategoryHint);
 
             if (_memoryCache.TryGetValue(cacheKey, out Guid? cachedCategoryId))
             {
@@ -133,7 +141,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             }
             else
             {
-                uncachedTransactions.Add((lookupKey, merchant, description, amount));
+                uncachedTransactions.Add((lookupKey, merchant, description, amount, parsedCategoryHint));
             }
         }
 
@@ -155,7 +163,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         var batchGlobal = 0;
         var batchMerchant = 0;
         var batchAi = 0;
-        foreach (var (lookupKey, merchant, description, amount) in uncachedTransactions)
+        var batchParsedFallback = 0;
+        foreach (var (lookupKey, merchant, description, amount, parsedCategoryHint) in uncachedTransactions)
         {
             Guid? categoryId = null;
             _logger.LogDebug("Processing uncached transaction: {LookupKey} (merchant: {Merchant})", lookupKey, merchant);
@@ -197,17 +206,30 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             }
             else
             {
-                // AI fallback (persists result internally to avoid repeat calls)
-                categoryId = await TryDefaultAssignment(merchant, description, amount, userId);
+                // AI fallback first.
+                categoryId = await TryAiAssignment(merchant, description, amount, userId);
                 if (categoryId.HasValue)
                 {
                     Interlocked.Increment(ref _aiFallbacks);
                     batchAi++;
-                    _logger.LogDebug("AI/default assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
+                    _logger.LogDebug("AI fallback assignment successful for {Merchant}: {CategoryId}", merchant, categoryId);
                 }
                 else
                 {
-                    _logger.LogWarning("All categorization methods failed for {Merchant}", merchant);
+                    categoryId = await TryParsedCategoryAssignment(parsedCategoryHint, userId);
+                    if (categoryId.HasValue)
+                    {
+                        Interlocked.Increment(ref _parsedFallbackMappings);
+                        batchParsedFallback++;
+                        _logger.LogDebug(
+                            "Parsed-category fallback assignment successful for {Merchant}: {CategoryId} (hint: {ParsedCategoryHint})",
+                            merchant, categoryId, parsedCategoryHint);
+                    }
+                    else
+                    {
+                        categoryId = await GetFallbackUncategorizedAsync(merchant, userId);
+                        _logger.LogWarning("All categorization methods failed for {Merchant}; using Uncategorized fallback", merchant);
+                    }
                 }
             }
 
@@ -215,7 +237,7 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
             _logger.LogDebug("Storing result for key '{LookupKey}': {CategoryId}", lookupKey, categoryId?.ToString() ?? "null");
 
             // Cache the result
-            var cacheKey = GenerateCacheKey(merchant, description, amount, userId);
+            var cacheKey = GenerateCacheKey(merchant, description, amount, userId, parsedCategoryHint);
             if (categoryId.HasValue)
             {
                 _memoryCache.Set(cacheKey, categoryId.Value, _memoryCacheExpiry);
@@ -223,8 +245,8 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         }
 
         _logger.LogInformation(
-            "Categorization batch complete: {MerchantCount} from user mappings, {GlobalCount} from global mappings, {WellKnownCount} from well-known merchants, {HfCount} from Hugging Face dataset, {MccCount} from MCC keywords, {AiCount} from AI/fallback (processed {Total} uncached)",
-            batchMerchant, batchGlobal, batchWellKnown, batchHf, batchMcc, batchAi, uncachedTransactions.Count);
+            "Categorization batch complete: {MerchantCount} from user mappings, {GlobalCount} from global mappings, {WellKnownCount} from well-known merchants, {HfCount} from Hugging Face dataset, {MccCount} from MCC keywords, {AiCount} from AI fallback, {ParsedFallbackCount} from parsed-category fallback (processed {Total} uncached)",
+            batchMerchant, batchGlobal, batchWellKnown, batchHf, batchMcc, batchAi, batchParsedFallback, uncachedTransactions.Count);
 
         return results;
     }
@@ -575,14 +597,14 @@ public class OptimizedCategoryAssignmentService : ICategoryAssignmentService
         return mapping;
     }
 
-    private async Task<Guid?> TryDefaultAssignment(string merchant, string? description, decimal amount, Guid userId)
+    private async Task<Guid?> TryAiAssignment(string merchant, string? description, decimal amount, Guid userId)
     {
         _logger.LogDebug("Attempting AI fallback assignment for {Merchant}", merchant);
 
         if (!IsAiFallbackEnabled())
         {
-            _logger.LogInformation("AI fallback disabled or misconfigured; using deterministic fallback for {Merchant}", merchant);
-            return await GetFallbackUncategorizedAsync(merchant, userId);
+            _logger.LogInformation("AI fallback disabled or misconfigured for {Merchant}", merchant);
+            return null;
         }
 
         try
@@ -618,10 +640,24 @@ Return only the category name:";
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "AI fallback failed for {Merchant}, falling back to Uncategorized", merchant);
+            _logger.LogWarning(ex, "AI fallback failed for {Merchant}", merchant);
         }
 
-        return await GetFallbackUncategorizedAsync(merchant, userId);
+        return null;
+    }
+
+    private async Task<Guid?> TryParsedCategoryAssignment(string? parsedCategoryHint, Guid userId)
+    {
+        if (string.IsNullOrWhiteSpace(parsedCategoryHint))
+            return null;
+
+        var normalizedHint = parsedCategoryHint.Trim();
+        if (ParsedCategoryFallbacks.TryGetValue(normalizedHint, out var mappedCategory))
+        {
+            return await ResolveCategoryAsync(mappedCategory, userId);
+        }
+
+        return await ResolveCategoryAsync(normalizedHint, userId);
     }
 
     private async Task<Dictionary<string, Guid?>> GetMerchantCategoriesAsync(List<string> merchants, Guid userId)
@@ -728,14 +764,20 @@ Return only the category name:";
         return category?.Id;
     }
 
-    private string GenerateCacheKey(string merchant, string? description, decimal amount, Guid userId)
+    private string GenerateCacheKey(string merchant, string? description, decimal amount, Guid userId, string? parsedCategoryHint = null)
     {
         var normalizedMerchant = NormalizeMerchantForMapping(merchant);
         var normalizedDescription = string.IsNullOrWhiteSpace(description)
             ? string.Empty
             : NormalizeMerchantForMapping(description);
-        return $"{_categoryMappingCachePrefix}{userId}:{normalizedMerchant}:{normalizedDescription}:{amount:F2}";
+        var normalizedParsedHint = string.IsNullOrWhiteSpace(parsedCategoryHint)
+            ? string.Empty
+            : NormalizeMerchantForMapping(parsedCategoryHint);
+        return $"{_categoryMappingCachePrefix}{userId}:{normalizedMerchant}:{normalizedDescription}:{amount:F2}:{normalizedParsedHint}";
     }
+
+    private static string BuildLookupKey(string merchant, string? description, decimal amount, string? parsedCategoryHint)
+        => $"{merchant}|{description}|{amount}|{parsedCategoryHint}";
 
     private static bool IsAiFallbackEnabled()
     {
@@ -768,7 +810,7 @@ Return only the category name:";
 
     public async Task<Dictionary<string, object>> GetAssignmentStatsAsync()
     {
-        var total = _cacheHits + _wellKnownMappings + _hfLookupMappings + _ruleMappings + _globalMappings + _merchantMappings + _aiFallbacks;
+        var total = _cacheHits + _wellKnownMappings + _hfLookupMappings + _ruleMappings + _globalMappings + _merchantMappings + _aiFallbacks + _parsedFallbackMappings;
         return new Dictionary<string, object>
         {
             ["cache_hits"] = _cacheHits,
@@ -778,8 +820,25 @@ Return only the category name:";
             ["global_mappings"] = _globalMappings,
             ["merchant_mappings"] = _merchantMappings,
             ["ai_fallbacks"] = _aiFallbacks,
+            ["parsed_fallback_mappings"] = _parsedFallbackMappings,
             ["cache_efficiency"] = _cacheHits > 0 ? (double)_cacheHits / total : 0,
             ["total_assignments"] = total
         };
     }
+
+    private static readonly Dictionary<string, string> ParsedCategoryFallbacks = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Food & Drink"] = "Food & Dining",
+        ["Food and Drink"] = "Food & Dining",
+        ["Gas"] = "Transportation",
+        ["Health & Wellness"] = "Healthcare",
+        ["Health and Wellness"] = "Healthcare",
+        ["Travel"] = "Travel",
+        ["Personal"] = "Personal Care",
+        ["Professional Services"] = "Business",
+        ["Shopping"] = "Shopping",
+        ["Entertainment"] = "Entertainment",
+        ["Bills & Utilities"] = "Bills & Utilities",
+        ["Bills and Utilities"] = "Bills & Utilities"
+    };
 }

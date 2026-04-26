@@ -11,6 +11,7 @@ using BudgetTracker.Common.Services.Transactions;
 using BudgetTracker.Common.DTOs;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 
 namespace BudgetTracker.Worker.Workers;
 
@@ -285,6 +286,7 @@ public class ImportProcessorWorker : BackgroundService
             Type = parsedTxn.Amount >= 0 ? TransactionType.Credit : TransactionType.Debit,
             Description = parsedTxn.Description ?? "Import",
             OriginalMerchant = ExtractMerchantFromDescription(parsedTxn.Description),
+            Metadata = BuildImportMetadata(parsedTxn.Category),
             ImportedFileId = import.Id
         }).ToList();
         
@@ -319,6 +321,17 @@ public class ImportProcessorWorker : BackgroundService
         using var sha256 = SHA256.Create();
         var bytes = sha256.ComputeHash(Encoding.UTF8.GetBytes(input));
         return Convert.ToBase64String(bytes);
+    }
+
+    private static string? BuildImportMetadata(string? parsedCategory)
+    {
+        if (string.IsNullOrWhiteSpace(parsedCategory))
+            return null;
+
+        return JsonSerializer.Serialize(new Dictionary<string, string>
+        {
+            ["parsedCategory"] = parsedCategory.Trim()
+        });
     }
 
     private string ExtractMerchantFromDescription(string? description)
