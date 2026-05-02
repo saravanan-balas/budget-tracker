@@ -933,6 +933,10 @@ onMounted(() => {
   } else if (route.query.type === 'income') {
     filters.value.transactionType = 'income'
   }
+  const validDateRanges = ['thisMonth', 'lastMonth', 'last3Months', 'last6Months', 'thisYear', 'custom']
+  if (route.query.dateRange && validDateRanges.includes(route.query.dateRange as string)) {
+    filters.value.dateRange = route.query.dateRange as string
+  }
   
   loadTransactions()
   loadChartTransactions()

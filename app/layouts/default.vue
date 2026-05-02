@@ -31,24 +31,10 @@
               >
                 Categories
               </NuxtLink>
-              <NuxtLink
-                to="/import"
-                class="flex items-center gap-1.5 bg-blue-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:bg-blue-700 transition-colors"
-                :class="{ 'ring-2 ring-blue-300': $route.path === '/import' }"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-                </svg>
+              <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
                 Import
               </NuxtLink>
-              <NuxtLink
-                to="/chat"
-                class="flex items-center gap-1.5 bg-gradient-to-r from-violet-600 to-purple-600 text-white px-3 py-1.5 rounded-md text-sm font-medium hover:from-violet-700 hover:to-purple-700 transition-all shadow-sm"
-                :class="{ 'ring-2 ring-violet-300': $route.path === '/chat' }"
-              >
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
-                </svg>
+              <NuxtLink to="/chat" class="nav-link" :class="{ 'nav-link-active': $route.path === '/chat' }">
                 Ask AI
               </NuxtLink>
               <NuxtLink
@@ -147,18 +133,19 @@
             </NuxtLink>
           </div>
 
-          <!-- Primary actions highlighted -->
-          <div class="px-4 pb-3 pt-1 space-y-2 border-t border-gray-100 mt-1">
+          <!-- Import & Ask AI -->
+          <div class="px-4 pb-3 pt-1 space-y-1 border-t border-gray-100 mt-1">
             <NuxtLink to="/import" @click="showMobileMenu = false"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold bg-blue-600 text-white hover:bg-blue-700 transition-colors">
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              :class="$route.path === '/import' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"/>
               </svg>
-              Import Bank Statement
+              Import
             </NuxtLink>
-
             <NuxtLink to="/chat" @click="showMobileMenu = false"
-              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-semibold bg-gradient-to-r from-violet-600 to-purple-600 text-white hover:from-violet-700 hover:to-purple-700 transition-all">
+              class="flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors"
+              :class="$route.path === '/chat' ? 'bg-blue-50 text-blue-700' : 'text-gray-700 hover:bg-gray-50'">
               <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"/>
               </svg>

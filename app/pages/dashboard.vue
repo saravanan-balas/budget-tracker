@@ -32,17 +32,6 @@
           </div>
         </NuxtLink>
 
-        <div @click="openQuickAddModal" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow cursor-pointer flex items-center gap-2">
-          <div class="w-7 h-7 bg-gray-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-gray-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"></path>
-            </svg>
-          </div>
-          <div class="text-left">
-            <h3 class="text-sm font-medium text-gray-700 leading-tight">Quick Add</h3>
-            <p class="text-xs text-gray-500 leading-tight">Transaction</p>
-          </div>
-        </div>
       </div>
     </div>
 
@@ -59,7 +48,7 @@
         <span class="text-sm font-semibold text-gray-700">Jan 1 – {{ formatShortDate(new Date()) }}</span>
       </div>
       <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
-        <NuxtLink to="/transactions?type=expense" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
+        <NuxtLink to="/transactions?type=expense&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Expenses</p>
@@ -71,7 +60,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions?type=income" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
+        <NuxtLink to="/transactions?type=income&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Income</p>
@@ -83,7 +72,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
+        <NuxtLink to="/transactions?dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Net Savings</p>
@@ -97,7 +86,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
+        <NuxtLink to="/transactions?dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Transactions</p>
@@ -109,7 +98,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions?filter=uncategorized" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
+        <NuxtLink to="/transactions?filter=uncategorized&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Uncategorized</p>
@@ -234,12 +223,6 @@
       @success="handleEditSuccess"
     />
 
-    <!-- Quick Add Modal -->
-    <QuickAddModal 
-      v-if="showQuickAddModal"
-      @close="closeQuickAddModal"
-      @success="handleQuickAddSuccess"
-    />
   </div>
 </template>
 
@@ -268,7 +251,6 @@ const monthlyTransactions = ref<Transaction[]>([])
 // Modal states
 const showEditModal = ref(false)
 const selectedTransaction = ref<Transaction | null>(null)
-const showQuickAddModal = ref(false)
 
 // API
 const api = useApi()
@@ -360,12 +342,24 @@ const loadDashboardData = async () => {
     // Get year-to-date range (Jan 1 to today)
     const now = new Date()
     const startOfYear = new Date(now.getFullYear(), 0, 1)
+    const ytdStart = startOfYear.toISOString()
+    const ytdEnd = now.toISOString()
 
-    const ytdTransactionsResponse = await api.getTransactions({
-      startDate: startOfYear.toISOString(),
-      endDate: now.toISOString(),
-      pageSize: 1000
-    })
+    // Fetch YTD transactions (large page to cover full year for financial totals)
+    const [ytdTransactionsResponse, uncategorizedResponse] = await Promise.all([
+      api.getTransactions({
+        startDate: ytdStart,
+        endDate: ytdEnd,
+        pageSize: 5000
+      }),
+      api.getTransactions({
+        startDate: ytdStart,
+        endDate: ytdEnd,
+        categoryIdString: 'uncategorized',
+        pageSize: 1,
+        page: 1
+      })
+    ])
 
     monthlyTransactions.value = ytdTransactionsResponse.items
 
@@ -373,25 +367,15 @@ const loadDashboardData = async () => {
     await loadCategoryChartData()
 
     // Calculate stats
-    const monthlyTransactionsData = ytdTransactionsResponse.items
-    const expenses = monthlyTransactionsData.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
-    const income = monthlyTransactionsData.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
-    const uncategorized = monthlyTransactionsData.filter(t => !t.categoryId || !t.categoryName).length
-    
+    const ytdItems = ytdTransactionsResponse.items
+    const expenses = ytdItems.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
+    const income = ytdItems.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
+
     stats.monthlyExpenses = expenses
     stats.monthlyIncome = income
     stats.netSavings = income - expenses
-    stats.transactionCount = monthlyTransactionsData.length
-    stats.uncategorizedCount = uncategorized
-    
-    console.log('Dashboard data loaded:', {
-      expenses,
-      income,
-      netSavings: income - expenses,
-      transactionCount: monthlyTransactionsData.length,
-      uncategorizedCount: uncategorized,
-      recentTransactions: recentTransactionsResponse.items.length
-    })
+    stats.transactionCount = ytdTransactionsResponse.totalCount
+    stats.uncategorizedCount = uncategorizedResponse.totalCount
     
   } catch (error) {
     console.error('Error loading dashboard data:', error)
@@ -479,21 +463,6 @@ const closeEditModal = () => {
 
 const handleEditSuccess = () => {
   closeEditModal()
-  // Reload dashboard data to reflect changes
-  loadDashboardData()
-}
-
-// Quick Add modal functions
-const openQuickAddModal = () => {
-  showQuickAddModal.value = true
-}
-
-const closeQuickAddModal = () => {
-  showQuickAddModal.value = false
-}
-
-const handleQuickAddSuccess = () => {
-  closeQuickAddModal()
   // Reload dashboard data to reflect changes
   loadDashboardData()
 }
