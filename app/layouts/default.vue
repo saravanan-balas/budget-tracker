@@ -31,11 +31,19 @@
               >
                 Categories
               </NuxtLink>
-              <NuxtLink to="/import" class="nav-link" :class="{ 'nav-link-active': $route.path === '/import' }">
-                Import
+              <NuxtLink to="/import"
+                class="flex flex-col items-start bg-blue-50 border border-blue-200 text-blue-700 px-3 py-1.5 rounded-md hover:bg-blue-100 transition-colors"
+                :class="{ 'ring-2 ring-blue-300': $route.path === '/import' }"
+              >
+                <span class="text-xs font-semibold leading-tight">Import</span>
+                <span class="text-xs text-blue-500 leading-tight">CSV / Bank</span>
               </NuxtLink>
-              <NuxtLink to="/chat" class="nav-link" :class="{ 'nav-link-active': $route.path === '/chat' }">
-                Ask AI
+              <NuxtLink to="/chat"
+                class="flex flex-col items-start bg-purple-50 border border-purple-200 text-purple-700 px-3 py-1.5 rounded-md hover:bg-purple-100 transition-colors"
+                :class="{ 'ring-2 ring-purple-300': $route.path === '/chat' }"
+              >
+                <span class="text-xs font-semibold leading-tight">Ask AI</span>
+                <span class="text-xs text-purple-500 leading-tight">Insights</span>
               </NuxtLink>
               <NuxtLink
                 v-if="authStore.user?.isAdmin"

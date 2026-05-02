@@ -54,7 +54,7 @@ public class TransactionService : ITransactionService
         }
 
         // Handle uncategorized filter — catches both null CategoryId and orphaned references (deleted categories)
-        if (!string.IsNullOrEmpty(filter.CategoryIdString) && filter.CategoryIdString == "uncategorized")
+        if (filter.UncategorizedOnly == true)
         {
             _logger.LogInformation("Applying Uncategorized filter");
             query = query.Where(t => t.CategoryId == null || t.Category == null);

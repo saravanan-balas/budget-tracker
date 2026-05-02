@@ -132,7 +132,7 @@ export interface CreateCategory {
 export interface TransactionFilter {
   accountId?: string;
   categoryId?: string;
-  categoryIdString?: string;
+  uncategorizedOnly?: boolean;
   startDate?: string;
   endDate?: string;
   minAmount?: number;

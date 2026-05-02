@@ -484,7 +484,7 @@ const loadTransactions = async (resetPage = false) => {
     }
     
     if (filters.value.categoryId === 'uncategorized') {
-      filter.categoryIdString = 'uncategorized'
+      filter.uncategorizedOnly = true
     } else if (filters.value.categoryId) {
       filter.categoryId = filters.value.categoryId
     }
@@ -550,7 +550,7 @@ const loadChartTransactions = async () => {
 
     if (filters.value.accountId) filter.accountId = filters.value.accountId
     if (filters.value.categoryId === 'uncategorized') {
-      filter.categoryIdString = 'uncategorized'
+      filter.uncategorizedOnly = true
     } else if (filters.value.categoryId) {
       filter.categoryId = filters.value.categoryId
     }

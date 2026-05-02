@@ -1,38 +1,8 @@
 <template>
   <div>
-    <div class="mb-8 flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4">
-      <div>
-        <h1 class="text-3xl font-bold text-gray-900">Financial Dashboard</h1>
-        <p class="text-gray-600 mt-2">Your personal finance overview</p>
-      </div>
-
-      <!-- Quick Actions -->
-      <div class="flex gap-2 items-center flex-wrap">
-        <NuxtLink to="/import" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow flex items-center gap-2">
-          <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-            </svg>
-          </div>
-          <div class="text-left">
-            <h3 class="text-sm font-medium text-gray-700 leading-tight">Import</h3>
-            <p class="text-xs text-gray-500 leading-tight">CSV / Bank</p>
-          </div>
-        </NuxtLink>
-
-        <NuxtLink to="/chat" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow flex items-center gap-2">
-          <div class="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center">
-            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
-            </svg>
-          </div>
-          <div class="text-left">
-            <h3 class="text-sm font-medium text-gray-700 leading-tight">Ask AI</h3>
-            <p class="text-xs text-gray-500 leading-tight">Insights</p>
-          </div>
-        </NuxtLink>
-
-      </div>
+    <div class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-900">Financial Dashboard</h1>
+      <p class="text-gray-600 mt-2">Your personal finance overview</p>
     </div>
 
     <!-- Loading State -->
@@ -355,7 +325,7 @@ const loadDashboardData = async () => {
       api.getTransactions({
         startDate: ytdStart,
         endDate: ytdEnd,
-        categoryIdString: 'uncategorized',
+        uncategorizedOnly: true,
         pageSize: 1,
         page: 1
       })
