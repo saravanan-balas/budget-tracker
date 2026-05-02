@@ -68,7 +68,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions?filter=uncategorized&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
+        <NuxtLink to="/transactions?uncategorizedOnly=true&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Uncategorized</p>

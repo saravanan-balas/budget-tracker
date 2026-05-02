@@ -57,8 +57,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select v-model="filters.categoryId" class="w-full border-gray-300 rounded-lg">
               <option value="">All Categories</option>
-              <option value="uncategorized">🔍 Uncategorized</option>
-              <option disabled>──────────</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -925,7 +923,7 @@ watch(pageSize, () => {
 onMounted(() => {
   // Check for URL parameters to preset filters
   const route = useRoute()
-  if (route.query.filter === 'uncategorized') {
+  if (route.query.uncategorizedOnly === 'true') {
     filters.value.categoryId = 'uncategorized'
   }
   if (route.query.type === 'expense') {
