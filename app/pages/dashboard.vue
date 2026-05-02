@@ -316,27 +316,18 @@ const loadDashboardData = async () => {
     const ytdEnd = now.toISOString()
 
     // Fetch YTD transactions (large page to cover full year for financial totals)
-    const [ytdTransactionsResponse, uncategorizedResponse] = await Promise.all([
-      api.getTransactions({
-        startDate: ytdStart,
-        endDate: ytdEnd,
-        pageSize: 5000
-      }),
-      api.getTransactions({
-        startDate: ytdStart,
-        endDate: ytdEnd,
-        uncategorizedOnly: true,
-        pageSize: 1,
-        page: 1
-      })
-    ])
+    const ytdTransactionsResponse = await api.getTransactions({
+      startDate: ytdStart,
+      endDate: ytdEnd,
+      pageSize: 5000
+    })
 
     monthlyTransactions.value = ytdTransactionsResponse.items
 
     // Load category chart data (will use the selected period)
     await loadCategoryChartData()
 
-    // Calculate stats
+    // Calculate stats — uncategorized counted client-side matching what the UI shows (no categoryName)
     const ytdItems = ytdTransactionsResponse.items
     const expenses = ytdItems.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const income = ytdItems.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
@@ -345,7 +336,7 @@ const loadDashboardData = async () => {
     stats.monthlyIncome = income
     stats.netSavings = income - expenses
     stats.transactionCount = ytdTransactionsResponse.totalCount
-    stats.uncategorizedCount = uncategorizedResponse.totalCount
+    stats.uncategorizedCount = ytdItems.filter(t => !t.categoryName).length
     
   } catch (error) {
     console.error('Error loading dashboard data:', error)
