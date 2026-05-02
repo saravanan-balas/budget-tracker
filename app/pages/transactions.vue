@@ -57,7 +57,6 @@
             <label class="block text-sm font-medium text-gray-700 mb-1">Category</label>
             <select v-model="filters.categoryId" class="w-full border-gray-300 rounded-lg">
               <option value="">All Categories</option>
-              <option value="uncategorized">Uncategorized</option>
               <option v-for="category in categories" :key="category.id" :value="category.id">
                 {{ category.name }}
               </option>
@@ -931,26 +930,31 @@ watch(pageSize, () => {
 })
 
 // Initialize
-onMounted(() => {
-  // Check for URL parameters to preset filters
+onMounted(async () => {
   const route = useRoute()
-  if (route.query.uncategorizedOnly === 'true') {
-    filters.value.categoryId = 'uncategorized'
+
+  // Apply date range and type from URL immediately
+  const validDateRanges = ['thisMonth', 'lastMonth', 'last3Months', 'last6Months', 'thisYear', 'custom']
+  if (route.query.dateRange && validDateRanges.includes(route.query.dateRange as string)) {
+    filters.value.dateRange = route.query.dateRange as string
   }
   if (route.query.type === 'expense') {
     filters.value.transactionType = 'expense'
   } else if (route.query.type === 'income') {
     filters.value.transactionType = 'income'
   }
-  const validDateRanges = ['thisMonth', 'lastMonth', 'last3Months', 'last6Months', 'thisYear', 'custom']
-  if (route.query.dateRange && validDateRanges.includes(route.query.dateRange as string)) {
-    filters.value.dateRange = route.query.dateRange as string
+
+  // Load accounts and categories first so we can resolve category name filters
+  await Promise.all([loadAccounts(), loadCategories()])
+
+  // Pre-select category filter — find real "Uncategorized" category by name
+  if (route.query.filter === 'uncategorized') {
+    const uncatCategory = categories.value.find(c => c.name.toLowerCase() === 'uncategorized')
+    if (uncatCategory) filters.value.categoryId = uncatCategory.id
   }
-  
+
   loadTransactions()
   loadChartTransactions()
-  loadAccounts()
-  loadCategories()
 })
 
 // Set page meta

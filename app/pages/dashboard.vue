@@ -68,7 +68,7 @@
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/transactions?uncategorizedOnly=true&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
+        <NuxtLink to="/transactions?filter=uncategorized&dateRange=thisYear" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow cursor-pointer group">
           <div class="flex items-center justify-between">
             <div>
               <p class="text-sm font-medium text-gray-500">Uncategorized</p>
@@ -336,7 +336,7 @@ const loadDashboardData = async () => {
     stats.monthlyIncome = income
     stats.netSavings = income - expenses
     stats.transactionCount = ytdTransactionsResponse.totalCount
-    stats.uncategorizedCount = ytdItems.filter(t => !t.categoryName).length
+    stats.uncategorizedCount = ytdItems.filter(t => !t.categoryName || t.categoryName.toLowerCase() === 'uncategorized').length
     
   } catch (error) {
     console.error('Error loading dashboard data:', error)
