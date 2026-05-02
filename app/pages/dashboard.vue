@@ -8,23 +8,27 @@
 
       <!-- Quick Actions -->
       <div class="flex gap-2 items-center flex-wrap">
-        <NuxtLink to="/import" class="bg-blue-600 text-white rounded-lg px-4 py-2.5 hover:bg-blue-700 transition-colors cursor-pointer flex items-center gap-2 shadow-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
-          </svg>
+        <NuxtLink to="/import" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow flex items-center gap-2">
+          <div class="w-7 h-7 bg-blue-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"></path>
+            </svg>
+          </div>
           <div class="text-left">
-            <h3 class="text-sm font-semibold leading-tight">Import</h3>
-            <p class="text-xs text-blue-200 leading-tight">CSV / Bank</p>
+            <h3 class="text-sm font-medium text-gray-700 leading-tight">Import</h3>
+            <p class="text-xs text-gray-500 leading-tight">CSV / Bank</p>
           </div>
         </NuxtLink>
 
-        <NuxtLink to="/chat" class="bg-gradient-to-r from-violet-600 to-purple-600 text-white rounded-lg px-4 py-2.5 hover:from-violet-700 hover:to-purple-700 transition-all cursor-pointer flex items-center gap-2 shadow-sm">
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
-          </svg>
+        <NuxtLink to="/chat" class="bg-white rounded-lg shadow-sm border border-gray-200 px-4 py-2.5 hover:shadow-md transition-shadow flex items-center gap-2">
+          <div class="w-7 h-7 bg-purple-100 rounded-lg flex items-center justify-center">
+            <svg class="w-4 h-4 text-purple-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z"></path>
+            </svg>
+          </div>
           <div class="text-left">
-            <h3 class="text-sm font-semibold leading-tight">Ask AI</h3>
-            <p class="text-xs text-purple-200 leading-tight">Insights</p>
+            <h3 class="text-sm font-medium text-gray-700 leading-tight">Ask AI</h3>
+            <p class="text-xs text-gray-500 leading-tight">Insights</p>
           </div>
         </NuxtLink>
 
@@ -50,6 +54,10 @@
 
     <div v-else>
       <!-- Quick Stats -->
+      <div class="flex items-center gap-2 mb-3">
+        <span class="text-sm text-gray-500">Year to date:</span>
+        <span class="text-sm font-semibold text-gray-700">Jan 1 – {{ formatShortDate(new Date()) }}</span>
+      </div>
       <div class="grid grid-cols-1 md:grid-cols-5 gap-6 mb-8">
         <NuxtLink to="/transactions?type=expense" class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow group">
           <div class="flex items-center justify-between">
@@ -163,11 +171,24 @@
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between mb-4">
             <h2 class="text-lg font-semibold">Spending by Category</h2>
-            <select v-model="categoryChartPeriod" @change="loadCategoryChartData" class="text-sm border rounded-md px-2 py-1">
-              <option value="30">Last 30 days</option>
-              <option value="90">Last 3 months</option>
-              <option value="365">Last year</option>
+            <select v-model="categoryChartPeriod" @change="handleChartPeriodChange" class="text-sm border rounded-md px-2 py-1">
+              <option value="thisMonth">This month</option>
+              <option value="lastMonth">Last month</option>
+              <option value="last3Months">Last 3 months</option>
+              <option value="last6Months">Last 6 months</option>
+              <option value="thisYear">This year</option>
+              <option value="custom">Custom date</option>
             </select>
+          </div>
+          <div v-if="categoryChartPeriod === 'custom'" class="flex gap-2 mb-4">
+            <div class="flex-1">
+              <label class="block text-xs text-gray-500 mb-1">From</label>
+              <input v-model="chartCustomStart" type="date" @change="loadCategoryChartData" class="w-full text-sm border-gray-300 rounded-lg" />
+            </div>
+            <div class="flex-1">
+              <label class="block text-xs text-gray-500 mb-1">To</label>
+              <input v-model="chartCustomEnd" type="date" @change="loadCategoryChartData" class="w-full text-sm border-gray-300 rounded-lg" />
+            </div>
           </div>
           <div class="h-64">
             <CategoryChart v-if="categoryChartData.length > 0" :data="categoryChartData" />
@@ -194,11 +215,11 @@
           </div>
           <div v-if="stats.netSavings > 0" class="bg-green-50 p-4 rounded-lg border-l-4 border-green-400">
             <h4 class="font-semibold text-green-900 mb-2">Positive Net Savings</h4>
-            <p class="text-green-800">Great job! You have {{ formatCurrency(stats.netSavings) }} in net savings this month.</p>
+            <p class="text-green-800">Great job! You have {{ formatCurrency(stats.netSavings) }} in net savings this year.</p>
           </div>
           <div v-else class="bg-yellow-50 p-4 rounded-lg border-l-4 border-yellow-400">
             <h4 class="font-semibold text-yellow-900 mb-2">Budget Alert</h4>
-            <p class="text-yellow-800">Your expenses exceed income this month. Consider reviewing your spending.</p>
+            <p class="text-yellow-800">Your expenses exceed income this year. Consider reviewing your spending.</p>
           </div>
         </div>
       </div>
@@ -231,7 +252,9 @@ definePageMeta({
 
 // State
 const loading = ref(true)
-const categoryChartPeriod = ref('30')
+const categoryChartPeriod = ref('thisMonth')
+const chartCustomStart = ref('')
+const chartCustomEnd = ref('')
 const stats = reactive({
   monthlyExpenses: 0,
   monthlyIncome: 0,
@@ -276,17 +299,48 @@ const categoryChartData = computed(() => {
 const loadCategoryChartData = async () => {
   try {
     const now = new Date()
-    const days = parseInt(categoryChartPeriod.value)
-    const startDate = new Date(now.getTime() - days * 24 * 60 * 60 * 1000)
-    
+    const y = now.getFullYear()
+    const m = now.getMonth()
+    let startDate: string
+    let endDate: string
+
+    if (categoryChartPeriod.value === 'thisMonth') {
+      startDate = new Date(y, m, 1).toISOString().split('T')[0]
+      endDate = new Date(y, m + 1, 0).toISOString().split('T')[0]
+    } else if (categoryChartPeriod.value === 'lastMonth') {
+      startDate = new Date(y, m - 1, 1).toISOString().split('T')[0]
+      endDate = new Date(y, m, 0).toISOString().split('T')[0]
+    } else if (categoryChartPeriod.value === 'last3Months') {
+      startDate = new Date(y, m - 2, 1).toISOString().split('T')[0]
+      endDate = new Date(y, m + 1, 0).toISOString().split('T')[0]
+    } else if (categoryChartPeriod.value === 'last6Months') {
+      startDate = new Date(y, m - 5, 1).toISOString().split('T')[0]
+      endDate = new Date(y, m + 1, 0).toISOString().split('T')[0]
+    } else if (categoryChartPeriod.value === 'thisYear') {
+      startDate = new Date(y, 0, 1).toISOString().split('T')[0]
+      endDate = new Date(y, 11, 31).toISOString().split('T')[0]
+    } else if (categoryChartPeriod.value === 'custom') {
+      if (!chartCustomStart.value || !chartCustomEnd.value) return
+      startDate = chartCustomStart.value
+      endDate = chartCustomEnd.value
+    } else {
+      return
+    }
+
     const response = await api.getTransactions({
-      startDate: startDate.toISOString(),
-      endDate: now.toISOString(),
+      startDate,
+      endDate,
       pageSize: 1000
     })
     monthlyTransactions.value = response.items
   } catch (error) {
     console.error('Error loading category chart data:', error)
+  }
+}
+
+const handleChartPeriodChange = () => {
+  if (categoryChartPeriod.value !== 'custom') {
+    loadCategoryChartData()
   }
 }
 
@@ -303,46 +357,23 @@ const loadDashboardData = async () => {
     })
     recentTransactions.value = recentTransactionsResponse.items
     
-    // Get current month's date range
+    // Get year-to-date range (Jan 1 to today)
     const now = new Date()
-    const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1)
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-    
-    // Try to load current month transactions
-    let monthlyTransactionsResponse = await api.getTransactions({
-      startDate: startOfMonth.toISOString(),
-      endDate: endOfMonth.toISOString(),
+    const startOfYear = new Date(now.getFullYear(), 0, 1)
+
+    const ytdTransactionsResponse = await api.getTransactions({
+      startDate: startOfYear.toISOString(),
+      endDate: now.toISOString(),
       pageSize: 1000
     })
-    
-    // If current month has no data, look for the most recent month with transactions
-    if (monthlyTransactionsResponse.items.length === 0 && recentTransactionsResponse.items.length > 0) {
-      console.log('No transactions in current month, loading most recent data...')
-      
-      // Get the most recent transaction date
-      const mostRecentTransaction = recentTransactionsResponse.items[0]
-      const recentDate = new Date(mostRecentTransaction.transactionDate)
-      
-      // Get that month's data
-      const recentStartOfMonth = new Date(recentDate.getFullYear(), recentDate.getMonth(), 1)
-      const recentEndOfMonth = new Date(recentDate.getFullYear(), recentDate.getMonth() + 1, 0)
-      
-      monthlyTransactionsResponse = await api.getTransactions({
-        startDate: recentStartOfMonth.toISOString(),
-        endDate: recentEndOfMonth.toISOString(),
-        pageSize: 1000
-      })
-      
-      console.log(`Loaded data from ${recentStartOfMonth.toLocaleDateString()} to ${recentEndOfMonth.toLocaleDateString()}`)
-    }
-    
-    monthlyTransactions.value = monthlyTransactionsResponse.items
-    
+
+    monthlyTransactions.value = ytdTransactionsResponse.items
+
     // Load category chart data (will use the selected period)
     await loadCategoryChartData()
-    
+
     // Calculate stats
-    const monthlyTransactionsData = monthlyTransactionsResponse.items
+    const monthlyTransactionsData = ytdTransactionsResponse.items
     const expenses = monthlyTransactionsData.filter(t => t.amount < 0).reduce((sum, t) => sum + Math.abs(t.amount), 0)
     const income = monthlyTransactionsData.filter(t => t.amount > 0).reduce((sum, t) => sum + t.amount, 0)
     const uncategorized = monthlyTransactionsData.filter(t => !t.categoryId || !t.categoryName).length
@@ -383,6 +414,10 @@ const formatTransactionAmount = (amount: number) => {
     currency: 'USD'
   })
   return amount > 0 ? `+${formatted}` : `-${formatted}`
+}
+
+const formatShortDate = (date: Date) => {
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
 }
 
 const formatRelativeDate = (dateString: string) => {

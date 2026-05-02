@@ -114,9 +114,6 @@
             <div class="text-sm text-gray-600">
               Showing {{ transactions.length }} of {{ totalTransactions }} (Page {{ currentPage }} of {{ totalPages }})
             </div>
-            <div v-if="uncategorizedCount > 0" class="text-sm text-amber-600 font-medium">
-              {{ uncategorizedCount }} uncategorized
-            </div>
             <div class="flex items-center gap-2">
               <label class="text-sm text-gray-600">Per page:</label>
               <select v-model.number="pageSize" @change="currentPage = 1" class="text-sm border-gray-300 rounded py-1 px-2">
@@ -444,10 +441,6 @@ const displayedPages = computed(() => {
   }
   
   return pages
-})
-
-const uncategorizedCount = computed(() => {
-  return transactions.value.filter(t => !t.categoryId || !t.categoryName).length
 })
 
 // Methods
