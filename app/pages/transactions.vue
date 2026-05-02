@@ -280,7 +280,7 @@
       <!-- Charts Section (hidden on mobile) -->
       <div class="hidden lg:block w-80 space-y-4">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h3 class="text-sm font-semibold mb-3">Spending by Category</h3>
+          <h3 class="text-sm font-semibold mb-3">{{ categoryChartTitle }}</h3>
           <div class="h-48">
             <canvas ref="categoryChart"></canvas>
           </div>
@@ -386,6 +386,12 @@ let trendChartInstance: Chart | null = null
 const api = useApi()
 
 // Computed properties for client-side display
+const categoryChartTitle = computed(() => {
+  if (filters.value.transactionType === 'income') return 'Income by Category'
+  if (filters.value.transactionType === 'transfer') return 'Transfers by Category'
+  return 'Spending by Category'
+})
+
 const filteredTransactions = computed(() => {
   let result = [...transactions.value]
 
@@ -694,9 +700,13 @@ const updateCharts = () => {
   nextTick(() => {
     // Category spending chart
     if (categoryChart.value) {
-      const categoryData = chartTransactions.value
-        .filter(t => t.amount < 0) // Only expenses
-        .reduce((acc, t) => {
+      const type = filters.value.transactionType
+      const filtered = chartTransactions.value.filter(t => {
+        if (type === 'income') return t.amount > 0
+        if (type === 'transfer') return t.isTransfer
+        return t.amount < 0 // expense or no filter — show expenses
+      })
+      const categoryData = filtered.reduce((acc, t) => {
           const category = t.categoryName || 'Uncategorized'
           acc[category] = (acc[category] || 0) + Math.abs(t.amount)
           return acc

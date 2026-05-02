@@ -53,11 +53,11 @@ public class TransactionService : ITransactionService
             query = query.Where(t => t.CategoryId == filter.CategoryId.Value);
         }
 
-        // Handle uncategorized filter — catches both null CategoryId and orphaned references (deleted categories)
+        // Handle uncategorized filter — catches null CategoryId and orphaned references (CategoryId set but category deleted)
         if (filter.UncategorizedOnly == true)
         {
             _logger.LogInformation("Applying Uncategorized filter");
-            query = query.Where(t => t.CategoryId == null || t.Category == null);
+            query = query.Where(t => t.CategoryId == null || !_context.Categories.Any(c => c.Id == t.CategoryId));
         }
 
         if (filter.StartDate.HasValue)
