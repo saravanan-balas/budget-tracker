@@ -280,19 +280,59 @@
       <!-- Charts Section (hidden on mobile) -->
       <div class="hidden lg:block w-80 space-y-4">
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h3 class="text-sm font-semibold mb-3">{{ categoryChartTitle }}</h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">{{ categoryChartTitle }}</h3>
+            <button
+              @click="categoryChartFullscreen = true"
+              class="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              title="Full screen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+              </svg>
+            </button>
+          </div>
           <div class="h-48">
             <canvas ref="categoryChart"></canvas>
           </div>
         </div>
 
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-3">
-          <h3 class="text-sm font-semibold mb-3">Daily Spending Trend</h3>
+          <div class="flex items-center justify-between mb-3">
+            <h3 class="text-sm font-semibold">Daily Spending Trend</h3>
+            <button
+              @click="trendChartFullscreen = true"
+              class="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+              title="Full screen"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+              </svg>
+            </button>
+          </div>
           <div class="h-48">
             <canvas ref="trendChart"></canvas>
           </div>
         </div>
       </div>
+
+      <!-- Category Chart Fullscreen Modal -->
+      <ChartFullscreenModal
+        v-if="categoryChartFullscreen"
+        :title="categoryChartTitle"
+        @close="categoryChartFullscreen = false"
+      >
+        <canvas ref="categoryChartFs"></canvas>
+      </ChartFullscreenModal>
+
+      <!-- Trend Chart Fullscreen Modal -->
+      <ChartFullscreenModal
+        v-if="trendChartFullscreen"
+        title="Daily Spending Trend"
+        @close="trendChartFullscreen = false"
+      >
+        <canvas ref="trendChartFs"></canvas>
+      </ChartFullscreenModal>
     </div>
 
     <!-- Add Transaction Modal -->
@@ -342,6 +382,7 @@ import { Chart, registerables } from 'chart.js'
 import type { Transaction, Account, Category, TransactionFilter, PaginatedResponse } from '~/types'
 import QuickAddModal from '~/components/QuickAddModal.vue'
 import EditTransactionModal from '~/components/EditTransactionModal.vue'
+import ChartFullscreenModal from '~/components/ChartFullscreenModal.vue'
 
 Chart.register(...registerables)
 
@@ -381,6 +422,14 @@ const categoryChart = ref<HTMLCanvasElement | null>(null)
 const trendChart = ref<HTMLCanvasElement | null>(null)
 let categoryChartInstance: Chart | null = null
 let trendChartInstance: Chart | null = null
+
+// Fullscreen state
+const categoryChartFullscreen = ref(false)
+const trendChartFullscreen = ref(false)
+const categoryChartFs = ref<HTMLCanvasElement | null>(null)
+const trendChartFs = ref<HTMLCanvasElement | null>(null)
+let categoryChartFsInstance: Chart | null = null
+let trendChartFsInstance: Chart | null = null
 
 // API
 const api = useApi()
@@ -696,203 +745,215 @@ const exportTransactions = (format: 'csv' | 'pdf') => {
   }
 }
 
+const renderCategoryChart = (canvas: HTMLCanvasElement | null, fullscreen = false) => {
+  if (!canvas) return
+  const type = filters.value.transactionType
+  const filtered = chartTransactions.value.filter(t => {
+    if (type === 'income') return t.amount > 0
+    if (type === 'transfer') return t.isTransfer
+    return t.amount < 0
+  })
+  const categoryData = filtered.reduce((acc, t) => {
+    const category = t.categoryName || 'Uncategorized'
+    acc[category] = (acc[category] || 0) + Math.abs(t.amount)
+    return acc
+  }, {} as Record<string, number>)
+
+  const sortedCategories = Object.entries(categoryData)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 8)
+
+  const instance = new Chart(canvas, {
+    type: 'doughnut',
+    data: {
+      labels: sortedCategories.map(([name]) => name),
+      datasets: [{
+        data: sortedCategories.map(([, amount]) => amount),
+        backgroundColor: [
+          '#3B82F6', '#10B981', '#F59E0B', '#EF4444',
+          '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
+        ]
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          position: 'bottom',
+          labels: {
+            boxWidth: fullscreen ? 16 : 12,
+            font: { size: fullscreen ? 13 : 10 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: (context) => {
+              const label = context.label || ''
+              const value = formatCurrency(context.parsed)
+              return `${label}: ${value}`
+            }
+          }
+        }
+      }
+    }
+  })
+
+  if (fullscreen) {
+    categoryChartFsInstance = instance
+  } else {
+    categoryChartInstance = instance
+  }
+}
+
+const renderTrendChart = (canvas: HTMLCanvasElement | null, fullscreen = false) => {
+  if (!canvas) return
+  const now = new Date()
+  let startDate: Date
+  let endDate: Date
+
+  if (filters.value.dateRange === 'thisMonth') {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  } else if (filters.value.startDate && filters.value.endDate) {
+    startDate = new Date(filters.value.startDate)
+    endDate = new Date(filters.value.endDate)
+  } else {
+    startDate = new Date(now.getFullYear(), now.getMonth(), 1)
+    endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
+  }
+
+  const allDays: string[] = []
+  const currentDate = new Date(startDate)
+  while (currentDate <= endDate) {
+    allDays.push(currentDate.toISOString().split('T')[0])
+    currentDate.setDate(currentDate.getDate() + 1)
+  }
+
+  const dailyData = chartTransactions.value.reduce((acc, t) => {
+    const date = t.transactionDate.split('T')[0]
+    if (!acc[date]) acc[date] = { income: 0, expense: 0 }
+    if (t.amount > 0) {
+      acc[date].income += t.amount
+    } else {
+      acc[date].expense += Math.abs(t.amount)
+    }
+    return acc
+  }, {} as Record<string, { income: number; expense: number }>)
+
+  const completeData = allDays.map(date => ({
+    date,
+    income: dailyData[date]?.income || 0,
+    expense: dailyData[date]?.expense || 0
+  }))
+
+  const instance = new Chart(canvas, {
+    type: 'line',
+    data: {
+      labels: completeData.map(d => new Date(d.date).getDate().toString()),
+      datasets: [
+        {
+          label: 'Income',
+          data: completeData.map(d => d.income),
+          borderColor: '#10B981',
+          backgroundColor: 'rgba(16, 185, 129, 0.1)',
+          tension: 0.1,
+          pointRadius: 2
+        },
+        {
+          label: 'Expenses',
+          data: completeData.map(d => d.expense),
+          borderColor: '#EF4444',
+          backgroundColor: 'rgba(239, 68, 68, 0.1)',
+          tension: 0.1,
+          pointRadius: 2
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      interaction: { intersect: false, mode: 'index' },
+      plugins: {
+        legend: {
+          display: true,
+          labels: {
+            boxWidth: fullscreen ? 16 : 12,
+            font: { size: fullscreen ? 13 : 10 }
+          }
+        },
+        tooltip: {
+          callbacks: {
+            title: (context) => {
+              const dayIndex = context[0].dataIndex
+              return formatDate(allDays[dayIndex])
+            },
+            label: (context) => {
+              const label = context.dataset.label || ''
+              const value = formatCurrency(context.parsed.y)
+              return `${label}: ${value}`
+            }
+          }
+        }
+      },
+      scales: {
+        x: {
+          ticks: {
+            maxTicksLimit: fullscreen ? 20 : 10,
+            font: { size: fullscreen ? 12 : 10 }
+          }
+        },
+        y: {
+          beginAtZero: true,
+          ticks: {
+            callback: (value) => {
+              const num = value as number
+              return num >= 1000 ? `$${(num/1000).toFixed(0)}k` : `$${num}`
+            },
+            font: { size: fullscreen ? 12 : 10 }
+          }
+        }
+      }
+    }
+  })
+
+  if (fullscreen) {
+    trendChartFsInstance = instance
+  } else {
+    trendChartInstance = instance
+  }
+}
+
 const updateCharts = () => {
   nextTick(() => {
-    // Category spending chart
     if (categoryChart.value) {
-      const type = filters.value.transactionType
-      const filtered = chartTransactions.value.filter(t => {
-        if (type === 'income') return t.amount > 0
-        if (type === 'transfer') return t.isTransfer
-        return t.amount < 0 // expense or no filter — show expenses
-      })
-      const categoryData = filtered.reduce((acc, t) => {
-          const category = t.categoryName || 'Uncategorized'
-          acc[category] = (acc[category] || 0) + Math.abs(t.amount)
-          return acc
-        }, {} as Record<string, number>)
-      
-      const sortedCategories = Object.entries(categoryData)
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 8) // Top 8 categories for smaller chart
-      
-      if (categoryChartInstance) {
-        categoryChartInstance.destroy()
-      }
-      
-      categoryChartInstance = new Chart(categoryChart.value, {
-        type: 'doughnut',
-        data: {
-          labels: sortedCategories.map(([name]) => name),
-          datasets: [{
-            data: sortedCategories.map(([, amount]) => amount),
-            backgroundColor: [
-              '#3B82F6', '#10B981', '#F59E0B', '#EF4444', 
-              '#8B5CF6', '#EC4899', '#06B6D4', '#84CC16'
-            ]
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: {
-              position: 'bottom',
-              labels: {
-                boxWidth: 12,
-                font: {
-                  size: 10
-                }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                label: (context) => {
-                  const label = context.label || ''
-                  const value = formatCurrency(context.parsed)
-                  return `${label}: ${value}`
-                }
-              }
-            }
-          }
-        }
-      })
+      if (categoryChartInstance) { categoryChartInstance.destroy(); categoryChartInstance = null }
+      renderCategoryChart(categoryChart.value)
     }
-    
-    // Daily trend chart - always show full month
     if (trendChart.value) {
-      // Get current month or filtered month range
-      const now = new Date()
-      let startDate: Date
-      let endDate: Date
-      
-      if (filters.value.dateRange === 'thisMonth') {
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      } else if (filters.value.startDate && filters.value.endDate) {
-        startDate = new Date(filters.value.startDate)
-        endDate = new Date(filters.value.endDate)
-      } else {
-        // Default to current month
-        startDate = new Date(now.getFullYear(), now.getMonth(), 1)
-        endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      }
-      
-      // Create array of all days in the range
-      const allDays: string[] = []
-      const currentDate = new Date(startDate)
-      while (currentDate <= endDate) {
-        allDays.push(currentDate.toISOString().split('T')[0])
-        currentDate.setDate(currentDate.getDate() + 1)
-      }
-      
-      // Aggregate transaction data by date
-      const dailyData = chartTransactions.value.reduce((acc, t) => {
-        const date = t.transactionDate.split('T')[0]
-        if (!acc[date]) {
-          acc[date] = { income: 0, expense: 0 }
-        }
-        if (t.amount > 0) {
-          acc[date].income += t.amount
-        } else {
-          acc[date].expense += Math.abs(t.amount)
-        }
-        return acc
-      }, {} as Record<string, { income: number; expense: number }>)
-      
-      // Fill in missing days with 0 values
-      const completeData = allDays.map(date => ({
-        date,
-        income: dailyData[date]?.income || 0,
-        expense: dailyData[date]?.expense || 0
-      }))
-      
-      if (trendChartInstance) {
-        trendChartInstance.destroy()
-      }
-      
-      trendChartInstance = new Chart(trendChart.value, {
-        type: 'line',
-        data: {
-          labels: completeData.map(d => new Date(d.date).getDate().toString()),
-          datasets: [
-            {
-              label: 'Income',
-              data: completeData.map(d => d.income),
-              borderColor: '#10B981',
-              backgroundColor: 'rgba(16, 185, 129, 0.1)',
-              tension: 0.1,
-              pointRadius: 2
-            },
-            {
-              label: 'Expenses',
-              data: completeData.map(d => d.expense),
-              borderColor: '#EF4444',
-              backgroundColor: 'rgba(239, 68, 68, 0.1)',
-              tension: 0.1,
-              pointRadius: 2
-            }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: {
-            intersect: false,
-            mode: 'index'
-          },
-          plugins: {
-            legend: {
-              display: true,
-              labels: {
-                boxWidth: 12,
-                font: {
-                  size: 10
-                }
-              }
-            },
-            tooltip: {
-              callbacks: {
-                title: (context) => {
-                  const dayIndex = context[0].dataIndex
-                  const date = allDays[dayIndex]
-                  return formatDate(date)
-                },
-                label: (context) => {
-                  const label = context.dataset.label || ''
-                  const value = formatCurrency(context.parsed.y)
-                  return `${label}: ${value}`
-                }
-              }
-            }
-          },
-          scales: {
-            x: {
-              ticks: {
-                maxTicksLimit: 10,
-                font: {
-                  size: 10
-                }
-              }
-            },
-            y: {
-              beginAtZero: true,
-              ticks: {
-                callback: (value) => {
-                  const num = value as number
-                  return num >= 1000 ? `$${(num/1000).toFixed(0)}k` : `$${num}`
-                },
-                font: {
-                  size: 10
-                }
-              }
-            }
-          }
-        }
-      })
+      if (trendChartInstance) { trendChartInstance.destroy(); trendChartInstance = null }
+      renderTrendChart(trendChart.value)
     }
   })
 }
+
+watch(categoryChartFullscreen, async (val) => {
+  if (val) {
+    await nextTick()
+    renderCategoryChart(categoryChartFs.value, true)
+  } else {
+    if (categoryChartFsInstance) { categoryChartFsInstance.destroy(); categoryChartFsInstance = null }
+  }
+})
+
+watch(trendChartFullscreen, async (val) => {
+  if (val) {
+    await nextTick()
+    renderTrendChart(trendChartFs.value, true)
+  } else {
+    if (trendChartFsInstance) { trendChartFsInstance.destroy(); trendChartFsInstance = null }
+  }
+})
 
 // Watch for transactions changes to update charts
 watch(chartTransactions, () => {
