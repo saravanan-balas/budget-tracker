@@ -1,0 +1,28 @@
+name: Daily Log Cleanup
+
+on:
+  schedule:
+    - cron: '0 3 * * *'  # Every day at 3:00 AM UTC
+  workflow_dispatch:       # Allow manual trigger from GitHub UI
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+
+    steps:
+      - name: Install PostgreSQL client
+        run: |
+          sudo apt-get install -y curl ca-certificates
+          curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc | sudo gpg --dearmor -o /usr/share/keyrings/postgresql.gpg
+          echo "deb [signed-by=/usr/share/keyrings/postgresql.gpg] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" | sudo tee /etc/apt/sources.list.d/pgdg.list
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client-17
+
+      - name: Delete logs older than 24 hours
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          DELETED=$(psql "$DATABASE_URL" -t -c "DELETE FROM \"ApplicationLogs\" WHERE \"Timestamp\" < NOW() - INTERVAL '24 hours'; SELECT ROW_COUNT();")
+          echo "Deleted $DELETED log entries older than 24 hours"
