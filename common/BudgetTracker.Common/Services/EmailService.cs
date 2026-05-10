@@ -19,7 +19,7 @@ public class EmailService : IEmailService
     public async Task<bool> SendPasswordResetEmailAsync(string email, string resetToken, string firstName)
     {
         var frontendUrl = _configuration["AppSettings:FrontendUrl"];
-        var resetUrl = $"{frontendUrl}/auth/reset-password?token={resetToken}";
+        var resetUrl = $"{frontendUrl}/auth/reset-password?token={Uri.EscapeDataString(resetToken)}";
 
         var subject = "Reset your BudgetVu password";
         var body = $@"

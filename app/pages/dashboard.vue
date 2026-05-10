@@ -129,7 +129,18 @@
         <!-- Spending by Category Chart -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold">Spending by Category</h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold">Spending by Category</h2>
+              <button
+                @click="chartFullscreen = true"
+                class="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                title="Full screen"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+                </svg>
+              </button>
+            </div>
             <select v-model="categoryChartPeriod" @change="handleChartPeriodChange" class="text-sm border rounded-md px-2 py-1">
               <option value="thisMonth">This month</option>
               <option value="lastMonth">Last month</option>
@@ -185,8 +196,18 @@
 
     </div>
 
+    <!-- Chart Fullscreen Modal -->
+    <ChartFullscreenModal
+      v-if="chartFullscreen"
+      title="Spending by Category"
+      @close="chartFullscreen = false"
+    >
+      <CategoryChart v-if="categoryChartData.length > 0" :data="categoryChartData" />
+      <div v-else class="flex items-center justify-center h-full text-gray-500">No transaction data available</div>
+    </ChartFullscreenModal>
+
     <!-- Edit Transaction Modal -->
-    <EditTransactionModal 
+    <EditTransactionModal
       v-if="showEditModal && selectedTransaction"
       :transaction="selectedTransaction"
       @close="closeEditModal"
@@ -221,6 +242,7 @@ const monthlyTransactions = ref<Transaction[]>([])
 // Modal states
 const showEditModal = ref(false)
 const selectedTransaction = ref<Transaction | null>(null)
+const chartFullscreen = ref(false)
 
 // API
 const api = useApi()

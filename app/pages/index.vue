@@ -15,7 +15,7 @@
       </h1>
 
       <p class="text-blue-100 text-sm mb-5 max-w-sm sm:max-w-lg mx-auto px-2">
-        Connect your bank account, let AI sort your transactions, and finally understand your spending.
+        Import your bank statements, let AI sort your transactions, and finally understand your spending.
       </p>
 
       <div class="flex gap-3 justify-center flex-wrap">

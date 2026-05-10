@@ -66,7 +66,18 @@
         <!-- Category chart -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
           <div class="flex items-center justify-between mb-4">
-            <h2 class="text-lg font-semibold">Spending by Category</h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-lg font-semibold">Spending by Category</h2>
+              <button
+                @click="chartFullscreen = true"
+                class="p-1 rounded text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+                title="Full screen"
+              >
+                <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M4 8V4h4M20 8V4h-4M4 16v4h4M20 16v4h-4" />
+                </svg>
+              </button>
+            </div>
             <div class="text-sm text-gray-500">
               {{ formatMonthLabel(insights.periodStartUtc) }}
             </div>
@@ -81,6 +92,16 @@
             </div>
           </div>
         </div>
+
+        <!-- Chart Fullscreen Modal -->
+        <ChartFullscreenModal
+          v-if="chartFullscreen"
+          title="Spending by Category"
+          @close="chartFullscreen = false"
+        >
+          <CategoryChart v-if="categoryChartData.length > 0" :data="categoryChartData" />
+          <div v-else class="flex items-center justify-center h-full text-gray-500">No expense transactions found for this month.</div>
+        </ChartFullscreenModal>
 
         <!-- AI insights -->
         <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
@@ -191,6 +212,7 @@ const api = useApi()
 const loading = ref(false)
 const error = ref<string | null>(null)
 const insights = ref<MonthlyInsightsResponse | null>(null)
+const chartFullscreen = ref(false)
 
 const now = new Date()
 const selectedYear = ref(now.getFullYear())
