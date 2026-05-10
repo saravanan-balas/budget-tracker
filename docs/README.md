@@ -239,6 +239,17 @@ WHERE "Email" = 'user@example.com';
 
 **Important**: After granting admin access, the user must log out and log back in to receive a new JWT token with admin claims.
 
+## Scheduled Jobs
+
+Automated maintenance tasks run via GitHub Actions using the `DATABASE_URL` secret.
+
+| Workflow | Schedule | What it does |
+|---|---|---|
+| `log-cleanup.yml` | Daily at 3:00 AM UTC | Deletes `ApplicationLogs` entries older than 24 hours |
+| `db-backup.yml` | Every Sunday at 2:00 AM UTC | Runs `pg_dump` and uploads backup as a GitHub artifact (retained 90 days) |
+
+Both can be triggered manually from the GitHub Actions UI via `workflow_dispatch`.
+
 ## Deployment
 
 ### Azure Deployment
