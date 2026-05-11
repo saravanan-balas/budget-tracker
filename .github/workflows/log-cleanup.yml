@@ -24,5 +24,5 @@ jobs:
         env:
           DATABASE_URL: ${{ secrets.DATABASE_URL }}
         run: |
-          DELETED=$(psql "$DATABASE_URL" -t -c "DELETE FROM \"ApplicationLogs\" WHERE \"Timestamp\" < NOW() - INTERVAL '24 hours'; SELECT ROW_COUNT();")
+          DELETED=$(psql "$DATABASE_URL" -t -c "WITH deleted AS (DELETE FROM \"ApplicationLogs\" WHERE \"Timestamp\" < NOW() - INTERVAL '24 hours' RETURNING 1) SELECT COUNT(*) FROM deleted;")
           echo "Deleted $DELETED log entries older than 24 hours"
