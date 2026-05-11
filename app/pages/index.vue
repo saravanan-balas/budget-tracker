@@ -98,7 +98,7 @@ const authStore = useAuthStore()
 
 const howItWorks = [
   { title: 'Create account', desc: 'Sign up in 30 sec', color: 'bg-blue-600 text-white' },
-  { title: 'Connect your bank', desc: 'Download and upload statements', color: 'bg-blue-500 text-white' },
+  { title: 'Import statements', desc: 'Upload bank CSV', color: 'bg-blue-500 text-white' },
   { title: 'AI categorizes', desc: 'Automatic and smart', color: 'bg-violet-600 text-white' },
   { title: 'Get insights', desc: 'Ask anything', color: 'bg-green-600 text-white' }
 ]
