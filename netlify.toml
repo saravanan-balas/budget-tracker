@@ -1,4 +1,5 @@
 [build]
+  ignore = "exit 0"
   base = "app"
   # Use regular generate - Netlify will inject NUXT_PUBLIC_API_BASE_URL from [build.environment] below
   command = "npm run generate"
